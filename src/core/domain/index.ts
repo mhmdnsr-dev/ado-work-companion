@@ -1,7 +1,8 @@
 export {
-  clearPersistedSession,
-  loadPersistedSession,
+  clearConnectionLocalState,
+  emptyClientSettings,
+  loadConnectionHealth,
+  loadPersistedSettings,
   saveConnectionHealth,
   savePersistedSettings,
 } from './settings';
-export type { LoadedAppSession } from './settings';

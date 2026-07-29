@@ -4,66 +4,40 @@ import { ADO_API } from '../constants/api';
 import { adoPersistedSettingsSchema, type AdoPersistedSettings } from '../schemas/config';
 import type { ConnectionHealth, ThemePreference } from '../types/config';
 
-export interface LoadedAppSession {
-  settings: AdoPersistedSettings;
-  /** Present only when Remember PAT is enabled and a value was stored. */
-  pat: string | null;
-  connection: ConnectionHealth;
-}
+/**
+ * Client localStorage holds non-secret connection prefs.
+ * PAT lives only in an HttpOnly cookie set by POST /api/config.
+ */
 
-const DEFAULT_SETTINGS: AdoPersistedSettings = {
-  organization: '',
-  apiVersion: ADO_API.DEFAULT_VERSION,
-  theme: 'system',
-  rememberPat: false,
-};
-
-export async function loadPersistedSession(
+export async function loadPersistedSettings(
   storage: StorageAdapter,
-): Promise<LoadedAppSession> {
-  const raw = await storage.getItem(STORAGE_KEYS.ORGANIZATION);
-  const project = (await storage.getItem(STORAGE_KEYS.PROJECT)) ?? undefined;
+): Promise<AdoPersistedSettings> {
+  const organization = (await storage.getItem(STORAGE_KEYS.ORGANIZATION)) ?? '';
+  const projectRaw = await storage.getItem(STORAGE_KEYS.PROJECT);
   const apiVersion =
     (await storage.getItem(STORAGE_KEYS.API_VERSION)) ?? ADO_API.DEFAULT_VERSION;
   const theme = ((await storage.getItem(STORAGE_KEYS.THEME)) ??
     'system') as ThemePreference;
-  const rememberPat = (await storage.getItem(STORAGE_KEYS.REMEMBER_PAT)) === 'true';
-  const pat = rememberPat ? await storage.getItem(STORAGE_KEYS.PAT) : null;
-
-  const connectionRaw = await storage.getItem(STORAGE_KEYS.CONNECTION_STATUS);
-  let connection: ConnectionHealth = { status: 'unconfigured' };
-  if (connectionRaw) {
-    try {
-      connection = JSON.parse(connectionRaw) as ConnectionHealth;
-    } catch {
-      connection = { status: 'unknown' };
-    }
-  }
 
   const parsed = adoPersistedSettingsSchema.safeParse({
-    organization: raw ?? '',
-    project: project && project.length > 0 ? project : undefined,
+    organization,
+    project: projectRaw && projectRaw.length > 0 ? projectRaw : undefined,
     apiVersion,
     theme,
-    rememberPat,
   });
 
-  return {
-    settings: parsed.success ? parsed.data : { ...DEFAULT_SETTINGS },
-    pat,
-    connection:
-      parsed.success && parsed.data.organization
-        ? connection.status === 'unconfigured'
-          ? { status: 'unknown' }
-          : connection
-        : { status: 'unconfigured' },
-  };
+  return parsed.success
+    ? parsed.data
+    : {
+        organization: '',
+        apiVersion: ADO_API.DEFAULT_VERSION,
+        theme: 'system',
+      };
 }
 
 export async function savePersistedSettings(
   storage: StorageAdapter,
   settings: AdoPersistedSettings,
-  pat: string | null,
 ): Promise<void> {
   await storage.setItem(STORAGE_KEYS.ORGANIZATION, settings.organization);
   if (settings.project) {
@@ -73,12 +47,20 @@ export async function savePersistedSettings(
   }
   await storage.setItem(STORAGE_KEYS.API_VERSION, settings.apiVersion);
   await storage.setItem(STORAGE_KEYS.THEME, settings.theme);
-  await storage.setItem(STORAGE_KEYS.REMEMBER_PAT, String(settings.rememberPat));
+  // Never persist PAT or rememberPat leftovers.
+  await storage.removeItem(STORAGE_KEYS.PAT);
+  await storage.removeItem(STORAGE_KEYS.REMEMBER_PAT);
+}
 
-  if (settings.rememberPat && pat) {
-    await storage.setItem(STORAGE_KEYS.PAT, pat);
-  } else {
-    await storage.removeItem(STORAGE_KEYS.PAT);
+export async function loadConnectionHealth(
+  storage: StorageAdapter,
+): Promise<ConnectionHealth> {
+  const connectionRaw = await storage.getItem(STORAGE_KEYS.CONNECTION_STATUS);
+  if (!connectionRaw) return { status: 'unconfigured' };
+  try {
+    return JSON.parse(connectionRaw) as ConnectionHealth;
+  } catch {
+    return { status: 'unknown' };
   }
 }
 
@@ -89,14 +71,31 @@ export async function saveConnectionHealth(
   await storage.setItem(STORAGE_KEYS.CONNECTION_STATUS, JSON.stringify(health));
 }
 
-export async function clearPersistedSession(storage: StorageAdapter): Promise<void> {
+/** Wipe connection prefs + health (theme can be preserved by caller). */
+export async function clearConnectionLocalState(
+  storage: StorageAdapter,
+  options?: { keepTheme?: boolean },
+): Promise<void> {
+  const theme = options?.keepTheme ? await storage.getItem(STORAGE_KEYS.THEME) : null;
   await Promise.all([
     storage.removeItem(STORAGE_KEYS.ORGANIZATION),
     storage.removeItem(STORAGE_KEYS.PROJECT),
     storage.removeItem(STORAGE_KEYS.API_VERSION),
-    storage.removeItem(STORAGE_KEYS.THEME),
     storage.removeItem(STORAGE_KEYS.REMEMBER_PAT),
     storage.removeItem(STORAGE_KEYS.PAT),
     storage.removeItem(STORAGE_KEYS.CONNECTION_STATUS),
   ]);
+  if (theme) {
+    await storage.setItem(STORAGE_KEYS.THEME, theme);
+  }
+}
+
+export function emptyClientSettings(
+  theme: ThemePreference = 'system',
+): AdoPersistedSettings {
+  return {
+    organization: '',
+    apiVersion: ADO_API.DEFAULT_VERSION,
+    theme,
+  };
 }

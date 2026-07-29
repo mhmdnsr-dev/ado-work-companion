@@ -1,11 +1,11 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, PlugZap, RotateCcw, Save, FolderSync } from 'lucide-react';
+import { FolderSync, Loader2, PlugZap, RotateCcw, Save } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
 
 import { ADO_API } from '@core/constants';
 import {
@@ -28,7 +28,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Field,
   FieldDescription,
@@ -58,11 +57,12 @@ export function ConfigurationForm() {
   const {
     hydrated,
     settings,
-    pat,
     health,
     projects,
     projectsError,
     projectsLoading,
+    isConfigured,
+    hasServerPat,
     saveConfiguration,
     resetConfiguration,
     testConnection,
@@ -80,7 +80,6 @@ export function ConfigurationForm() {
       project: '',
       apiVersion: ADO_API.DEFAULT_VERSION,
       pat: '',
-      rememberPat: false,
     },
     mode: 'onBlur',
   });
@@ -91,44 +90,55 @@ export function ConfigurationForm() {
       organization: settings.organization,
       project: settings.project ?? '',
       apiVersion: settings.apiVersion || ADO_API.DEFAULT_VERSION,
-      pat,
-      rememberPat: settings.rememberPat,
+      pat: '',
     });
-  }, [hydrated, settings, pat, form]);
+  }, [hydrated, settings, form]);
 
   const organization = form.watch('organization');
   const patValue = form.watch('pat');
-  const canCallApi = Boolean(organization?.trim() && patValue);
+  const canCallApi = Boolean(organization?.trim() && (patValue || hasServerPat));
 
-  async function persistCurrentValues(values: AdoConnectionFormValues) {
-    await saveConfiguration({
+  function toLiveCredentials(values: AdoConnectionFormValues) {
+    return {
       organization: values.organization,
       project: normalizeOptionalProject(values.project),
       apiVersion: values.apiVersion,
       pat: values.pat,
-      rememberPat: values.rememberPat,
+    };
+  }
+
+  async function ensurePatPresent(values: AdoConnectionFormValues): Promise<boolean> {
+    if (values.pat.trim() || hasServerPat) return true;
+    form.setError('pat', {
+      type: 'manual',
+      message: 'A personal access token is required',
     });
+    toast.error('Please enter your personal access token to continue');
+    return false;
   }
 
   async function onSave(values: AdoConnectionFormValues) {
+    if (!(await ensurePatPresent(values))) return;
+
     setSaving(true);
     try {
-      await persistCurrentValues(values);
-      toast.success('Configuration saved');
+      await saveConfiguration(toLiveCredentials(values));
+      form.setValue('pat', '');
+      toast.success('Connection settings saved');
 
-      if (values.organization && values.pat) {
+      if (values.organization) {
         try {
           setLoadingProjects(true);
-          await loadProjects();
+          await loadProjects(toLiveCredentials({ ...values, pat: values.pat }));
         } catch {
-          // Manual project entry remains available; error shown via context.
+          // Manual project entry remains available.
         } finally {
           setLoadingProjects(false);
         }
       }
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : 'Failed to save configuration',
+        error instanceof Error ? error.message : 'Could not save your settings. Please try again.',
       );
     } finally {
       setSaving(false);
@@ -136,22 +146,30 @@ export function ConfigurationForm() {
   }
 
   async function onTestConnection() {
-    const valid = await form.trigger(['organization', 'pat', 'apiVersion']);
+    const valid = await form.trigger(['organization', 'apiVersion']);
     if (!valid) return;
 
     const values = form.getValues();
+    if (!(await ensurePatPresent(values))) return;
+
     setTesting(true);
     try {
-      await persistCurrentValues(values);
-      const result = await testConnection();
-      toast.success(`Connected — ${result.projectCount} project(s) available`);
+      const result = await testConnection(toLiveCredentials(values));
+      form.setValue('pat', '');
+      toast.success(
+        result.projectCount === 1
+          ? 'Connected — 1 project found'
+          : `Connected — ${result.projectCount} projects found`,
+      );
     } catch (error) {
       if (error instanceof AdoClientError) {
         toast.error(error.message, {
           description: error.suggestions[0],
         });
       } else {
-        toast.error(error instanceof Error ? error.message : 'Connection test failed');
+        toast.error(
+          error instanceof Error ? error.message : 'Could not reach Azure DevOps. Please try again.',
+        );
       }
     } finally {
       setTesting(false);
@@ -159,20 +177,26 @@ export function ConfigurationForm() {
   }
 
   async function onLoadProjects() {
-    const valid = await form.trigger(['organization', 'pat', 'apiVersion']);
+    const valid = await form.trigger(['organization', 'apiVersion']);
     if (!valid) return;
 
     const values = form.getValues();
+    if (!(await ensurePatPresent(values))) return;
+
     setLoadingProjects(true);
     try {
-      await persistCurrentValues(values);
-      const list = await loadProjects();
-      toast.success(`Loaded ${list.length} project(s)`);
+      const list = await loadProjects(toLiveCredentials(values));
+      form.setValue('pat', '');
+      toast.success(
+        list.length === 1 ? 'Loaded 1 project' : `Loaded ${list.length} projects`,
+      );
     } catch (error) {
       if (error instanceof AdoClientError) {
         toast.error(error.message, { description: error.suggestions[0] });
       } else {
-        toast.error(error instanceof Error ? error.message : 'Failed to load projects');
+        toast.error(
+          error instanceof Error ? error.message : 'Could not load projects. Please try again.',
+        );
       }
     } finally {
       setLoadingProjects(false);
@@ -186,14 +210,13 @@ export function ConfigurationForm() {
       project: '',
       apiVersion: ADO_API.DEFAULT_VERSION,
       pat: '',
-      rememberPat: false,
     });
-    toast.message('Configuration reset');
+    toast.message('Connection settings cleared');
   }
 
   function onContinue() {
-    if (!canCallApi) {
-      toast.error('Save organization and PAT before continuing');
+    if (!isConfigured && !canCallApi) {
+      toast.error('Save your organization and access token before continuing');
       return;
     }
     router.push('/dashboard');
@@ -224,14 +247,33 @@ export function ConfigurationForm() {
             <p className="mb-1 text-xs tracking-wide text-muted-foreground uppercase">
               Azure DevOps
             </p>
-            <CardTitle className="text-2xl">Connect your organization</CardTitle>
+            <CardTitle className="text-2xl">
+              {isConfigured ? 'Update connection' : 'Connect your organization'}
+            </CardTitle>
           </div>
           {statusBadge(health.status)}
         </div>
         <CardDescription>
-          Project is optional. Leave it empty to use organization-scoped APIs. Your PAT is
-          never placed in URLs and is only stored locally when Remember PAT is enabled.
+          Enter your Azure DevOps organization and personal access token to get started.
+          Project is optional — leave it blank to work at the organization level. Your
+          token is kept securely on this device and is never placed in URLs.
         </CardDescription>
+        {hasServerPat ? (
+          <Alert>
+            <AlertTitle>Token already saved</AlertTitle>
+            <AlertDescription>
+              You can leave the token field empty to keep your current token, or enter a
+              new one to replace it.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+        <Alert>
+          <AlertTitle>Need a fresh start?</AlertTitle>
+          <AlertDescription>
+            Reset clears your saved connection settings and access token from this
+            device. You can set them up again anytime on this page.
+          </AlertDescription>
+        </Alert>
         {health.message ? (
           <Alert variant={health.status === 'failed' ? 'destructive' : 'default'}>
             <AlertTitle>Connection status</AlertTitle>
@@ -282,33 +324,11 @@ export function ConfigurationForm() {
                     aria-invalid={fieldState.invalid}
                   />
                   <FieldDescription id="pat-hint">
-                    Create a PAT with at least Project (Read) scope. Show, copy, or clear
-                    without exposing it in the address bar.
+                    {hasServerPat
+                      ? 'Leave blank to keep your saved token, or enter a new one to replace it.'
+                      : 'Required. Create a token in Azure DevOps with at least Project (Read) access.'}
                   </FieldDescription>
                   {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
-                </Field>
-              )}
-            />
-
-            <Controller
-              name="rememberPat"
-              control={form.control}
-              render={({ field }) => (
-                <Field orientation="horizontal" className="items-center">
-                  <Checkbox
-                    id="rememberPat"
-                    checked={field.value}
-                    onCheckedChange={(checked) => field.onChange(checked === true)}
-                    className="size-5"
-                  />
-                  <div className="min-w-0">
-                    <FieldLabel htmlFor="rememberPat" className="font-normal">
-                      Remember PAT on this device
-                    </FieldLabel>
-                    <FieldDescription>
-                      Off by default. When enabled, the token is stored in localStorage.
-                    </FieldDescription>
-                  </div>
                 </Field>
               )}
             />
@@ -333,8 +353,8 @@ export function ConfigurationForm() {
                     allowManualEntry
                   />
                   <FieldDescription>
-                    Searchable list loads after a successful organization + PAT save or
-                    connection test. Manual entry always works.
+                    Choose a project after connecting, or type a name manually. Leave
+                    empty to use organization-wide APIs.
                   </FieldDescription>
                 </Field>
               )}
@@ -354,8 +374,8 @@ export function ConfigurationForm() {
                     className="touch-target h-11 font-mono"
                   />
                   <FieldDescription>
-                    Default is {ADO_API.DEFAULT_VERSION} (Azure DevOps REST 7.2). Override
-                    only when an endpoint requires a preview version.
+                    Defaults to {ADO_API.DEFAULT_VERSION}. Change this only if a specific
+                    API needs a different version.
                   </FieldDescription>
                   {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
                 </Field>
@@ -424,9 +444,9 @@ export function ConfigurationForm() {
           variant="default"
           className="touch-target h-11 w-full"
           onClick={onContinue}
-          disabled={!canCallApi}
+          disabled={!isConfigured && !canCallApi}
         >
-          Continue to Dashboard
+          {isConfigured ? 'Back to Dashboard' : 'Continue to Dashboard'}
         </Button>
       </CardFooter>
     </Card>

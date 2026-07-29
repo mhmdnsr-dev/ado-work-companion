@@ -1,51 +1,58 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+import { buildPatAuthorizationHeader } from '@core/utils';
+
+import { applyCorsHeaders, corsPreflightResponse, jsonWithCors } from '@/lib/server/cors';
+import { readPatFromRequest } from '@/lib/server/pat-cookie';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const ADO_HOST = 'dev.azure.com';
-const FORWARDED_REQUEST_HEADERS = [
-  'accept',
-  'content-type',
-  'authorization',
-  'x-tfs-fedauthredirect',
-] as const;
 
 /**
  * Server-side proxy to Azure DevOps REST API.
- * Keeps PAT out of browser→ADO cross-origin traffic and avoids CORS failures.
+ * PAT is decrypted from the HttpOnly `ado_pat` cookie — never from the browser body.
  *
- * Client calls: `/api/ado/{organization}/_apis/...`
+ * Client calls: `/api/ado/{organization}/_apis/...` (credentials: include)
  * Proxied to:   `https://dev.azure.com/{organization}/_apis/...`
  */
 async function proxy(request: NextRequest, pathSegments: string[]): Promise<Response> {
   if (pathSegments.length === 0) {
-    return NextResponse.json(
+    return jsonWithCors(
+      request,
       { message: 'Missing Azure DevOps path. Expected /api/ado/{organization}/...' },
       { status: 400 },
     );
   }
 
-  const authorization = request.headers.get('authorization');
-  if (!authorization) {
-    return NextResponse.json(
-      { message: 'Authorization header is required.' },
+  const pat = readPatFromRequest(request);
+  if (!pat) {
+    return jsonWithCors(
+      request,
+      {
+        message: 'No access token found. Please save your connection settings first.',
+        hasPat: false,
+        configured: false,
+      },
       { status: 401 },
     );
   }
 
-  const targetPath = pathSegments.map(encodeURIComponent).join('/');
+  const targetPath = pathSegments.map((segment) => encodeURIComponent(segment)).join('/');
   const targetUrl = new URL(`https://${ADO_HOST}/${targetPath}`);
   request.nextUrl.searchParams.forEach((value, key) => {
     targetUrl.searchParams.set(key, value);
   });
 
   const headers = new Headers();
-  for (const name of FORWARDED_REQUEST_HEADERS) {
-    const value = request.headers.get(name);
-    if (value) headers.set(name, value);
-  }
+  headers.set('Accept', request.headers.get('accept') ?? 'application/json');
+  headers.set('Authorization', buildPatAuthorizationHeader(pat));
+  headers.set('X-TFS-FedAuthRedirect', 'Suppress');
+
+  const contentType = request.headers.get('content-type');
+  if (contentType) headers.set('Content-Type', contentType);
 
   const method = request.method.toUpperCase();
   const hasBody = method !== 'GET' && method !== 'HEAD';
@@ -61,7 +68,8 @@ async function proxy(request: NextRequest, pathSegments: string[]): Promise<Resp
       redirect: 'manual',
     });
   } catch (error) {
-    return NextResponse.json(
+    return jsonWithCors(
+      request,
       {
         message:
           error instanceof Error
@@ -73,8 +81,8 @@ async function proxy(request: NextRequest, pathSegments: string[]): Promise<Resp
   }
 
   const responseHeaders = new Headers();
-  const contentType = upstream.headers.get('content-type');
-  if (contentType) responseHeaders.set('content-type', contentType);
+  const upstreamContentType = upstream.headers.get('content-type');
+  if (upstreamContentType) responseHeaders.set('content-type', upstreamContentType);
 
   const activityId = upstream.headers.get('x-vms-activityid');
   if (activityId) responseHeaders.set('x-vms-activityid', activityId);
@@ -83,14 +91,20 @@ async function proxy(request: NextRequest, pathSegments: string[]): Promise<Resp
 
   responseHeaders.set('cache-control', 'no-store');
 
-  return new NextResponse(upstream.body, {
+  const response = new NextResponse(upstream.body, {
     status: upstream.status,
     statusText: upstream.statusText,
     headers: responseHeaders,
   });
+
+  return applyCorsHeaders(request, response);
 }
 
 type RouteContext = { params: Promise<{ path: string[] }> };
+
+export async function OPTIONS(request: NextRequest) {
+  return corsPreflightResponse(request);
+}
 
 export async function GET(request: NextRequest, context: RouteContext) {
   const { path } = await context.params;

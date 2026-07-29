@@ -11,9 +11,12 @@ import {
 } from 'react';
 
 import { AzureDevOpsApi } from '@core/api';
+import { ADO_API, STORAGE_KEYS } from '@core/constants';
 import {
-  clearPersistedSession,
-  loadPersistedSession,
+  clearConnectionLocalState,
+  emptyClientSettings,
+  loadConnectionHealth,
+  loadPersistedSettings,
   saveConnectionHealth,
   savePersistedSettings,
 } from '@core/domain';
@@ -24,13 +27,24 @@ import type {
   TeamProjectReference,
   ThemePreference,
 } from '@core/types';
-import { ADO_API } from '@core/constants';
 import { createFetchHttpClient, createLocalStorageAdapter } from '@/lib/adapters';
+import { clearPatCookie, fetchPatStatus, savePatCookie } from '@/lib/config-api';
+
+/** Live form values — org prefs → localStorage; PAT → HttpOnly cookie via /api/config. */
+export interface LiveConnectionCredentials {
+  organization: string;
+  project?: string;
+  apiVersion: string;
+  /** Empty keeps the existing HttpOnly PAT cookie when one already exists. */
+  pat: string;
+}
 
 interface ConnectionContextValue {
   hydrated: boolean;
   settings: AdoPersistedSettings;
+  /** Always empty after hydrate — PAT is never kept in React state long-term. */
   pat: string;
+  hasServerPat: boolean;
   health: ConnectionHealth;
   recentRequests: RequestInspectionRecord[];
   projects: TeamProjectReference[];
@@ -38,35 +52,23 @@ interface ConnectionContextValue {
   projectsLoading: boolean;
   api: AzureDevOpsApi | null;
   isConfigured: boolean;
-  setPat: (value: string) => void;
-  saveConfiguration: (input: {
-    organization: string;
-    project?: string;
-    apiVersion: string;
-    pat: string;
-    rememberPat: boolean;
-    theme?: ThemePreference;
-  }) => Promise<void>;
+  saveConfiguration: (input: LiveConnectionCredentials) => Promise<AzureDevOpsApi | null>;
   resetConfiguration: () => Promise<void>;
-  testConnection: () => Promise<{ projectCount: number }>;
-  loadProjects: () => Promise<TeamProjectReference[]>;
+  testConnection: (
+    credentials?: LiveConnectionCredentials,
+  ) => Promise<{ projectCount: number }>;
+  loadProjects: (
+    credentials?: LiveConnectionCredentials,
+  ) => Promise<TeamProjectReference[]>;
   setThemePreference: (theme: ThemePreference) => Promise<void>;
 }
 
 const ConnectionContext = createContext<ConnectionContextValue | null>(null);
 
-const EMPTY_SETTINGS: AdoPersistedSettings = {
-  organization: '',
-  apiVersion: ADO_API.DEFAULT_VERSION,
-  theme: 'system',
-  rememberPat: false,
-};
-
 function createApi(params: {
   organization: string;
   project?: string;
   apiVersion: string;
-  pat: string;
   onRequestComplete: (record: RequestInspectionRecord) => void;
 }): AzureDevOpsApi {
   return new AzureDevOpsApi({
@@ -74,7 +76,6 @@ function createApi(params: {
     organization: params.organization,
     project: params.project,
     apiVersion: params.apiVersion,
-    pat: params.pat,
     proxyBaseUrl: '/api/ado',
     onRequestComplete: params.onRequestComplete,
   });
@@ -83,8 +84,8 @@ function createApi(params: {
 export function ConnectionProvider({ children }: { children: ReactNode }) {
   const storage = useMemo(() => createLocalStorageAdapter(), []);
   const [hydrated, setHydrated] = useState(false);
-  const [settings, setSettings] = useState<AdoPersistedSettings>(EMPTY_SETTINGS);
-  const [pat, setPatState] = useState('');
+  const [settings, setSettings] = useState<AdoPersistedSettings>(emptyClientSettings());
+  const [hasServerPat, setHasServerPat] = useState(false);
   const [health, setHealth] = useState<ConnectionHealth>({ status: 'unconfigured' });
   const [recentRequests, setRecentRequests] = useState<RequestInspectionRecord[]>([]);
   const [projects, setProjects] = useState<TeamProjectReference[]>([]);
@@ -97,17 +98,17 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const rebuildApi = useCallback(
-    (next: {
-      organization: string;
-      project?: string;
-      apiVersion: string;
-      pat: string;
-    }) => {
-      if (!next.organization || !next.pat) {
+    (next: { organization: string; project?: string; apiVersion: string }) => {
+      if (!next.organization.trim()) {
         setApi(null);
         return null;
       }
-      const instance = createApi({ ...next, onRequestComplete: pushInspection });
+      const instance = createApi({
+        organization: next.organization.trim(),
+        project: next.project?.trim() || undefined,
+        apiVersion: next.apiVersion.trim() || ADO_API.DEFAULT_VERSION,
+        onRequestComplete: pushInspection,
+      });
       setApi(instance);
       return instance;
     },
@@ -118,18 +119,44 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     void (async () => {
-      const session = await loadPersistedSession(storage);
+      const persisted = await loadPersistedSettings(storage);
+      const localHealth = await loadConnectionHealth(storage);
+
+      // Purge any legacy plaintext PAT from older builds.
+      await storage.removeItem(STORAGE_KEYS.PAT);
+      await storage.removeItem(STORAGE_KEYS.REMEMBER_PAT);
+
+      let patStatus = { hasPat: false };
+      try {
+        patStatus = await fetchPatStatus();
+      } catch {
+        patStatus = { hasPat: false };
+      }
+
       if (cancelled) return;
 
-      setSettings(session.settings);
-      setPatState(session.pat ?? '');
-      setHealth(session.connection);
-      rebuildApi({
-        organization: session.settings.organization,
-        project: session.settings.project,
-        apiVersion: session.settings.apiVersion,
-        pat: session.pat ?? '',
-      });
+      setSettings(persisted);
+      setHasServerPat(patStatus.hasPat);
+
+      const configured = Boolean(persisted.organization && patStatus.hasPat);
+      setHealth(
+        configured
+          ? localHealth.status === 'unconfigured'
+            ? { status: 'unknown' }
+            : localHealth
+          : { status: 'unconfigured' },
+      );
+
+      if (configured) {
+        rebuildApi({
+          organization: persisted.organization,
+          project: persisted.project,
+          apiVersion: persisted.apiVersion || ADO_API.DEFAULT_VERSION,
+        });
+      } else {
+        setApi(null);
+      }
+
       setHydrated(true);
     })();
 
@@ -138,122 +165,144 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
     };
   }, [rebuildApi, storage]);
 
-  const setPat = useCallback((value: string) => {
-    setPatState(value);
-  }, []);
-
-  const saveConfiguration: ConnectionContextValue['saveConfiguration'] = useCallback(
-    async (input) => {
+  const saveConfiguration = useCallback(
+    async (input: LiveConnectionCredentials) => {
       const nextSettings: AdoPersistedSettings = {
         organization: input.organization.trim(),
         project: input.project?.trim() || undefined,
         apiVersion: input.apiVersion.trim() || ADO_API.DEFAULT_VERSION,
-        theme: input.theme ?? settings.theme,
-        rememberPat: input.rememberPat,
+        theme: settings.theme,
       };
 
-      await savePersistedSettings(storage, nextSettings, input.pat);
+      await savePersistedSettings(storage, nextSettings);
       setSettings(nextSettings);
-      setPatState(input.pat);
-      rebuildApi({
+
+      const patStatus = await savePatCookie(input.pat.trim());
+      setHasServerPat(patStatus.hasPat);
+
+      if (!patStatus.hasPat || !nextSettings.organization) {
+        setApi(null);
+        setHealth({ status: 'unconfigured' });
+        return null;
+      }
+
+      if (health.status === 'unconfigured') {
+        setHealth({ status: 'unknown' });
+      }
+
+      return rebuildApi({
         organization: nextSettings.organization,
         project: nextSettings.project,
         apiVersion: nextSettings.apiVersion,
-        pat: input.pat,
       });
-
-      if (!nextSettings.organization) {
-        setHealth({ status: 'unconfigured' });
-      } else if (health.status === 'unconfigured') {
-        setHealth({ status: 'unknown' });
-      }
     },
     [health.status, rebuildApi, settings.theme, storage],
   );
 
   const resetConfiguration = useCallback(async () => {
-    await clearPersistedSession(storage);
-    setSettings(EMPTY_SETTINGS);
-    setPatState('');
+    await clearPatCookie();
+    await clearConnectionLocalState(storage, { keepTheme: true });
+    setSettings(emptyClientSettings(settings.theme));
+    setHasServerPat(false);
     setHealth({ status: 'unconfigured' });
     setProjects([]);
     setProjectsError(null);
     setApi(null);
-  }, [storage]);
+  }, [settings.theme, storage]);
 
-  const testConnection = useCallback(async () => {
-    if (!api) {
-      throw new Error('Save organization and PAT before testing the connection.');
-    }
+  const resolveApi = useCallback(
+    async (credentials?: LiveConnectionCredentials): Promise<AzureDevOpsApi> => {
+      if (credentials) {
+        const instance = await saveConfiguration(credentials);
+        if (!instance) {
+          throw new Error('Please save your organization and access token first.');
+        }
+        return instance;
+      }
+      if (!api) {
+        throw new Error('Please save your connection settings first.');
+      }
+      return api;
+    },
+    [api, saveConfiguration],
+  );
 
-    try {
-      const result = await api.testConnection();
-      const nextHealth: ConnectionHealth = {
-        status: 'connected',
-        checkedAt: new Date().toISOString(),
-        message: `Connected — ${result.data.projectCount} project(s) visible`,
-        organizationName: result.data.organization,
-      };
-      setHealth(nextHealth);
-      await saveConnectionHealth(storage, nextHealth);
-      setProjects(result.data.projects);
+  const testConnection = useCallback(
+    async (credentials?: LiveConnectionCredentials) => {
+      const client = await resolveApi(credentials);
+
+      try {
+        const result = await client.testConnection();
+        const nextHealth: ConnectionHealth = {
+          status: 'connected',
+          checkedAt: new Date().toISOString(),
+          message: `Connected — ${result.data.projectCount} project${result.data.projectCount === 1 ? '' : 's'} available`,
+          organizationName: result.data.organization,
+        };
+        setHealth(nextHealth);
+        await saveConnectionHealth(storage, nextHealth);
+        setProjects(result.data.projects);
+        setProjectsError(null);
+        return { projectCount: result.data.projectCount };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Connection failed';
+        const nextHealth: ConnectionHealth = {
+          status: 'failed',
+          checkedAt: new Date().toISOString(),
+          message,
+        };
+        setHealth(nextHealth);
+        await saveConnectionHealth(storage, nextHealth);
+        throw error;
+      }
+    },
+    [resolveApi, storage],
+  );
+
+  const loadProjects = useCallback(
+    async (credentials?: LiveConnectionCredentials) => {
+      const client = await resolveApi(credentials);
+
+      setProjectsLoading(true);
       setProjectsError(null);
-      return { projectCount: result.data.projectCount };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Connection failed';
-      const nextHealth: ConnectionHealth = {
-        status: 'failed',
-        checkedAt: new Date().toISOString(),
-        message,
-      };
-      setHealth(nextHealth);
-      await saveConnectionHealth(storage, nextHealth);
-      throw error;
-    }
-  }, [api, storage]);
-
-  const loadProjects = useCallback(async () => {
-    if (!api) {
-      throw new Error('Save organization and PAT before loading projects.');
-    }
-
-    setProjectsLoading(true);
-    setProjectsError(null);
-    try {
-      const result = await api.listProjects();
-      setProjects(result.data);
-      return result.data;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to load projects';
-      setProjectsError(message);
-      throw error;
-    } finally {
-      setProjectsLoading(false);
-    }
-  }, [api]);
+      try {
+        const result = await client.listProjects();
+        setProjects(result.data);
+        return result.data;
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Failed to load projects';
+        setProjectsError(message);
+        throw error;
+      } finally {
+        setProjectsLoading(false);
+      }
+    },
+    [resolveApi],
+  );
 
   const setThemePreference = useCallback(
     async (theme: ThemePreference) => {
       const next = { ...settings, theme };
       setSettings(next);
-      await savePersistedSettings(storage, next, settings.rememberPat ? pat : null);
+      await savePersistedSettings(storage, next);
     },
-    [pat, settings, storage],
+    [settings, storage],
   );
 
   const value = useMemo<ConnectionContextValue>(
     () => ({
       hydrated,
       settings,
-      pat,
+      pat: '',
+      hasServerPat,
       health,
       recentRequests,
       projects,
       projectsError,
       projectsLoading,
       api,
-      isConfigured: Boolean(settings.organization && pat),
-      setPat,
+      isConfigured: Boolean(settings.organization && hasServerPat),
       saveConfiguration,
       resetConfiguration,
       testConnection,
@@ -263,14 +312,13 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
     [
       hydrated,
       settings,
-      pat,
+      hasServerPat,
       health,
       recentRequests,
       projects,
       projectsError,
       projectsLoading,
       api,
-      setPat,
       saveConfiguration,
       resetConfiguration,
       testConnection,

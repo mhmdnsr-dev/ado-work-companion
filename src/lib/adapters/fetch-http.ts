@@ -31,6 +31,8 @@ export function createFetchHttpClient(): HttpClient {
           body: request.body ?? undefined,
           signal: controller.signal,
           cache: 'no-store',
+          // Required so the browser sends the HttpOnly `ado_pat` cookie.
+          credentials: 'include',
         });
 
         const bodyText = await response.text();

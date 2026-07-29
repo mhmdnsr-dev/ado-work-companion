@@ -2,7 +2,8 @@ import type { StorageAdapter } from '@core/ports';
 
 /**
  * Browser localStorage adapter.
- * PAT persistence is gated by the "Remember PAT" flag at the settings layer.
+ * Non-secret prefs (org, project, apiVersion, theme) may be written here.
+ * PATs belong in the HttpOnly `ado_pat` cookie via POST /api/config.
  */
 export function createLocalStorageAdapter(): StorageAdapter {
   return {

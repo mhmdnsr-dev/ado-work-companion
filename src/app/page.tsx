@@ -1,9 +1,9 @@
-import { redirect } from 'next/navigation';
+import { HomeGate } from '@/components/providers/home-gate';
 
 /**
- * Entry redirects into the configuration gate.
- * Step 2 will add persistence-aware routing (configured → /dashboard).
+ * Entry: configured users → dashboard; otherwise → configure.
+ * Org prefs live in localStorage; PAT lives in an HttpOnly cookie.
  */
 export default function HomePage() {
-  redirect('/configure');
+  return <HomeGate />;
 }

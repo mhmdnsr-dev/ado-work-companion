@@ -33,10 +33,10 @@ export function PatInput({
     try {
       await navigator.clipboard.writeText(value);
       setCopied(true);
-      toast.success('PAT copied to clipboard');
+      toast.success('Access token copied');
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
-      toast.error('Unable to copy PAT');
+      toast.error('Could not copy the access token');
     }
   }
 

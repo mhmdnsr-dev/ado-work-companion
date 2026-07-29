@@ -1,6 +1,7 @@
 /**
  * Connection configuration for Azure DevOps.
  * Project is intentionally optional — org-only mode must remain fully usable.
+ * PAT is never part of client-persisted settings (server HttpOnly session only).
  */
 export type ThemePreference = 'light' | 'dark' | 'system';
 
@@ -9,7 +10,6 @@ export interface AdoConnectionConfig {
   /** Empty string / undefined = organization-scoped mode. */
   project?: string;
   apiVersion: string;
-  rememberPat: boolean;
 }
 
 export interface AdoRuntimeCredentials {

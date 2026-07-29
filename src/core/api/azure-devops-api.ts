@@ -22,7 +22,12 @@ export interface AzureDevOpsApiOptions {
   organization: string;
   project?: string;
   apiVersion?: string;
-  pat: string;
+  /**
+   * Only required for direct (non-proxy) calls.
+   * When `proxyBaseUrl` is set, the Next.js proxy injects the PAT from the
+   * HttpOnly server session — do not send Authorization from the browser.
+   */
+  pat?: string;
   /**
    * When set, requests go to this origin instead of dev.azure.com
    * (e.g. `/api/ado` Next.js proxy). The proxy reconstructs the ADO URL.
@@ -118,9 +123,15 @@ export class AzureDevOpsApi {
     this.organization = options.organization.trim();
     this.project = options.project?.trim() || undefined;
     this.apiVersion = options.apiVersion?.trim() || ADO_API.DEFAULT_VERSION;
-    this.pat = options.pat;
+    this.pat = options.pat ?? '';
     this.proxyBaseUrl = options.proxyBaseUrl?.replace(/\/+$/, '');
     this.onRequestComplete = options.onRequestComplete;
+
+    if (!this.proxyBaseUrl && !this.pat) {
+      throw new Error(
+        'AzureDevOpsApi requires either proxyBaseUrl (session auth) or a PAT.',
+      );
+    }
   }
 
   updateConfig(partial: {
@@ -248,9 +259,13 @@ export class AzureDevOpsApi {
 
     const headers: Record<string, string> = {
       Accept: ADO_JSON_CONTENT_TYPE,
-      Authorization: buildPatAuthorizationHeader(this.pat),
       'X-TFS-FedAuthRedirect': 'Suppress',
     };
+
+    // Proxy mode: PAT stays on the server (HttpOnly session). Never attach it here.
+    if (!this.proxyBaseUrl) {
+      headers.Authorization = buildPatAuthorizationHeader(this.pat);
+    }
 
     let bodyText: string | null = null;
     if (options.body !== undefined && options.body !== null) {
