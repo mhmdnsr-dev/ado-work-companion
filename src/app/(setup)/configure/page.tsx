@@ -1,34 +1,24 @@
 import type { Metadata } from 'next';
 
+import { ConfigurationForm } from '@/features/config';
+
 export const metadata: Metadata = {
   title: 'Configure',
+  description: 'Connect Azure DevOps with your organization and personal access token.',
 };
 
-/**
- * Step 1 placeholder. The full configuration form lands in Step 2.
- */
 export default function ConfigurePage() {
   return (
     <main
       id="main-content"
-      className="mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center gap-4 px-4 py-10"
+      className="relative flex min-h-dvh w-full flex-col items-center justify-center bg-gradient-to-b from-background via-background to-accent/30 px-4 py-10"
     >
-      <p className="text-muted-foreground text-sm tracking-wide uppercase">Azure DevOps</p>
-      <h1 className="text-3xl font-semibold tracking-tight">API Explorer</h1>
-      <p className="text-muted-foreground text-base leading-relaxed">
-        Project structure is ready. Reply with <span className="text-foreground font-medium">Continue</span>{' '}
-        to generate the configuration screen (Step 2).
-      </p>
       <div
-        className="border-border bg-card text-card-foreground rounded-lg border p-4 text-sm"
-        role="status"
-      >
-        <p className="font-medium">Checkpoint: Step 1 complete</p>
-        <ul className="text-muted-foreground mt-2 list-inside list-disc space-y-1">
-          <li>Verified dependency matrix</li>
-          <li>Feature-based + shared <code className="font-mono text-xs">src/core</code> layout</li>
-          <li>Platform ports for HTTP and storage</li>
-        </ul>
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_oklch(0.563_0.156_254.3_/_0.08),_transparent_55%)]"
+      />
+      <div className="relative z-10 w-full max-w-2xl">
+        <ConfigurationForm />
       </div>
     </main>
   );

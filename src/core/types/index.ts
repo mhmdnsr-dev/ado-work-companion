@@ -15,3 +15,9 @@ export type {
   HttpResponse,
   RequestInspectionRecord,
 } from './http';
+export type {
+  AdoListResponse,
+  ProjectState,
+  ProjectVisibility,
+  TeamProjectReference,
+} from './projects';

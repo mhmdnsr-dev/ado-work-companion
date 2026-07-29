@@ -151,14 +151,14 @@
   }
 
   body {
-    @apply bg-background text-foreground overscroll-y-none antialiased;
+    @apply overscroll-y-none bg-background text-foreground antialiased;
     /* Keeps content clear of iOS home indicator / Android nav bar when installed. */
     padding-bottom: env(safe-area-inset-bottom);
   }
 
   /* Visible, high-contrast focus ring for keyboard users on every interactive node. */
   :focus-visible {
-    @apply ring-ring ring-offset-background rounded-sm ring-2 ring-offset-2 outline-none;
+    @apply rounded-sm ring-2 ring-ring ring-offset-2 ring-offset-background outline-none;
   }
 
   ::selection {

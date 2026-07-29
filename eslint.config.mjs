@@ -27,7 +27,8 @@ const corePurityRules = {
           },
           {
             group: ['@/app/*', '@/components/*', '@/features/*', '@/hooks/*', '@/lib/*'],
-            message: 'src/core must not depend on the web UI layer. Invert the dependency.',
+            message:
+              'src/core must not depend on the web UI layer. Invert the dependency.',
           },
         ],
       },
@@ -64,7 +65,11 @@ const projectRules = {
     ],
     '@typescript-eslint/no-unused-vars': [
       'error',
-      { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      },
     ],
     'no-console': ['warn', { allow: ['warn', 'error'] }],
     eqeqeq: ['error', 'always', { null: 'ignore' }],

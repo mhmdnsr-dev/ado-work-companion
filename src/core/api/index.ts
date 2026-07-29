@@ -1,5 +1,6 @@
-/**
- * AzureDevOpsApi lives here (Step 3).
- * All REST traffic flows through this class — no ad-hoc fetch in features.
- */
-export {};
+export { AzureDevOpsApi } from './azure-devops-api';
+export type {
+  AdoRequestOptions,
+  AdoRequestResult,
+  AzureDevOpsApiOptions,
+} from './azure-devops-api';

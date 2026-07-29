@@ -46,7 +46,9 @@ export function createFetchHttpClient(): HttpClient {
         if (isAbortError(error)) {
           const timedOut = !request.signal?.aborted;
           throw new AdoClientError({
-            message: timedOut ? `Request timed out after ${timeoutMs}ms` : 'Request was cancelled',
+            message: timedOut
+              ? `Request timed out after ${timeoutMs}ms`
+              : 'Request was cancelled',
             kind: timedOut ? 'timeout' : 'abort',
             retryable: timedOut,
             cause: error,

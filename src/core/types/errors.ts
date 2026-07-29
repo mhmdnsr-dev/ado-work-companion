@@ -2,13 +2,7 @@
  * Normalized Azure DevOps / transport errors for UI recovery flows.
  */
 export type AdoErrorKind =
-  | 'http'
-  | 'network'
-  | 'timeout'
-  | 'abort'
-  | 'parse'
-  | 'validation'
-  | 'unknown';
+  'http' | 'network' | 'timeout' | 'abort' | 'parse' | 'validation' | 'unknown';
 
 export interface AdoErrorPayload {
   message?: string;
@@ -37,7 +31,10 @@ export class AdoClientError extends Error {
     retryable?: boolean;
     cause?: unknown;
   }) {
-    super(params.message, params.cause !== undefined ? { cause: params.cause } : undefined);
+    super(
+      params.message,
+      params.cause !== undefined ? { cause: params.cause } : undefined,
+    );
     this.name = 'AdoClientError';
     this.kind = params.kind;
     this.statusCode = params.statusCode ?? null;

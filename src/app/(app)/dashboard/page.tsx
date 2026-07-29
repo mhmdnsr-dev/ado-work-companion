@@ -9,7 +9,7 @@ export default function DashboardPage() {
   return (
     <main id="main-content" className="p-4 md:p-6">
       <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-      <p className="text-muted-foreground mt-2 text-sm">Implemented in Step 6.</p>
+      <p className="mt-2 text-sm text-muted-foreground">Implemented in Step 6.</p>
     </main>
   );
 }
