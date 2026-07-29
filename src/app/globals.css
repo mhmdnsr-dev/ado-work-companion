@@ -1,0 +1,195 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Palette is anchored on the Azure DevOps brand blue (#0078D4) expressed in
+ * oklch so that light/dark pairs keep perceptually even contrast.
+ */
+:root {
+  --radius: 0.5rem;
+
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.196 0.014 253);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.196 0.014 253);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.196 0.014 253);
+  --primary: oklch(0.563 0.156 254.3);
+  --primary-foreground: oklch(0.985 0.002 253);
+  --secondary: oklch(0.968 0.006 253);
+  --secondary-foreground: oklch(0.278 0.018 253);
+  --muted: oklch(0.968 0.006 253);
+  --muted-foreground: oklch(0.53 0.019 253);
+  --accent: oklch(0.955 0.021 253);
+  --accent-foreground: oklch(0.31 0.055 254);
+  --destructive: oklch(0.577 0.212 27.3);
+  --destructive-foreground: oklch(0.985 0.002 253);
+  --success: oklch(0.596 0.128 156.1);
+  --success-foreground: oklch(0.985 0.002 156);
+  --warning: oklch(0.734 0.153 74.5);
+  --warning-foreground: oklch(0.245 0.055 74);
+  --border: oklch(0.916 0.008 253);
+  --input: oklch(0.916 0.008 253);
+  --ring: oklch(0.563 0.156 254.3);
+
+  --chart-1: oklch(0.563 0.156 254.3);
+  --chart-2: oklch(0.596 0.128 156.1);
+  --chart-3: oklch(0.734 0.153 74.5);
+  --chart-4: oklch(0.577 0.212 27.3);
+  --chart-5: oklch(0.558 0.185 296.5);
+
+  --sidebar: oklch(0.985 0.003 253);
+  --sidebar-foreground: oklch(0.196 0.014 253);
+  --sidebar-primary: oklch(0.563 0.156 254.3);
+  --sidebar-primary-foreground: oklch(0.985 0.002 253);
+  --sidebar-accent: oklch(0.955 0.021 253);
+  --sidebar-accent-foreground: oklch(0.31 0.055 254);
+  --sidebar-border: oklch(0.916 0.008 253);
+  --sidebar-ring: oklch(0.563 0.156 254.3);
+}
+
+.dark {
+  --background: oklch(0.171 0.012 253);
+  --foreground: oklch(0.973 0.004 253);
+  --card: oklch(0.214 0.014 253);
+  --card-foreground: oklch(0.973 0.004 253);
+  --popover: oklch(0.214 0.014 253);
+  --popover-foreground: oklch(0.973 0.004 253);
+  --primary: oklch(0.704 0.132 250.9);
+  --primary-foreground: oklch(0.171 0.012 253);
+  --secondary: oklch(0.267 0.015 253);
+  --secondary-foreground: oklch(0.973 0.004 253);
+  --muted: oklch(0.267 0.015 253);
+  --muted-foreground: oklch(0.7 0.018 253);
+  --accent: oklch(0.305 0.028 253);
+  --accent-foreground: oklch(0.94 0.014 253);
+  --destructive: oklch(0.674 0.183 24.5);
+  --destructive-foreground: oklch(0.171 0.012 253);
+  --success: oklch(0.723 0.145 156.1);
+  --success-foreground: oklch(0.171 0.012 156);
+  --warning: oklch(0.815 0.145 78.5);
+  --warning-foreground: oklch(0.209 0.045 78);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.704 0.132 250.9);
+
+  --chart-1: oklch(0.704 0.132 250.9);
+  --chart-2: oklch(0.723 0.145 156.1);
+  --chart-3: oklch(0.815 0.145 78.5);
+  --chart-4: oklch(0.674 0.183 24.5);
+  --chart-5: oklch(0.685 0.165 296.5);
+
+  --sidebar: oklch(0.214 0.014 253);
+  --sidebar-foreground: oklch(0.973 0.004 253);
+  --sidebar-primary: oklch(0.704 0.132 250.9);
+  --sidebar-primary-foreground: oklch(0.171 0.012 253);
+  --sidebar-accent: oklch(0.305 0.028 253);
+  --sidebar-accent-foreground: oklch(0.94 0.014 253);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: oklch(0.704 0.132 250.9);
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    @apply bg-background text-foreground overscroll-y-none antialiased;
+    /* Keeps content clear of iOS home indicator / Android nav bar when installed. */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Visible, high-contrast focus ring for keyboard users on every interactive node. */
+  :focus-visible {
+    @apply ring-ring ring-offset-background rounded-sm ring-2 ring-offset-2 outline-none;
+  }
+
+  ::selection {
+    @apply bg-primary/25;
+  }
+}
+
+@layer utilities {
+  /* WCAG 2.5.5 / platform HIG minimum interactive target. */
+  .touch-target {
+    min-block-size: 44px;
+    min-inline-size: 44px;
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

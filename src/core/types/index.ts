@@ -1,0 +1,17 @@
+export type {
+  AdoAppSettings,
+  AdoConnectionConfig,
+  AdoRuntimeCredentials,
+  ConnectionHealth,
+  ConnectionStatus,
+  ThemePreference,
+} from './config';
+export { AdoClientError } from './errors';
+export type { AdoErrorKind, AdoErrorPayload } from './errors';
+export type {
+  HttpClient,
+  HttpHeaders,
+  HttpRequest,
+  HttpResponse,
+  RequestInspectionRecord,
+} from './http';
