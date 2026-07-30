@@ -12,6 +12,25 @@ import type {
   TeamProject,
   TeamProjectReference,
 } from '../types/projects';
+import type {
+  TeamMember,
+  TeamSetting,
+  TeamSettingsIteration,
+  WebApiTeam,
+  WorkItemClassificationNode,
+  WorkItemComment,
+  WorkItemCommentList,
+  WorkItemRelationType,
+  WorkItemStateColor,
+  WorkItemType,
+} from '../types/metadata';
+import type {
+  JsonPatchOperation,
+  WorkItem,
+  WorkItemExpand,
+  WorkItemQueryResult,
+} from '../types/work-items';
+import { WORK_ITEM_LIST_FIELDS } from '../types/work-items';
 import {
   buildAdoResourceUrl,
   buildPatAuthorizationHeader,
@@ -45,6 +64,8 @@ export interface AdoRequestOptions {
   path: string;
   /** Override configured project for this call; `null` forces org scope. */
   project?: string | null;
+  /** Team segment for Work APIs (`/{project}/{team}/_apis/...`). */
+  team?: string | null;
   query?: Record<string, string | number | boolean | undefined | null>;
   body?: unknown;
   /** Use JSON Patch content type (work item updates). */
@@ -68,18 +89,40 @@ function parseAdoErrorBody(bodyText: string): AdoErrorPayload | null {
       typeKey?: string;
       errorCode?: number;
       eventId?: number;
+      code?: number;
       innerException?: unknown;
     };
     return {
       message: parsed.message,
       typeKey: parsed.typeKey,
-      errorCode: parsed.errorCode,
+      errorCode: parsed.errorCode ?? parsed.code,
       eventId: parsed.eventId,
       innerException: parsed.innerException,
     };
   } catch {
     return { message: bodyText.slice(0, 500) };
   }
+}
+
+/**
+ * Some ADO endpoints (notably work item delete) return HTTP 2xx with a failure
+ * envelope: `{ id, code: 404, message: "VS403145: ..." }`.
+ */
+function adoFailureFromSuccessBody(data: unknown): {
+  code: number;
+  message: string;
+} | null {
+  if (!data || typeof data !== 'object') return null;
+  const record = data as Record<string, unknown>;
+  const code = record.code;
+  if (typeof code !== 'number' || !Number.isFinite(code) || code < 400) {
+    return null;
+  }
+  const message =
+    typeof record.message === 'string' && record.message.trim()
+      ? record.message.trim()
+      : `Azure DevOps request failed with code ${code}`;
+  return { code, message };
 }
 
 function suggestionsForStatus(status: number): string[] {
@@ -257,6 +300,406 @@ export class AzureDevOpsApi {
     };
   }
 
+  /**
+   * Executes a WIQL query and returns matching work item references.
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/wiql/query-by-wiql?view=azure-devops-rest-7.2
+   */
+  async queryByWiql(options: {
+    query: string;
+    top?: number;
+    project?: string | null;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<WorkItemQueryResult>> {
+    return this.request<WorkItemQueryResult>({
+      method: 'POST',
+      path: '_apis/wit/wiql',
+      project: options.project === undefined ? this.project : options.project,
+      query: {
+        $top: options.top ?? 200,
+      },
+      body: { query: options.query },
+      signal: options.signal,
+      retry: false,
+    });
+  }
+
+  /**
+   * Gets one or more work items by id.
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/work-items/list?view=azure-devops-rest-7.2
+   */
+  async getWorkItems(options: {
+    ids: number[];
+    fields?: readonly string[];
+    expand?: WorkItemExpand;
+    project?: string | null;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<WorkItem[]>> {
+    const ids = [...new Set(options.ids.filter((id) => Number.isInteger(id) && id > 0))];
+    if (ids.length === 0) {
+      throw new AdoClientError({
+        kind: 'validation',
+        message: 'At least one work item id is required.',
+        retryable: false,
+      });
+    }
+
+    const result = await this.request<AdoListResponse<WorkItem>>({
+      method: 'GET',
+      path: '_apis/wit/workitems',
+      project: options.project === undefined ? this.project : options.project,
+      query: {
+        ids: ids.join(','),
+        fields: (options.fields ?? WORK_ITEM_LIST_FIELDS).join(','),
+        $expand: options.expand,
+        errorPolicy: 'omit',
+      },
+      signal: options.signal,
+      retry: true,
+    });
+
+    return { data: result.data.value ?? [], inspection: result.inspection };
+  }
+
+  /**
+   * Gets a single work item.
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/work-items/get?view=azure-devops-rest-7.2
+   */
+  async getWorkItem(options: {
+    id: number;
+    fields?: readonly string[];
+    expand?: WorkItemExpand;
+    project?: string | null;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<WorkItem>> {
+    return this.request<WorkItem>({
+      method: 'GET',
+      path: `_apis/wit/workitems/${options.id}`,
+      project: options.project === undefined ? this.project : options.project,
+      query: {
+        fields: options.fields?.join(','),
+        $expand: options.expand ?? 'Relations',
+      },
+      signal: options.signal,
+      retry: true,
+    });
+  }
+
+  /**
+   * Creates a work item (JSON Patch). Project is required.
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/work-items/create?view=azure-devops-rest-7.2
+   */
+  async createWorkItem(options: {
+    type: string;
+    operations: JsonPatchOperation[];
+    project: string;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<WorkItem>> {
+    const project = options.project.trim();
+    if (!project) {
+      throw new AdoClientError({
+        kind: 'validation',
+        message: 'Select a project before creating a work item.',
+        retryable: false,
+      });
+    }
+
+    const type = options.type.trim();
+    if (!type) {
+      throw new AdoClientError({
+        kind: 'validation',
+        message: 'Work item type is required.',
+        retryable: false,
+      });
+    }
+
+    return this.request<WorkItem>({
+      method: 'POST',
+      path: `_apis/wit/workitems/$${encodeURIComponent(type)}`,
+      project,
+      body: options.operations,
+      jsonPatch: true,
+      signal: options.signal,
+      retry: false,
+    });
+  }
+
+  /**
+   * Updates a work item (JSON Patch).
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/work-items/update?view=azure-devops-rest-7.2
+   */
+  async updateWorkItem(options: {
+    id: number;
+    operations: JsonPatchOperation[];
+    project?: string | null;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<WorkItem>> {
+    return this.request<WorkItem>({
+      method: 'PATCH',
+      path: `_apis/wit/workitems/${options.id}`,
+      project: options.project === undefined ? this.project : options.project,
+      body: options.operations,
+      jsonPatch: true,
+      signal: options.signal,
+      retry: false,
+    });
+  }
+
+  /**
+   * Deletes a work item (recycle bin unless destroy=true).
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/work-items/delete?view=azure-devops-rest-7.2
+   */
+  async deleteWorkItem(options: {
+    id: number;
+    destroy?: boolean;
+    project?: string | null;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<unknown>> {
+    return this.request<unknown>({
+      method: 'DELETE',
+      path: `_apis/wit/workitems/${options.id}`,
+      project: options.project === undefined ? this.project : options.project,
+      query: {
+        destroy: options.destroy ?? false,
+      },
+      signal: options.signal,
+      retry: false,
+    });
+  }
+
+  /**
+   * Lists work item revisions (history).
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/revisions/list?view=azure-devops-rest-7.2
+   */
+  async listWorkItemRevisions(options: {
+    id: number;
+    top?: number;
+    skip?: number;
+    project?: string | null;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<WorkItem[]>> {
+    const result = await this.request<AdoListResponse<WorkItem>>({
+      method: 'GET',
+      path: `_apis/wit/workitems/${options.id}/revisions`,
+      project: options.project === undefined ? this.project : options.project,
+      query: {
+        $top: options.top ?? 50,
+        $skip: options.skip,
+      },
+      signal: options.signal,
+      retry: true,
+    });
+
+    return { data: result.data.value ?? [], inspection: result.inspection };
+  }
+
+  /**
+   * Lists teams in a project.
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/core/teams/get-teams?view=azure-devops-rest-7.2
+   */
+  async listTeams(options: {
+    project: string;
+    top?: number;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<WebApiTeam[]>> {
+    const project = options.project.trim();
+    const result = await this.request<AdoListResponse<WebApiTeam>>({
+      method: 'GET',
+      path: `_apis/projects/${encodeURIComponent(project)}/teams`,
+      project: null,
+      query: { $top: options.top ?? 100 },
+      signal: options.signal,
+      retry: true,
+    });
+    return { data: result.data.value ?? [], inspection: result.inspection };
+  }
+
+  /**
+   * Lists members of a team (for assignee / @mention suggestions).
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/core/teams/get-team-members-with-extended-properties?view=azure-devops-rest-7.2
+   */
+  async listTeamMembers(options: {
+    project: string;
+    team: string;
+    top?: number;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<TeamMember[]>> {
+    const project = options.project.trim();
+    const team = options.team.trim();
+    const result = await this.request<AdoListResponse<TeamMember>>({
+      method: 'GET',
+      path: `_apis/projects/${encodeURIComponent(project)}/teams/${encodeURIComponent(team)}/members`,
+      project: null,
+      query: { $top: options.top ?? 200 },
+      signal: options.signal,
+      retry: true,
+    });
+    return { data: result.data.value ?? [], inspection: result.inspection };
+  }
+
+  /**
+   * Team board settings (area paths used for team filtering).
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/work/teamsettings/get?view=azure-devops-rest-7.2
+   */
+  async getTeamSettings(options: {
+    project: string;
+    team: string;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<TeamSetting>> {
+    return this.request<TeamSetting>({
+      method: 'GET',
+      path: '_apis/work/teamsettings',
+      project: options.project,
+      team: options.team,
+      signal: options.signal,
+      retry: true,
+    });
+  }
+
+  /**
+   * Team iterations / sprints.
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/work/iterations/list?view=azure-devops-rest-7.2
+   */
+  async listTeamIterations(options: {
+    project: string;
+    team: string;
+    timeframe?: 'current' | 'past' | 'future';
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<TeamSettingsIteration[]>> {
+    const result = await this.request<AdoListResponse<TeamSettingsIteration>>({
+      method: 'GET',
+      path: '_apis/work/teamsettings/iterations',
+      project: options.project,
+      team: options.team,
+      query: { $timeframe: options.timeframe },
+      signal: options.signal,
+      retry: true,
+    });
+    return { data: result.data.value ?? [], inspection: result.inspection };
+  }
+
+  /**
+   * Project iteration or area tree.
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/classification-nodes/get-classification-nodes?view=azure-devops-rest-7.2
+   */
+  async getClassificationNode(options: {
+    project: string;
+    structureGroup: 'areas' | 'iterations';
+    depth?: number;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<WorkItemClassificationNode>> {
+    return this.request<WorkItemClassificationNode>({
+      method: 'GET',
+      path: `_apis/wit/classificationnodes/${options.structureGroup}`,
+      project: options.project,
+      query: { $depth: options.depth ?? 5 },
+      signal: options.signal,
+      retry: true,
+    });
+  }
+
+  /**
+   * Allowed states for a work item type.
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/work-item-types/list?view=azure-devops-rest-7.2
+   */
+  async listWorkItemTypeStates(options: {
+    project: string;
+    type: string;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<WorkItemStateColor[]>> {
+    const type = options.type.trim();
+    const result = await this.request<AdoListResponse<WorkItemStateColor>>({
+      method: 'GET',
+      path: `_apis/wit/workitemtypes/${encodeURIComponent(type)}/states`,
+      project: options.project,
+      signal: options.signal,
+      retry: true,
+    });
+    return { data: result.data.value ?? [], inspection: result.inspection };
+  }
+
+  /**
+   * Lists work item types defined in the project process.
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/work-item-types/list?view=azure-devops-rest-7.2
+   */
+  async listWorkItemTypes(options: {
+    project: string;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<WorkItemType[]>> {
+    const result = await this.request<AdoListResponse<WorkItemType>>({
+      method: 'GET',
+      path: '_apis/wit/workitemtypes',
+      project: options.project,
+      signal: options.signal,
+      retry: true,
+    });
+    return {
+      data: (result.data.value ?? []).filter((type) => !type.isDisabled),
+      inspection: result.inspection,
+    };
+  }
+
+  /**
+   * Lists work item relation (link) types for the organization.
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/work-item-relation-types/list?view=azure-devops-rest-7.2
+   */
+  async listWorkItemRelationTypes(options?: {
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<WorkItemRelationType[]>> {
+    const result = await this.request<AdoListResponse<WorkItemRelationType>>({
+      method: 'GET',
+      path: '_apis/wit/workitemrelationtypes',
+      project: null,
+      signal: options?.signal,
+      retry: true,
+    });
+    return { data: result.data.value ?? [], inspection: result.inspection };
+  }
+
+  /**
+   * Lists comments on a work item.
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/comments/get-comments?view=azure-devops-rest-7.2
+   */
+  async listWorkItemComments(options: {
+    id: number;
+    project: string;
+    top?: number;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<WorkItemComment[]>> {
+    const result = await this.request<WorkItemCommentList>({
+      method: 'GET',
+      path: `_apis/wit/workItems/${options.id}/comments`,
+      project: options.project,
+      query: {
+        $top: options.top ?? 50,
+        order: 'desc',
+      },
+      signal: options.signal,
+      retry: true,
+    });
+    const comments = result.data.comments ?? result.data.value ?? [];
+    return { data: comments, inspection: result.inspection };
+  }
+
+  /**
+   * Adds a comment (HTML supported for @mentions).
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/comments/add?view=azure-devops-rest-7.2
+   */
+  async addWorkItemComment(options: {
+    id: number;
+    project: string;
+    text: string;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<WorkItemComment>> {
+    return this.request<WorkItemComment>({
+      method: 'POST',
+      path: `_apis/wit/workItems/${options.id}/comments`,
+      project: options.project,
+      body: { text: options.text },
+      signal: options.signal,
+      retry: false,
+    });
+  }
+
   async request<T>(options: AdoRequestOptions): Promise<AdoRequestResult<T>> {
     const method = options.method ?? 'GET';
     const shouldRetry = options.retry ?? (method === 'GET' || method === 'DELETE');
@@ -290,10 +733,12 @@ export class AzureDevOpsApi {
   ): Promise<AdoRequestResult<T>> {
     const projectScope =
       options.project === null ? undefined : (options.project ?? this.project);
+    const teamScope = options.team?.trim() || undefined;
 
     const adoUrl = buildAdoResourceUrl({
       organization: this.organization,
       project: projectScope,
+      team: teamScope,
       path: options.path,
       apiVersion: this.apiVersion,
       query: options.query,
@@ -382,8 +827,24 @@ export class AzureDevOpsApi {
 
       try {
         const data = JSON.parse(response.bodyText) as T;
+        const embeddedFailure = adoFailureFromSuccessBody(data);
+        if (embeddedFailure) {
+          throw new AdoClientError({
+            message: embeddedFailure.message,
+            kind: 'http',
+            statusCode: embeddedFailure.code,
+            requestId: inspection.requestId,
+            ado: {
+              message: embeddedFailure.message,
+              errorCode: embeddedFailure.code,
+            },
+            suggestions: suggestionsForStatus(embeddedFailure.code),
+            retryable: false,
+          });
+        }
         return { data, inspection };
       } catch (cause) {
+        if (cause instanceof AdoClientError) throw cause;
         throw new AdoClientError({
           message: 'Failed to parse Azure DevOps JSON response',
           kind: 'parse',

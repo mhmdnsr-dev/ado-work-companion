@@ -12,6 +12,7 @@ export const STORAGE_KEYS = {
   FAVORITES: 'ado.favorites',
   RECENT_REQUESTS: 'ado.recentRequests',
   CONNECTION_STATUS: 'ado.connectionStatus',
+  WORK_ITEM_FILTERS: 'ado.workItemFilters',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

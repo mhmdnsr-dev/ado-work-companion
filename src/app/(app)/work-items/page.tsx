@@ -1,12 +1,12 @@
-function Placeholder({ title, step }: { title: string; step: number }) {
-  return (
-    <main id="main-content" className="p-4 md:p-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Implemented in Step {step}.</p>
-    </main>
-  );
-}
+import type { Metadata } from 'next';
+
+import { WorkItemsView } from '@/features/work-items';
+
+export const metadata: Metadata = {
+  title: 'Work Items',
+  description: 'Create, update, and organize tasks, bugs, and user stories.',
+};
 
 export default function WorkItemsPage() {
-  return <Placeholder title="Work Items" step={8} />;
+  return <WorkItemsView />;
 }

@@ -16,18 +16,25 @@ export function buildOrganizationBaseUrl(organization: string): string {
 export function buildAdoResourceUrl(params: {
   organization: string;
   project?: string | null;
+  /** Team segment used by Work / Board APIs: /{org}/{project}/{team}/_apis/... */
+  team?: string | null;
   path: string;
   apiVersion: string;
   query?: Record<string, string | number | boolean | undefined | null>;
 }): string {
   const base = buildOrganizationBaseUrl(params.organization);
   const project = params.project?.trim();
+  const team = params.team?.trim();
   const normalizedPath = params.path.replace(/^\/+/, '');
 
-  const scoped =
-    project && project.length > 0
-      ? `${base}/${encodeURIComponent(project)}/${normalizedPath}`
-      : `${base}/${normalizedPath}`;
+  let scoped = base;
+  if (project && project.length > 0) {
+    scoped += `/${encodeURIComponent(project)}`;
+    if (team && team.length > 0) {
+      scoped += `/${encodeURIComponent(team)}`;
+    }
+  }
+  scoped += `/${normalizedPath}`;
 
   const url = new URL(scoped);
   url.searchParams.set('api-version', params.apiVersion);

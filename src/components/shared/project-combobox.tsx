@@ -127,6 +127,7 @@ export function ProjectCombobox({
                     type="button"
                     role="option"
                     aria-selected={selected}
+                    title={project.name}
                     className={cn(
                       'touch-target flex w-full items-start gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-accent',
                       selected && 'bg-accent',
@@ -144,9 +145,14 @@ export function ProjectCombobox({
                       )}
                     />
                     <span className="min-w-0">
-                      <span className="block truncate font-medium">{project.name}</span>
+                      <span className="block truncate font-medium" title={project.name}>
+                        {project.name}
+                      </span>
                       {project.description ? (
-                        <span className="block truncate text-xs text-muted-foreground">
+                        <span
+                          className="block truncate text-xs text-muted-foreground"
+                          title={project.description}
+                        >
                           {project.description}
                         </span>
                       ) : null}
