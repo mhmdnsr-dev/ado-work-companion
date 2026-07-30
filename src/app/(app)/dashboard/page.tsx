@@ -1,15 +1,12 @@
 import type { Metadata } from 'next';
 
+import { DashboardView } from '@/features/dashboard';
+
 export const metadata: Metadata = {
   title: 'Dashboard',
+  description: 'Azure DevOps connection overview, recent requests, and favorites.',
 };
 
-/** Route shell reserved for Step 6. */
 export default function DashboardPage() {
-  return (
-    <main id="main-content" className="p-4 md:p-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Implemented in Step 6.</p>
-    </main>
-  );
+  return <DashboardView />;
 }

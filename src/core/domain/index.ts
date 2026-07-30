@@ -6,3 +6,4 @@ export {
   saveConnectionHealth,
   savePersistedSettings,
 } from './settings';
+export { loadFavorites, saveFavorites, toggleFavorite } from './favorites';
