@@ -60,6 +60,8 @@ interface ConnectionContextValue {
   loadProjects: (
     credentials?: LiveConnectionCredentials,
   ) => Promise<TeamProjectReference[]>;
+  /** Updates the active project scope in localStorage and rebuilds the API client. */
+  setActiveProject: (projectName: string | undefined) => Promise<void>;
   setThemePreference: (theme: ThemePreference) => Promise<void>;
 }
 
@@ -281,6 +283,27 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
     [resolveApi],
   );
 
+  const setActiveProject = useCallback(
+    async (projectName: string | undefined) => {
+      if (!settings.organization.trim()) {
+        throw new Error('Save your organization before selecting a project.');
+      }
+
+      const next: AdoPersistedSettings = {
+        ...settings,
+        project: projectName?.trim() || undefined,
+      };
+      setSettings(next);
+      await savePersistedSettings(storage, next);
+      rebuildApi({
+        organization: next.organization,
+        project: next.project,
+        apiVersion: next.apiVersion,
+      });
+    },
+    [rebuildApi, settings, storage],
+  );
+
   const setThemePreference = useCallback(
     async (theme: ThemePreference) => {
       const next = { ...settings, theme };
@@ -307,6 +330,7 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
       resetConfiguration,
       testConnection,
       loadProjects,
+      setActiveProject,
       setThemePreference,
     }),
     [
@@ -323,6 +347,7 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
       resetConfiguration,
       testConnection,
       loadProjects,
+      setActiveProject,
       setThemePreference,
     ],
   );

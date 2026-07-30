@@ -7,7 +7,11 @@ import type { AdoHttpMethod } from '../constants/api';
 import { AdoClientError } from '../types/errors';
 import type { AdoErrorPayload } from '../types/errors';
 import type { HttpClient, HttpHeaders, RequestInspectionRecord } from '../types/http';
-import type { AdoListResponse, TeamProjectReference } from '../types/projects';
+import type {
+  AdoListResponse,
+  TeamProject,
+  TeamProjectReference,
+} from '../types/projects';
 import {
   buildAdoResourceUrl,
   buildPatAuthorizationHeader,
@@ -173,6 +177,9 @@ export class AzureDevOpsApi {
   async listProjects(options?: {
     signal?: AbortSignal;
     stateFilter?: string;
+    top?: number;
+    skip?: number;
+    getDefaultTeamImageUrl?: boolean;
   }): Promise<AdoRequestResult<TeamProjectReference[]>> {
     const result = await this.request<AdoListResponse<TeamProjectReference>>({
       method: 'GET',
@@ -180,7 +187,9 @@ export class AzureDevOpsApi {
       project: null,
       query: {
         stateFilter: options?.stateFilter ?? 'wellFormed',
-        $top: 1000,
+        $top: options?.top ?? 1000,
+        $skip: options?.skip,
+        getDefaultTeamImageUrl: options?.getDefaultTeamImageUrl,
       },
       signal: options?.signal,
       retry: true,
@@ -190,6 +199,41 @@ export class AzureDevOpsApi {
       data: result.data.value ?? [],
       inspection: result.inspection,
     };
+  }
+
+  /**
+   * Gets a project by id or name, optionally including capabilities.
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/core/projects/get?view=azure-devops-rest-7.2
+   */
+  async getProject(
+    projectIdOrName: string,
+    options?: {
+      signal?: AbortSignal;
+      includeCapabilities?: boolean;
+      includeHistory?: boolean;
+    },
+  ): Promise<AdoRequestResult<TeamProject>> {
+    const id = projectIdOrName.trim();
+    if (!id) {
+      throw new AdoClientError({
+        kind: 'validation',
+        message: 'Project id or name is required.',
+        statusCode: null,
+        retryable: false,
+      });
+    }
+
+    return this.request<TeamProject>({
+      method: 'GET',
+      path: `_apis/projects/${encodeURIComponent(id)}`,
+      project: null,
+      query: {
+        includeCapabilities: options?.includeCapabilities ?? true,
+        includeHistory: options?.includeHistory,
+      },
+      signal: options?.signal,
+      retry: true,
+    });
   }
 
   /**

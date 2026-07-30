@@ -19,5 +19,8 @@ export type {
   AdoListResponse,
   ProjectState,
   ProjectVisibility,
+  ReferenceLinks,
+  TeamProject,
   TeamProjectReference,
+  WebApiTeamRef,
 } from './projects';

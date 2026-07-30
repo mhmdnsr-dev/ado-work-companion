@@ -1,14 +1,12 @@
-/** Feature route placeholders — fleshed out in later steps. */
+import type { Metadata } from 'next';
 
-function Placeholder({ title, step }: { title: string; step: number }) {
-  return (
-    <main id="main-content" className="p-4 md:p-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Implemented in Step {step}.</p>
-    </main>
-  );
-}
+import { ProjectsView } from '@/features/projects';
+
+export const metadata: Metadata = {
+  title: 'Projects',
+  description: 'Browse Azure DevOps projects, inspect details, and set the active scope.',
+};
 
 export default function ProjectsPage() {
-  return <Placeholder title="Projects" step={7} />;
+  return <ProjectsView />;
 }
