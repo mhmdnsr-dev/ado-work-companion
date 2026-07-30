@@ -24,9 +24,12 @@ export {
   identityDisplayName,
   identityUniqueName,
   isWorkItemLinkRelation,
+  listWorkItemAttachments,
+  parseAttachmentIdFromUrl,
   parseWorkItemIdFromRelationUrl,
   workItemLinkTypes,
   type ExistingWorkItemLinkGroup,
+  type WorkItemAttachment,
 } from './work-items';
 export {
   clearWorkItemFilters,

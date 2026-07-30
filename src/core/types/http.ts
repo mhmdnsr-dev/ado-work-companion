@@ -15,6 +15,8 @@ export interface HttpRequest {
   body?: string | ArrayBuffer | Blob | null;
   signal?: AbortSignal;
   timeoutMs?: number;
+  /** Default `text`. Use `arrayBuffer` for binary downloads (attachments). */
+  responseType?: 'text' | 'arrayBuffer';
 }
 
 export interface HttpResponse {
@@ -22,6 +24,8 @@ export interface HttpResponse {
   statusText: string;
   headers: HttpHeaders;
   bodyText: string;
+  /** Present when `responseType` was `arrayBuffer`. */
+  bodyArrayBuffer?: ArrayBuffer;
   url: string;
 }
 

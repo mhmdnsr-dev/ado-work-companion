@@ -2,6 +2,8 @@ import {
   ADO_API,
   ADO_JSON_CONTENT_TYPE,
   ADO_JSON_PATCH_CONTENT_TYPE,
+  ADO_MAX_SIMPLE_ATTACHMENT_BYTES,
+  ADO_OCTET_STREAM_CONTENT_TYPE,
 } from '../constants/api';
 import type { AdoHttpMethod } from '../constants/api';
 import { AdoClientError } from '../types/errors';
@@ -79,12 +81,18 @@ export interface AdoRequestOptions {
   team?: string | null;
   query?: Record<string, string | number | boolean | undefined | null>;
   body?: unknown;
+  /** Binary body for attachment uploads (takes precedence over `body`). */
+  rawBody?: ArrayBuffer | Blob;
+  /** Content-Type for `rawBody` (defaults to application/octet-stream). */
+  rawContentType?: string;
   /** Use JSON Patch content type (work item updates). */
   jsonPatch?: boolean;
   signal?: AbortSignal;
   timeoutMs?: number;
   /** Idempotent GETs retry on transient failures by default. */
   retry?: boolean;
+  /** Use arrayBuffer response parsing (attachment downloads). */
+  responseType?: 'text' | 'arrayBuffer';
 }
 
 export interface AdoRequestResult<T> {
@@ -581,6 +589,182 @@ export class AzureDevOpsApi {
   }
 
   /**
+   * Uploads an attachment (simple / non-chunked).
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/attachments/create?view=azure-devops-rest-7.2
+   */
+  async uploadAttachment(options: {
+    fileName: string;
+    content: ArrayBuffer | Blob;
+    project?: string | null;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<{ id: string; url: string }>> {
+    const fileName = options.fileName.trim();
+    if (!fileName) {
+      throw new AdoClientError({
+        kind: 'validation',
+        message: 'Attachment file name is required.',
+        retryable: false,
+      });
+    }
+
+    const size =
+      options.content instanceof Blob ? options.content.size : options.content.byteLength;
+    if (size <= 0) {
+      throw new AdoClientError({
+        kind: 'validation',
+        message: 'Attachment content is empty.',
+        retryable: false,
+      });
+    }
+    if (size > ADO_MAX_SIMPLE_ATTACHMENT_BYTES) {
+      throw new AdoClientError({
+        kind: 'validation',
+        message: `Attachments larger than ${Math.floor(ADO_MAX_SIMPLE_ATTACHMENT_BYTES / (1024 * 1024))} MB are not supported in this upload flow.`,
+        retryable: false,
+      });
+    }
+
+    return this.request<{ id: string; url: string }>({
+      method: 'POST',
+      path: '_apis/wit/attachments',
+      project: options.project === undefined ? this.project : options.project,
+      query: {
+        fileName,
+        uploadType: 'Simple',
+      },
+      rawBody: options.content,
+      rawContentType: ADO_OCTET_STREAM_CONTENT_TYPE,
+      signal: options.signal,
+      timeoutMs: Math.max(ADO_API.DEFAULT_TIMEOUT_MS, 120_000),
+      retry: false,
+    });
+  }
+
+  /**
+   * Downloads an attachment by id.
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/attachments/get?view=azure-devops-rest-7.2
+   */
+  async downloadAttachment(options: {
+    id: string;
+    fileName?: string;
+    project?: string | null;
+    signal?: AbortSignal;
+  }): Promise<
+    AdoRequestResult<{
+      buffer: ArrayBuffer;
+      contentType?: string;
+      contentDisposition?: string;
+      fileName?: string;
+    }>
+  > {
+    const id = options.id.trim();
+    if (!id) {
+      throw new AdoClientError({
+        kind: 'validation',
+        message: 'Attachment id is required.',
+        retryable: false,
+      });
+    }
+
+    const result = await this.request<{
+      buffer: ArrayBuffer;
+      contentType?: string;
+      contentDisposition?: string;
+    }>({
+      method: 'GET',
+      path: `_apis/wit/attachments/${encodeURIComponent(id)}`,
+      project: options.project === undefined ? this.project : options.project,
+      query: {
+        fileName: options.fileName,
+        download: true,
+      },
+      responseType: 'arrayBuffer',
+      signal: options.signal,
+      timeoutMs: Math.max(ADO_API.DEFAULT_TIMEOUT_MS, 120_000),
+      retry: true,
+    });
+
+    return {
+      data: {
+        ...result.data,
+        fileName: options.fileName,
+      },
+      inspection: result.inspection,
+    };
+  }
+
+  /**
+   * Uploads a file and links it to a work item as an AttachedFile relation.
+   */
+  async attachFileToWorkItem(options: {
+    workItemId: number;
+    fileName: string;
+    content: ArrayBuffer | Blob;
+    comment?: string;
+    project?: string | null;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<WorkItem>> {
+    const uploaded = await this.uploadAttachment({
+      fileName: options.fileName,
+      content: options.content,
+      project: options.project,
+      signal: options.signal,
+    });
+
+    const attachmentUrl = uploaded.data.url?.includes('fileName=')
+      ? uploaded.data.url
+      : `${uploaded.data.url}${uploaded.data.url.includes('?') ? '&' : '?'}fileName=${encodeURIComponent(options.fileName)}`;
+
+    const comment = options.comment?.trim();
+    return this.updateWorkItem({
+      id: options.workItemId,
+      project: options.project,
+      signal: options.signal,
+      operations: [
+        {
+          op: 'add',
+          path: '/relations/-',
+          value: {
+            rel: 'AttachedFile',
+            url: attachmentUrl,
+            attributes: comment ? { comment } : undefined,
+          },
+        },
+      ],
+    });
+  }
+
+  /**
+   * Removes an attachment relation from a work item by relation index.
+   */
+  async detachWorkItemAttachment(options: {
+    workItemId: number;
+    relationIndex: number;
+    project?: string | null;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<WorkItem>> {
+    if (!Number.isInteger(options.relationIndex) || options.relationIndex < 0) {
+      throw new AdoClientError({
+        kind: 'validation',
+        message: 'A valid attachment relation index is required.',
+        retryable: false,
+      });
+    }
+
+    return this.updateWorkItem({
+      id: options.workItemId,
+      project: options.project,
+      signal: options.signal,
+      operations: [
+        {
+          op: 'remove',
+          path: `/relations/${options.relationIndex}`,
+        },
+      ],
+    });
+  }
+
+  /**
    * Deletes a work item (recycle bin unless destroy=true).
    * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/work-items/delete?view=azure-devops-rest-7.2
    */
@@ -973,10 +1157,13 @@ export class AzureDevOpsApi {
       adoUrl,
       requestUrl,
       body: options.body,
+      rawBody: options.rawBody,
+      rawContentType: options.rawContentType,
       jsonPatch: options.jsonPatch,
       signal: options.signal,
       timeoutMs: options.timeoutMs,
       attachPat: !this.proxyBaseUrl,
+      responseType: options.responseType,
     });
   }
 
@@ -985,11 +1172,14 @@ export class AzureDevOpsApi {
     adoUrl: string;
     requestUrl: string;
     body?: unknown;
+    rawBody?: ArrayBuffer | Blob;
+    rawContentType?: string;
     jsonPatch?: boolean;
     signal?: AbortSignal;
     timeoutMs?: number;
     attachPat: boolean;
     retry?: boolean;
+    responseType?: 'text' | 'arrayBuffer';
   }): Promise<AdoRequestResult<T>> {
     const shouldRetry = options.retry ?? false;
     const maxAttempts = shouldRetry ? ADO_API.MAX_RETRIES + 1 : 1;
@@ -1018,14 +1208,17 @@ export class AzureDevOpsApi {
     adoUrl: string;
     requestUrl: string;
     body?: unknown;
+    rawBody?: ArrayBuffer | Blob;
+    rawContentType?: string;
     jsonPatch?: boolean;
     signal?: AbortSignal;
     timeoutMs?: number;
     attachPat: boolean;
+    responseType?: 'text' | 'arrayBuffer';
   }): Promise<AdoRequestResult<T>> {
     const method = options.method;
     const headers: Record<string, string> = {
-      Accept: ADO_JSON_CONTENT_TYPE,
+      Accept: options.responseType === 'arrayBuffer' ? '*/*' : ADO_JSON_CONTENT_TYPE,
       'X-TFS-FedAuthRedirect': 'Suppress',
     };
 
@@ -1033,10 +1226,21 @@ export class AzureDevOpsApi {
       headers.Authorization = buildPatAuthorizationHeader(this.pat);
     }
 
-    let bodyText: string | null = null;
-    if (options.body !== undefined && options.body !== null) {
-      bodyText =
+    let requestBody: string | ArrayBuffer | Blob | null = null;
+    let inspectionBody: string | null = null;
+
+    if (options.rawBody !== undefined && options.rawBody !== null) {
+      requestBody = options.rawBody;
+      headers['Content-Type'] = options.rawContentType ?? ADO_OCTET_STREAM_CONTENT_TYPE;
+      const size =
+        options.rawBody instanceof Blob
+          ? options.rawBody.size
+          : options.rawBody.byteLength;
+      inspectionBody = `[binary ${size} bytes]`;
+    } else if (options.body !== undefined && options.body !== null) {
+      requestBody =
         typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
+      inspectionBody = typeof requestBody === 'string' ? requestBody : null;
       headers['Content-Type'] = options.jsonPatch
         ? ADO_JSON_PATCH_CONTENT_TYPE
         : ADO_JSON_CONTENT_TYPE;
@@ -1051,7 +1255,7 @@ export class AzureDevOpsApi {
       method,
       url: options.adoUrl,
       headers: redactAuthorizationHeaders(headers),
-      body: bodyText,
+      body: inspectionBody,
       statusCode: null,
       statusText: null,
       responseBody: null,
@@ -1067,14 +1271,18 @@ export class AzureDevOpsApi {
         method,
         url: options.requestUrl,
         headers,
-        body: bodyText,
+        body: requestBody,
         signal: options.signal,
         timeoutMs: options.timeoutMs ?? ADO_API.DEFAULT_TIMEOUT_MS,
+        responseType: options.responseType,
       });
 
       inspection.statusCode = response.status;
       inspection.statusText = response.statusText;
-      inspection.responseBody = response.bodyText;
+      inspection.responseBody =
+        options.responseType === 'arrayBuffer'
+          ? `[binary ${response.bodyArrayBuffer?.byteLength ?? 0} bytes]`
+          : response.bodyText;
       inspection.requestId =
         response.headers['x-vms-activityid'] ??
         response.headers['x-vss-e2eid'] ??
@@ -1096,6 +1304,25 @@ export class AzureDevOpsApi {
           suggestions: suggestionsForStatus(response.status),
           retryable: response.status === 429 || response.status >= 500,
         });
+      }
+
+      if (options.responseType === 'arrayBuffer') {
+        if (!response.bodyArrayBuffer) {
+          throw new AdoClientError({
+            message: 'Empty binary response from Azure DevOps.',
+            kind: 'parse',
+            statusCode: response.status,
+            requestId: inspection.requestId,
+          });
+        }
+        return {
+          data: {
+            buffer: response.bodyArrayBuffer,
+            contentType: response.headers['content-type'],
+            contentDisposition: response.headers['content-disposition'],
+          } as T,
+          inspection,
+        };
       }
 
       if (!response.bodyText) {

@@ -151,4 +151,15 @@ export const adoQueryKeys = {
     relationTypes: (organization: string) =>
       [...adoQueryKeys.metadata.all, 'relation-types', organization] as const,
   },
+  attachments: {
+    all: ['ado', 'attachments'] as const,
+    workItem: (organization: string, project: string, workItemId: number) =>
+      [
+        ...adoQueryKeys.attachments.all,
+        'work-item',
+        organization,
+        project,
+        workItemId,
+      ] as const,
+  },
 } as const;

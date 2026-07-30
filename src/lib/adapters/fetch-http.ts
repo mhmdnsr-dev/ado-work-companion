@@ -35,6 +35,23 @@ export function createFetchHttpClient(): HttpClient {
           credentials: 'include',
         });
 
+        if (request.responseType === 'arrayBuffer') {
+          const bodyArrayBuffer = await response.arrayBuffer();
+          const contentType = response.headers.get('content-type') ?? '';
+          const bodyText = contentType.includes('json')
+            ? new TextDecoder().decode(bodyArrayBuffer)
+            : '';
+
+          return {
+            status: response.status,
+            statusText: response.statusText,
+            headers: headersToRecord(response.headers),
+            bodyText,
+            bodyArrayBuffer,
+            url: response.url || request.url,
+          };
+        }
+
         const bodyText = await response.text();
 
         return {

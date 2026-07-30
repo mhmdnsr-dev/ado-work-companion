@@ -208,7 +208,9 @@ export function buildWorkItemLinkPatches(params: {
   const linkType = params.linkType.trim();
   if (!linkType) return [];
 
-  const ids = [...new Set(params.targetIds.filter((id) => Number.isInteger(id) && id > 0))];
+  const ids = [
+    ...new Set(params.targetIds.filter((id) => Number.isInteger(id) && id > 0)),
+  ];
   return ids.map((id) => ({
     op: 'add' as const,
     path: '/relations/-',
@@ -219,11 +221,7 @@ export function buildWorkItemLinkPatches(params: {
   }));
 }
 
-const NON_WORK_ITEM_LINK_RELS = new Set([
-  'AttachedFile',
-  'Hyperlink',
-  'ArtifactLink',
-]);
+const NON_WORK_ITEM_LINK_RELS = new Set(['AttachedFile', 'Hyperlink', 'ArtifactLink']);
 
 /** Parse a work item id from an ADO relation URL. */
 export function parseWorkItemIdFromRelationUrl(url?: string): number | null {
@@ -232,6 +230,60 @@ export function parseWorkItemIdFromRelationUrl(url?: string): number | null {
   if (!match?.[1]) return null;
   const id = Number(match[1]);
   return Number.isInteger(id) && id > 0 ? id : null;
+}
+
+/** Parse an attachment GUID from an ADO attachment URL. */
+export function parseAttachmentIdFromUrl(url?: string): string | null {
+  if (!url) return null;
+  const match = url.match(/\/attachments\/([0-9a-fA-F-]{36})(?:\?|$)/i);
+  return match?.[1] ?? null;
+}
+
+export interface WorkItemAttachment {
+  relationIndex: number;
+  attachmentId: string | null;
+  url: string;
+  name: string;
+  comment?: string;
+  size?: number;
+  createdDate?: string;
+}
+
+/** Lists AttachedFile relations from a work item. */
+export function listWorkItemAttachments(
+  relations: WorkItemRelation[] | undefined,
+): WorkItemAttachment[] {
+  if (!relations?.length) return [];
+
+  const out: WorkItemAttachment[] = [];
+  relations.forEach((relation, index) => {
+    if (relation.rel !== 'AttachedFile' || !relation.url) return;
+    const attributes = relation.attributes ?? {};
+    const name =
+      (typeof attributes.name === 'string' && attributes.name.trim()) || 'Attachment';
+    const comment =
+      typeof attributes.comment === 'string' ? attributes.comment : undefined;
+    const size =
+      typeof attributes.resourceSize === 'number' ? attributes.resourceSize : undefined;
+    const createdDate =
+      typeof attributes.resourceCreatedDate === 'string'
+        ? attributes.resourceCreatedDate
+        : typeof attributes.authorizedDate === 'string'
+          ? attributes.authorizedDate
+          : undefined;
+
+    out.push({
+      relationIndex: index,
+      attachmentId: parseAttachmentIdFromUrl(relation.url),
+      url: relation.url,
+      name,
+      comment,
+      size,
+      createdDate,
+    });
+  });
+
+  return out;
 }
 
 export function isWorkItemLinkRelation(rel?: string): boolean {
@@ -324,7 +376,10 @@ export function buildWorkItemLinkUpdatePatches(params: {
   if (linkType === existing.linkType) {
     const current = new Set(linkedIds);
     const removeIndexes = existing.targetIds
-      .map((id, index) => ({ id: String(id), relationIndex: existing.relationIndexes[index]! }))
+      .map((id, index) => ({
+        id: String(id),
+        relationIndex: existing.relationIndexes[index]!,
+      }))
       .filter((entry) => !current.has(entry.id))
       .map((entry) => entry.relationIndex);
     operations.push(...buildWorkItemLinkRemovePatches(removeIndexes));

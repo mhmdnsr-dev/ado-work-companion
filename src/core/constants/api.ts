@@ -20,3 +20,9 @@ export type AdoHttpMethod = (typeof ADO_HTTP_METHODS)[number];
 export const ADO_JSON_PATCH_CONTENT_TYPE = 'application/json-patch+json';
 
 export const ADO_JSON_CONTENT_TYPE = 'application/json';
+
+/** Attachment upload body media type. */
+export const ADO_OCTET_STREAM_CONTENT_TYPE = 'application/octet-stream';
+
+/** Soft cap for simple (non-chunked) browser uploads. */
+export const ADO_MAX_SIMPLE_ATTACHMENT_BYTES = 25 * 1024 * 1024;

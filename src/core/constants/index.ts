@@ -3,6 +3,8 @@ export {
   ADO_HTTP_METHODS,
   ADO_JSON_CONTENT_TYPE,
   ADO_JSON_PATCH_CONTENT_TYPE,
+  ADO_MAX_SIMPLE_ATTACHMENT_BYTES,
+  ADO_OCTET_STREAM_CONTENT_TYPE,
 } from './api';
 export type { AdoHttpMethod } from './api';
 export { NAV_ITEMS } from './navigation';

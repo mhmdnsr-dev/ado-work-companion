@@ -84,6 +84,9 @@ async function proxy(request: NextRequest, pathSegments: string[]): Promise<Resp
   const upstreamContentType = upstream.headers.get('content-type');
   if (upstreamContentType) responseHeaders.set('content-type', upstreamContentType);
 
+  const contentDisposition = upstream.headers.get('content-disposition');
+  if (contentDisposition) responseHeaders.set('content-disposition', contentDisposition);
+
   const activityId = upstream.headers.get('x-vms-activityid');
   if (activityId) responseHeaders.set('x-vms-activityid', activityId);
   const e2eId = upstream.headers.get('x-vss-e2eid');
