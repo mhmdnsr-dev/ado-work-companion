@@ -1,1 +1,1 @@
-export {};
+export { QueriesView } from './queries-view';

@@ -39,6 +39,7 @@ export type {
   WorkItemRelation,
 } from './work-items';
 export { WORK_ITEM_CREATE_TYPES, WORK_ITEM_LIST_FIELDS } from './work-items';
+export type { QueryExpand, QueryHierarchyItem, QueryType } from './queries';
 export type {
   TeamFieldValue,
   TeamMember,

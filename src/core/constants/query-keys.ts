@@ -105,4 +105,15 @@ export const adoQueryKeys = {
     currentUser: (organization: string) =>
       [...adoQueryKeys.dashboard.all, 'current-user', organization] as const,
   },
+  queries: {
+    all: ['ado', 'queries'] as const,
+    list: (organization: string, project: string) =>
+      [...adoQueryKeys.queries.all, 'list', organization, project] as const,
+    detail: (organization: string, project: string, queryId: string) =>
+      [...adoQueryKeys.queries.all, 'detail', organization, project, queryId] as const,
+    children: (organization: string, project: string, folderId: string) =>
+      [...adoQueryKeys.queries.all, 'children', organization, project, folderId] as const,
+    run: (organization: string, project: string, queryId: string) =>
+      [...adoQueryKeys.queries.all, 'run', organization, project, queryId] as const,
+  },
 } as const;

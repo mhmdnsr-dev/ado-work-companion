@@ -56,3 +56,10 @@ export {
   type SprintSnapshotModel,
   type WorkItemSnapshotBurndownRow,
 } from './sprint-burndown';
+export {
+  collectWorkItemIdsFromQueryResult,
+  encodeQueryPathSegment,
+  filterRunnableQueries,
+  flattenQueryHierarchy,
+  type FlatQueryNode,
+} from './queries';
