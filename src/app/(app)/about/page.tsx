@@ -8,5 +8,5 @@ function Placeholder({ title, step }: { title: string; step: number }) {
 }
 
 export default function AboutPage() {
-  return <Placeholder title="About" step={16} />;
+  return <Placeholder title="About" step={17} />;
 }

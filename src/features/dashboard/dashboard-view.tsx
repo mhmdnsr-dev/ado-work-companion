@@ -2,6 +2,7 @@
 
 import { DashboardFavorites } from '@/features/dashboard/favorites-panel';
 import { DashboardQuickActions } from '@/features/dashboard/quick-actions';
+import { SprintBurndownPanel } from '@/features/dashboard/sprint-burndown-panel';
 import { DashboardStatusCards } from '@/features/dashboard/status-cards';
 
 export function DashboardView() {
@@ -15,6 +16,8 @@ export function DashboardView() {
       </header>
 
       <DashboardStatusCards />
+
+      <SprintBurndownPanel />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <DashboardQuickActions />

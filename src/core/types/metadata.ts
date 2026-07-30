@@ -48,6 +48,17 @@ export interface TeamSetting {
   teamFieldValues?: TeamFieldValue[];
 }
 
+export interface IterationWorkItemRelation {
+  rel?: string | null;
+  source?: { id?: number; url?: string } | null;
+  target?: { id?: number; url?: string } | null;
+}
+
+export interface IterationWorkItems {
+  workItemRelations?: IterationWorkItemRelation[];
+  url?: string;
+}
+
 export interface WorkItemClassificationNode {
   id?: number;
   identifier?: string;

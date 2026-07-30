@@ -50,6 +50,39 @@ export function buildAdoResourceUrl(params: {
 }
 
 /**
+ * Builds an Azure DevOps Analytics OData URL.
+ * @see https://learn.microsoft.com/en-us/azure/devops/report/extend-analytics/odata-query-guidelines
+ */
+export function buildAnalyticsODataUrl(params: {
+  organization: string;
+  project: string;
+  /** Entity set name, e.g. WorkItemSnapshot */
+  entity: string;
+  /** OData version segment, default v4.0-preview */
+  odataVersion?: string;
+  apply?: string;
+  orderby?: string;
+  select?: string;
+  top?: number;
+}): string {
+  const org = params.organization.trim();
+  const project = params.project.trim();
+  const entity = params.entity.trim().replace(/^\/+/, '');
+  const version = (params.odataVersion ?? 'v4.0-preview').replace(/^\/+|\/+$/g, '');
+
+  const url = new URL(
+    `https://analytics.dev.azure.com/${encodeURIComponent(org)}/${encodeURIComponent(project)}/_odata/${version}/${entity}`,
+  );
+
+  if (params.apply?.trim()) url.searchParams.set('$apply', params.apply.trim());
+  if (params.orderby?.trim()) url.searchParams.set('$orderby', params.orderby.trim());
+  if (params.select?.trim()) url.searchParams.set('$select', params.select.trim());
+  if (params.top != null) url.searchParams.set('$top', String(params.top));
+
+  return url.toString();
+}
+
+/**
  * PAT → Basic auth header value per Microsoft docs:
  * username empty, password = PAT, Base64(":" + pat)
  * @see https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate

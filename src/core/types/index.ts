@@ -17,6 +17,8 @@ export type {
 } from './http';
 export type {
   AdoListResponse,
+  AuthenticatedUser,
+  ConnectionData,
   ProjectState,
   ProjectVisibility,
   ReferenceLinks,
@@ -42,6 +44,8 @@ export type {
   TeamMember,
   TeamSetting,
   TeamSettingsIteration,
+  IterationWorkItemRelation,
+  IterationWorkItems,
   WebApiTeam,
   WorkItemClassificationNode,
   WorkItemComment,

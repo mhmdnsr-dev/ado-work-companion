@@ -8,5 +8,5 @@ function Placeholder({ title, step }: { title: string; step: number }) {
 }
 
 export default function AttachmentsPage() {
-  return <Placeholder title="Attachments" step={12} />;
+  return <Placeholder title="Attachments" step={13} />;
 }

@@ -9,6 +9,8 @@ import type { AdoErrorPayload } from '../types/errors';
 import type { HttpClient, HttpHeaders, RequestInspectionRecord } from '../types/http';
 import type {
   AdoListResponse,
+  AuthenticatedUser,
+  ConnectionData,
   TeamProject,
   TeamProjectReference,
 } from '../types/projects';
@@ -21,6 +23,7 @@ import type {
   WorkItemComment,
   WorkItemCommentList,
   WorkItemRelationType,
+  IterationWorkItems,
   WorkItemStateColor,
   WorkItemType,
 } from '../types/metadata';
@@ -33,6 +36,7 @@ import type {
 import { WORK_ITEM_LIST_FIELDS } from '../types/work-items';
 import {
   buildAdoResourceUrl,
+  buildAnalyticsODataUrl,
   buildPatAuthorizationHeader,
   createId,
   isAbortError,
@@ -56,6 +60,11 @@ export interface AzureDevOpsApiOptions {
    * (e.g. `/api/ado` Next.js proxy). The proxy reconstructs the ADO URL.
    */
   proxyBaseUrl?: string;
+  /**
+   * When set, Analytics OData requests go here instead of analytics.dev.azure.com
+   * (e.g. `/api/analytics`).
+   */
+  analyticsProxyBaseUrl?: string;
   onRequestComplete?: (record: RequestInspectionRecord) => void;
 }
 
@@ -130,12 +139,13 @@ function suggestionsForStatus(status: number): string[] {
     case 401:
       return [
         'Verify the Personal Access Token is valid and not expired.',
-        'Ensure the PAT has the required scopes (e.g. Project & Team read).',
+        'Ensure the PAT has the required scopes (e.g. Project & Team read, Analytics read).',
       ];
     case 403:
       return [
-        'Your PAT may lack the required scopes for this resource.',
-        'Confirm you have access to the organization and project.',
+        'Your account may lack permission for this resource.',
+        'Analytics OData requires Basic access (Stakeholder is not enough).',
+        'Confirm you are a project member with access to the organization and project.',
       ];
     case 404:
       return [
@@ -163,6 +173,7 @@ export class AzureDevOpsApi {
   private apiVersion: string;
   private pat: string;
   private readonly proxyBaseUrl: string | undefined;
+  private readonly analyticsProxyBaseUrl: string | undefined;
   private readonly onRequestComplete?: (record: RequestInspectionRecord) => void;
 
   constructor(options: AzureDevOpsApiOptions) {
@@ -172,6 +183,7 @@ export class AzureDevOpsApi {
     this.apiVersion = options.apiVersion?.trim() || ADO_API.DEFAULT_VERSION;
     this.pat = options.pat ?? '';
     this.proxyBaseUrl = options.proxyBaseUrl?.replace(/\/+$/, '');
+    this.analyticsProxyBaseUrl = options.analyticsProxyBaseUrl?.replace(/\/+$/, '');
     this.onRequestComplete = options.onRequestComplete;
 
     if (!this.proxyBaseUrl && !this.pat) {
@@ -240,6 +252,27 @@ export class AzureDevOpsApi {
 
     return {
       data: result.data.value ?? [],
+      inspection: result.inspection,
+    };
+  }
+
+  /**
+   * Returns the user authenticated by the current PAT.
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/location/get-connection-data
+   */
+  async getAuthenticatedUser(options?: {
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<AuthenticatedUser | null>> {
+    const result = await this.request<ConnectionData>({
+      method: 'GET',
+      path: '_apis/connectiondata',
+      project: null,
+      query: { 'api-version': '7.1-preview.1' },
+      signal: options?.signal,
+      retry: true,
+    });
+    return {
+      data: result.data.authenticatedUser ?? null,
       inspection: result.inspection,
     };
   }
@@ -578,6 +611,26 @@ export class AzureDevOpsApi {
   }
 
   /**
+   * Work items assigned to a team iteration.
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/work/iterations/get-iteration-work-items
+   */
+  async getIterationWorkItems(options: {
+    project: string;
+    team: string;
+    iterationId: string;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<IterationWorkItems>> {
+    return this.request<IterationWorkItems>({
+      method: 'GET',
+      path: `_apis/work/teamsettings/iterations/${options.iterationId}/workitems`,
+      project: options.project,
+      team: options.team,
+      signal: options.signal,
+      retry: true,
+    });
+  }
+
+  /**
    * Project iteration or area tree.
    * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/classification-nodes/get-classification-nodes?view=azure-devops-rest-7.2
    */
@@ -700,6 +753,51 @@ export class AzureDevOpsApi {
     });
   }
 
+  /**
+   * Queries Azure DevOps Analytics OData.
+   * Requires PAT scope Analytics (read).
+   * @see https://learn.microsoft.com/en-us/azure/devops/report/extend-analytics/odata-query-guidelines
+   */
+  async queryAnalytics<T>(options: {
+    project: string;
+    entity: string;
+    apply: string;
+    orderby?: string;
+    odataVersion?: string;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<T>> {
+    const project = options.project.trim();
+    if (!project) {
+      throw new AdoClientError({
+        kind: 'validation',
+        message: 'Select a project before querying Analytics.',
+        retryable: false,
+      });
+    }
+
+    const analyticsUrl = buildAnalyticsODataUrl({
+      organization: this.organization,
+      project,
+      entity: options.entity,
+      apply: options.apply,
+      orderby: options.orderby,
+      odataVersion: options.odataVersion,
+    });
+
+    const requestUrl = this.analyticsProxyBaseUrl
+      ? this.toAnalyticsProxyUrl(analyticsUrl)
+      : analyticsUrl;
+
+    return this.executeAbsoluteUrl<T>({
+      method: 'GET',
+      adoUrl: analyticsUrl,
+      requestUrl,
+      signal: options.signal,
+      attachPat: !this.analyticsProxyBaseUrl,
+      retry: true,
+    });
+  }
+
   async request<T>(options: AdoRequestOptions): Promise<AdoRequestResult<T>> {
     const method = options.method ?? 'GET';
     const shouldRetry = options.retry ?? (method === 'GET' || method === 'DELETE');
@@ -744,15 +842,70 @@ export class AzureDevOpsApi {
       query: options.query,
     });
 
-    const url = this.proxyBaseUrl ? this.toProxyUrl(adoUrl) : adoUrl;
+    const requestUrl = this.proxyBaseUrl ? this.toProxyUrl(adoUrl) : adoUrl;
 
+    return this.executeAbsoluteUrlOnce<T>({
+      method,
+      adoUrl,
+      requestUrl,
+      body: options.body,
+      jsonPatch: options.jsonPatch,
+      signal: options.signal,
+      timeoutMs: options.timeoutMs,
+      attachPat: !this.proxyBaseUrl,
+    });
+  }
+
+  private async executeAbsoluteUrl<T>(options: {
+    method: AdoHttpMethod;
+    adoUrl: string;
+    requestUrl: string;
+    body?: unknown;
+    jsonPatch?: boolean;
+    signal?: AbortSignal;
+    timeoutMs?: number;
+    attachPat: boolean;
+    retry?: boolean;
+  }): Promise<AdoRequestResult<T>> {
+    const shouldRetry = options.retry ?? false;
+    const maxAttempts = shouldRetry ? ADO_API.MAX_RETRIES + 1 : 1;
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        return await this.executeAbsoluteUrlOnce<T>(options);
+      } catch (error) {
+        lastError = error;
+        const retryable =
+          error instanceof AdoClientError &&
+          error.retryable &&
+          attempt < maxAttempts - 1 &&
+          !options.signal?.aborted;
+        if (!retryable) throw error;
+        await sleep(ADO_API.RETRY_BASE_DELAY_MS * 2 ** attempt, options.signal);
+      }
+    }
+
+    throw lastError;
+  }
+
+  private async executeAbsoluteUrlOnce<T>(options: {
+    method: AdoHttpMethod;
+    adoUrl: string;
+    requestUrl: string;
+    body?: unknown;
+    jsonPatch?: boolean;
+    signal?: AbortSignal;
+    timeoutMs?: number;
+    attachPat: boolean;
+  }): Promise<AdoRequestResult<T>> {
+    const method = options.method;
     const headers: Record<string, string> = {
       Accept: ADO_JSON_CONTENT_TYPE,
       'X-TFS-FedAuthRedirect': 'Suppress',
     };
 
-    // Proxy mode: PAT stays on the server (HttpOnly session). Never attach it here.
-    if (!this.proxyBaseUrl) {
+    if (options.attachPat) {
       headers.Authorization = buildPatAuthorizationHeader(this.pat);
     }
 
@@ -772,7 +925,7 @@ export class AzureDevOpsApi {
     const inspection: RequestInspectionRecord = {
       id: inspectionId,
       method,
-      url: adoUrl,
+      url: options.adoUrl,
       headers: redactAuthorizationHeaders(headers),
       body: bodyText,
       statusCode: null,
@@ -788,7 +941,7 @@ export class AzureDevOpsApi {
     try {
       const response = await this.http.request({
         method,
-        url,
+        url: options.requestUrl,
         headers,
         body: bodyText,
         signal: options.signal,
@@ -893,6 +1046,15 @@ export class AzureDevOpsApi {
     const parsed = new URL(adoUrl);
     const pathAndQuery = `${parsed.pathname}${parsed.search}`;
     return `${this.proxyBaseUrl}${pathAndQuery}`;
+  }
+
+  private toAnalyticsProxyUrl(analyticsUrl: string): string {
+    if (!this.analyticsProxyBaseUrl) {
+      throw new Error('analyticsProxyBaseUrl is not configured.');
+    }
+    const parsed = new URL(analyticsUrl);
+    const pathAndQuery = `${parsed.pathname}${parsed.search}`;
+    return `${this.analyticsProxyBaseUrl}${pathAndQuery}`;
   }
 }
 

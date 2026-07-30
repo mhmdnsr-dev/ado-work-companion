@@ -8,5 +8,5 @@ function Placeholder({ title, step }: { title: string; step: number }) {
 }
 
 export default function CommentsPage() {
-  return <Placeholder title="Comments" step={11} />;
+  return <Placeholder title="Comments" step={12} />;
 }

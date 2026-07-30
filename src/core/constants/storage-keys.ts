@@ -13,6 +13,8 @@ export const STORAGE_KEYS = {
   RECENT_REQUESTS: 'ado.recentRequests',
   CONNECTION_STATUS: 'ado.connectionStatus',
   WORK_ITEM_FILTERS: 'ado.workItemFilters',
+  DASHBOARD_TEAM: 'ado.dashboardTeam',
+  DASHBOARD_MEMBER: 'ado.dashboardMember',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

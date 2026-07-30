@@ -86,4 +86,23 @@ export const adoQueryKeys = {
         ] as const,
     },
   },
+  dashboard: {
+    all: ['ado', 'dashboard'] as const,
+    teams: (organization: string, project: string) =>
+      [...adoQueryKeys.dashboard.all, 'teams', organization, project] as const,
+    currentSprint: (organization: string, project: string, team: string) =>
+      [
+        ...adoQueryKeys.dashboard.all,
+        'current-sprint',
+        organization,
+        project,
+        team,
+      ] as const,
+    burndown: (organization: string, project: string, team: string) =>
+      [...adoQueryKeys.dashboard.all, 'burndown', organization, project, team] as const,
+    members: (organization: string, project: string, team: string) =>
+      [...adoQueryKeys.dashboard.all, 'members', organization, project, team] as const,
+    currentUser: (organization: string) =>
+      [...adoQueryKeys.dashboard.all, 'current-user', organization] as const,
+  },
 } as const;

@@ -46,3 +46,16 @@ export interface AdoListResponse<T> {
   count: number;
   value: T[];
 }
+
+/** Signed-in user from Connection Data API. */
+export interface AuthenticatedUser {
+  id?: string;
+  descriptor?: string;
+  providerDisplayName?: string;
+  customDisplayName?: string;
+  isAuthenticated?: boolean;
+}
+
+export interface ConnectionData {
+  authenticatedUser?: AuthenticatedUser;
+}

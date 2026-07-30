@@ -36,3 +36,23 @@ export {
   saveWorkItemFilters,
   type WorkItemFiltersState,
 } from './work-item-filters';
+export {
+  buildIdealBurndown,
+  buildIterationBurndownChartPath,
+  buildSprintBurndownApply,
+  buildSprintBurndownFromWorkItems,
+  buildSprintBurndownModel,
+  buildSprintSnapshotFromWorkItems,
+  buildMemberSprintStats,
+  filterWorkItemsByAssignee,
+  parseBurndownRows,
+  type AnalyticsODataResponse,
+  type BurndownPoint,
+  type MemberSprintStatsModel,
+  type MemberSprintTaskRow,
+  type SprintBurndownMetrics,
+  type SprintBurndownModel,
+  type SprintChartsResult,
+  type SprintSnapshotModel,
+  type WorkItemSnapshotBurndownRow,
+} from './sprint-burndown';

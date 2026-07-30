@@ -3,7 +3,6 @@
 import { fieldNumber, fieldString, identityDisplayName } from '@core/domain';
 import type { WorkItem } from '@core/types';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -38,12 +37,27 @@ export function WorkItemListCard({
   const assignee =
     identityDisplayName(item.fields?.['System.AssignedTo']) || 'Unassigned';
   const priority = fieldNumber(item, 'Microsoft.VSTS.Common.Priority');
+  const remainingHours = fieldNumber(item, 'Microsoft.VSTS.Scheduling.RemainingWork');
   const changed = formatDate(fieldString(item, 'System.ChangedDate'));
   const tags = fieldString(item, 'System.Tags');
+  const remainingLabel =
+    remainingHours != null ? `${remainingHours} h remaining` : 'No remaining hours';
 
   return (
-    <Card className="gap-3 py-4 transition-colors hover:bg-muted/30">
-      <CardHeader className="gap-2 px-4 sm:flex-row sm:items-start sm:justify-between">
+    <Card
+      role="button"
+      tabIndex={0}
+      aria-label={`Open work item ${id}: ${title}`}
+      className="cursor-pointer gap-3 py-4 transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      onClick={onOpen}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onOpen();
+        }
+      }}
+    >
+      <CardHeader className="gap-2 px-4">
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">#{id}</Badge>
@@ -52,6 +66,9 @@ export function WorkItemListCard({
             {priority != null ? (
               <Badge variant="outline">Priority {priority}</Badge>
             ) : null}
+            <Badge className="border-transparent bg-primary text-primary-foreground">
+              {remainingLabel}
+            </Badge>
           </div>
           <CardTitle className="text-base leading-snug sm:text-lg">{title}</CardTitle>
           <CardDescription>
@@ -59,14 +76,6 @@ export function WorkItemListCard({
             {changed ? ` · Updated ${changed}` : ''}
           </CardDescription>
         </div>
-        <Button
-          type="button"
-          variant="secondary"
-          className="touch-target h-11 shrink-0"
-          onClick={onOpen}
-        >
-          Open
-        </Button>
       </CardHeader>
       {tags ? (
         <CardContent className="px-4 pt-0">
