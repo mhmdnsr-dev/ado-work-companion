@@ -7,6 +7,7 @@ export {
   ADO_OCTET_STREAM_CONTENT_TYPE,
 } from './api';
 export type { AdoHttpMethod } from './api';
+export { APP_INFO } from './app-info';
 export { NAV_ITEMS } from './navigation';
 export type { NavItem, NavItemId } from './navigation';
 export { adoQueryKeys } from './query-keys';
