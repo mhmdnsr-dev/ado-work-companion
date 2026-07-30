@@ -1,12 +1,25 @@
-function Placeholder({ title, step }: { title: string; step: number }) {
-  return (
-    <main id="main-content" className="p-4 md:p-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Implemented in Step {step}.</p>
-    </main>
-  );
-}
+import type { Metadata } from 'next';
+import { Suspense } from 'react';
+
+import { CommentsView } from '@/features/comments';
+import { Skeleton } from '@/components/ui/skeleton';
+
+export const metadata: Metadata = {
+  title: 'Comments',
+  description: 'List, add, and refresh comments on Azure DevOps work items.',
+};
 
 export default function CommentsPage() {
-  return <Placeholder title="Comments" step={13} />;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col gap-6">
+          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-40 w-full rounded-xl" />
+        </div>
+      }
+    >
+      <CommentsView />
+    </Suspense>
+  );
 }

@@ -2,16 +2,18 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Send } from 'lucide-react';
+import { Loader2, RefreshCw, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { adoQueryKeys } from '@core/constants';
 import { buildIdentityMentionHtml, identityDisplayName } from '@core/domain';
 import type { IdentityRef } from '@core/types';
 import { useConnection } from '@/components/providers';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 function formatDate(iso?: string): string {
   if (!iso) return '';
@@ -39,10 +41,14 @@ export function WorkItemCommentsPanel({
   workItemId,
   project,
   people,
+  top = 50,
+  showHeading = true,
 }: {
   workItemId: number;
   project: string;
   people: IdentityRef[];
+  top?: number;
+  showHeading?: boolean;
 }) {
   const { api, settings } = useConnection();
   const queryClient = useQueryClient();
@@ -57,7 +63,7 @@ export function WorkItemCommentsPanel({
     enabled: Boolean(api && workItemId),
     queryFn: async ({ signal }) => {
       if (!api) throw new Error('Connection is not ready.');
-      return api.listWorkItemComments({ id: workItemId, project, signal });
+      return api.listWorkItemComments({ id: workItemId, project, top, signal });
     },
   });
 
@@ -108,7 +114,6 @@ export function WorkItemCommentsPanel({
       (_full, name: string, id: string) =>
         buildIdentityMentionHtml({ id, displayName: name }),
     );
-    // Convert newlines to HTML breaks for readability.
     return withMentions.replace(/\n/g, '<br/>');
   }
 
@@ -141,8 +146,23 @@ export function WorkItemCommentsPanel({
   const comments = commentsQuery.data?.data ?? [];
 
   return (
-    <section className="space-y-3">
-      <h3 className="text-sm font-medium">Comments</h3>
+    <section className="space-y-3" aria-label="Work item comments">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {showHeading ? <h3 className="text-sm font-medium">Comments</h3> : <span />}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="touch-target gap-2"
+          disabled={commentsQuery.isFetching}
+          onClick={() => void commentsQuery.refetch()}
+        >
+          <RefreshCw
+            className={cn('size-4', commentsQuery.isFetching && 'animate-spin')}
+          />
+          Refresh
+        </Button>
+      </div>
 
       <div className="relative space-y-2">
         <Textarea
@@ -151,6 +171,7 @@ export function WorkItemCommentsPanel({
           onChange={(event) => onDraftChange(event.target.value)}
           placeholder="Add a comment… Type @ to mention someone"
           rows={3}
+          aria-label="New comment"
         />
         {mentionOpen && suggestions.length > 0 ? (
           <ul className="absolute z-20 max-h-48 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-md">
@@ -187,9 +208,20 @@ export function WorkItemCommentsPanel({
         </div>
       </div>
 
+      {commentsQuery.isError ? (
+        <Alert variant="destructive">
+          <AlertTitle>Could not load comments</AlertTitle>
+          <AlertDescription>
+            {commentsQuery.error instanceof Error
+              ? commentsQuery.error.message
+              : 'Something went wrong loading comments.'}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       {commentsQuery.isLoading ? <Skeleton className="h-20 w-full" /> : null}
 
-      {comments.length === 0 && !commentsQuery.isLoading ? (
+      {comments.length === 0 && !commentsQuery.isLoading && !commentsQuery.isError ? (
         <p className="text-sm text-muted-foreground">No comments yet.</p>
       ) : (
         <ul className="space-y-2">

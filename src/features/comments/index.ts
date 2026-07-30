@@ -1,1 +1,1 @@
-export {};
+export { CommentsView } from './comments-view';
