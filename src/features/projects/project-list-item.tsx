@@ -1,7 +1,6 @@
 'use client';
 
-import { Check, Copy, Eye } from 'lucide-react';
-import { toast } from 'sonner';
+import { Check, Eye } from 'lucide-react';
 
 import type { TeamProjectReference } from '@core/types';
 import { Badge } from '@/components/ui/badge';
@@ -16,15 +15,6 @@ import {
 } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
-async function copyText(label: string, value: string) {
-  try {
-    await navigator.clipboard.writeText(value);
-    toast.success(`${label} copied`);
-  } catch {
-    toast.error(`Could not copy ${label.toLowerCase()}`);
-  }
-}
-
 function formatUpdated(iso?: string): string | null {
   if (!iso) return null;
   try {
@@ -34,6 +24,24 @@ function formatUpdated(iso?: string): string | null {
     }).format(new Date(iso));
   } catch {
     return iso;
+  }
+}
+
+function friendlyState(state?: string): string | null {
+  if (!state) return null;
+  switch (state) {
+    case 'wellFormed':
+      return 'Ready';
+    case 'createPending':
+      return 'Creating';
+    case 'new':
+      return 'New';
+    case 'deleting':
+      return 'Deleting';
+    case 'deleted':
+      return 'Deleted';
+    default:
+      return state;
   }
 }
 
@@ -49,6 +57,7 @@ export function ProjectListItem({
   onSetActive: () => void;
 }) {
   const updated = formatUpdated(project.lastUpdateTime);
+  const stateLabel = friendlyState(project.state);
 
   return (
     <Card
@@ -61,32 +70,22 @@ export function ProjectListItem({
         <div className="flex flex-wrap items-start justify-between gap-2">
           <CardTitle className="text-base leading-snug">{project.name}</CardTitle>
           {isActive ? (
-            <Badge className="bg-success text-success-foreground">Active</Badge>
+            <Badge className="bg-success text-success-foreground">Current</Badge>
           ) : null}
         </div>
         <CardDescription className="line-clamp-2 min-h-10">
-          {project.description?.trim() || 'No description'}
+          {project.description?.trim() || 'No description yet'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2 px-4">
         <div className="flex flex-wrap gap-2">
-          {project.state ? (
-            <Badge variant="secondary" className="font-mono text-xs">
-              {project.state}
-            </Badge>
-          ) : null}
+          {stateLabel ? <Badge variant="secondary">{stateLabel}</Badge> : null}
           {project.visibility ? (
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="capitalize">
               {project.visibility}
             </Badge>
           ) : null}
         </div>
-        <p
-          className="truncate font-mono text-xs text-muted-foreground"
-          title={project.id}
-        >
-          {project.id}
-        </p>
         {updated ? (
           <p className="text-xs text-muted-foreground">Updated {updated}</p>
         ) : null}
@@ -100,7 +99,7 @@ export function ProjectListItem({
           onClick={onOpen}
         >
           <Eye className="size-4" />
-          Details
+          View
         </Button>
         <Button
           type="button"
@@ -111,17 +110,7 @@ export function ProjectListItem({
           disabled={isActive}
         >
           <Check className="size-4" />
-          {isActive ? 'Selected' : 'Set active'}
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="touch-target size-11"
-          aria-label={`Copy id for ${project.name}`}
-          onClick={() => void copyText('Project id', project.id)}
-        >
-          <Copy className="size-4" />
+          {isActive ? 'In use' : 'Use project'}
         </Button>
       </CardFooter>
     </Card>

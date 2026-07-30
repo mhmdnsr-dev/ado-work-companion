@@ -71,7 +71,7 @@ function connectionBadge(status: string) {
 
 export function DashboardStatusCards() {
   const { settings, health, hasServerPat, testConnection } = useConnection();
-  const projectLabel = settings.project?.trim() || 'Organization only';
+  const projectLabel = settings.project?.trim() || 'Whole organization';
 
   return (
     <section
@@ -96,14 +96,14 @@ export function DashboardStatusCards() {
         }
       />
       <StatusCard
-        title="API version"
-        description="REST API version used for requests"
+        title="Compatibility"
+        description="Azure DevOps service version for this connection"
         icon={Server}
         value={<span className="font-mono">{settings.apiVersion}</span>}
       />
       <StatusCard
-        title="Access token"
-        description="Secure token saved for this browser"
+        title="Access"
+        description="Your personal access is saved for this browser"
         icon={KeyRound}
         value={
           hasServerPat ? (

@@ -4,7 +4,7 @@ import { DashboardView } from '@/features/dashboard';
 
 export const metadata: Metadata = {
   title: 'Dashboard',
-  description: 'Azure DevOps connection overview, recent requests, and favorites.',
+  description: 'Connection overview, quick actions, and favorites for organizing work.',
 };
 
 export default function DashboardPage() {

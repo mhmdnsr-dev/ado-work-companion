@@ -5,8 +5,8 @@ import { Check, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { adoQueryKeys } from '@core/constants';
+import type { TeamProject } from '@core/types';
 import { useConnection } from '@/components/providers';
-import { RequestInspectorCard } from '@/components/shared/request-inspector';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -41,15 +41,43 @@ function formatUpdated(iso?: string): string {
   }
 }
 
+function friendlyState(state?: string): string | null {
+  if (!state) return null;
+  switch (state) {
+    case 'wellFormed':
+      return 'Ready';
+    case 'createPending':
+      return 'Creating';
+    case 'new':
+      return 'New';
+    case 'deleting':
+      return 'Deleting';
+    case 'deleted':
+      return 'Deleted';
+    default:
+      return state;
+  }
+}
+
+function projectSummary(project: TeamProject): {
+  process?: string;
+  sourceControl?: string;
+} {
+  const process = project.capabilities?.processTemplate?.templateName;
+  const sourceControl = project.capabilities?.versioncontrol?.sourceControlType;
+  return {
+    process: process?.trim() || undefined,
+    sourceControl: sourceControl?.trim() || undefined,
+  };
+}
+
 function DetailRow({
   label,
   value,
-  mono,
   onCopy,
 }: {
   label: string;
   value: string;
-  mono?: boolean;
   onCopy?: () => void;
 }) {
   return (
@@ -71,9 +99,7 @@ function DetailRow({
           </Button>
         ) : null}
       </div>
-      <p className={mono ? 'font-mono text-sm break-all' : 'text-sm break-words'}>
-        {value}
-      </p>
+      <p className="text-sm break-words">{value}</p>
     </div>
   );
 }
@@ -106,19 +132,20 @@ export function ProjectDetailSheet({
   });
 
   const project = detailQuery.data?.data;
+  const summary = project ? projectSummary(project) : {};
+  const stateLabel = friendlyState(project?.state);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex h-dvh max-h-dvh w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
         <SheetHeader className="shrink-0 border-b border-border pr-12">
-          <SheetTitle>{project?.name ?? projectName ?? 'Project details'}</SheetTitle>
+          <SheetTitle>{project?.name ?? projectName ?? 'Project'}</SheetTitle>
           <SheetDescription>
-            Projects - Get with capabilities (
-            <span className="font-mono text-xs">_apis/projects/&#123;id&#125;</span>).
+            Review this project and set it as the workspace for your work items and
+            queries.
           </SheetDescription>
         </SheetHeader>
 
-        {/* Native overflow: Radix ScrollArea + flex-1 fails without a bounded height (min-h-0). */}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4">
           <div className="space-y-4 py-4">
             {detailQuery.isLoading ? (
@@ -156,15 +183,15 @@ export function ProjectDetailSheet({
               <div>
                 <div className="mb-2 flex flex-wrap gap-2">
                   {isActive ? (
-                    <Badge className="bg-success text-success-foreground">Active</Badge>
-                  ) : null}
-                  {project.state ? (
-                    <Badge variant="secondary" className="font-mono text-xs">
-                      {project.state}
+                    <Badge className="bg-success text-success-foreground">
+                      Active workspace
                     </Badge>
                   ) : null}
+                  {stateLabel ? <Badge variant="secondary">{stateLabel}</Badge> : null}
                   {project.visibility ? (
-                    <Badge variant="outline">{project.visibility}</Badge>
+                    <Badge variant="outline" className="capitalize">
+                      {project.visibility}
+                    </Badge>
                   ) : null}
                 </div>
 
@@ -174,64 +201,24 @@ export function ProjectDetailSheet({
                   onCopy={() => void copyText('Name', project.name)}
                 />
                 <DetailRow
-                  label="Id"
-                  value={project.id}
-                  mono
-                  onCopy={() => void copyText('Project id', project.id)}
-                />
-                <DetailRow
                   label="Description"
-                  value={project.description?.trim() || '—'}
+                  value={project.description?.trim() || 'No description yet'}
                 />
                 <DetailRow
                   label="Last updated"
                   value={formatUpdated(project.lastUpdateTime)}
                 />
-                <DetailRow
-                  label="Abbreviation"
-                  value={project.abbreviation?.trim() || '—'}
-                />
-                <DetailRow
-                  label="Revision"
-                  value={project.revision != null ? String(project.revision) : '—'}
-                  mono
-                />
-                {project.url ? (
-                  <DetailRow
-                    label="API URL"
-                    value={project.url}
-                    mono
-                    onCopy={() => void copyText('API URL', project.url ?? '')}
-                  />
-                ) : null}
                 {project.defaultTeam?.name ? (
-                  <DetailRow
-                    label="Default team"
-                    value={
-                      project.defaultTeam.id
-                        ? `${project.defaultTeam.name} (${project.defaultTeam.id})`
-                        : project.defaultTeam.name
-                    }
-                  />
+                  <DetailRow label="Default team" value={project.defaultTeam.name} />
                 ) : null}
-
-                {project.capabilities ? (
-                  <div className="space-y-2 border-b border-border py-3">
-                    <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                      Capabilities
-                    </p>
-                    <pre className="overflow-x-auto rounded-md bg-muted/50 p-3 font-mono text-xs whitespace-pre-wrap">
-                      {JSON.stringify(project.capabilities, null, 2)}
-                    </pre>
-                  </div>
+                {summary.process ? (
+                  <DetailRow label="Process" value={summary.process} />
+                ) : null}
+                {summary.sourceControl ? (
+                  <DetailRow label="Source control" value={summary.sourceControl} />
                 ) : null}
               </div>
             ) : null}
-
-            <RequestInspectorCard
-              title="Get request"
-              record={detailQuery.data?.inspection ?? null}
-            />
           </div>
         </div>
 
@@ -251,7 +238,7 @@ export function ProjectDetailSheet({
             onClick={onSetActive}
           >
             <Check className="size-4" />
-            {isActive ? 'Already active' : 'Set as active project'}
+            {isActive ? 'Current workspace' : 'Use this project'}
           </Button>
         </SheetFooter>
       </SheetContent>

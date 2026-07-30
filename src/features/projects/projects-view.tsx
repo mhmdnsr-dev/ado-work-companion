@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 import { adoQueryKeys } from '@core/constants';
 import type { ProjectState, ProjectVisibility, TeamProjectReference } from '@core/types';
 import { useConnection } from '@/components/providers';
-import { RequestInspectorCard } from '@/components/shared/request-inspector';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -96,12 +95,12 @@ export function ProjectsView() {
       await setActiveProject(projectName);
       toast.success(
         projectName
-          ? `Active project set to ${projectName}`
-          : 'Using organization scope only',
+          ? `Now organizing work in ${projectName}`
+          : 'Using the whole organization for now',
       );
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : 'Could not update active project',
+        error instanceof Error ? error.message : 'Could not update the selected project',
       );
     }
   }
@@ -116,9 +115,9 @@ export function ProjectsView() {
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Projects</h1>
         <p className="text-sm text-muted-foreground md:text-base">
-          Browse Azure DevOps projects in{' '}
-          <span className="font-medium text-foreground">{settings.organization}</span>,
-          inspect details, and set the active project scope.
+          Choose which project in{' '}
+          <span className="font-medium text-foreground">{settings.organization}</span> you
+          want to organize work in.
         </p>
       </header>
 
@@ -140,7 +139,7 @@ export function ProjectsView() {
                 setSearch(event.target.value);
                 setPage(0);
               }}
-              placeholder="Name, description, id…"
+              placeholder="Search by name or description…"
               className="touch-target h-11 pl-9"
             />
           </div>
@@ -159,9 +158,9 @@ export function ProjectsView() {
               <SelectValue placeholder="State" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="wellFormed">Well formed</SelectItem>
-              <SelectItem value="all">All (except deleted)</SelectItem>
-              <SelectItem value="createPending">Create pending</SelectItem>
+              <SelectItem value="wellFormed">Ready</SelectItem>
+              <SelectItem value="all">All active</SelectItem>
+              <SelectItem value="createPending">Still creating</SelectItem>
               <SelectItem value="deleted">Deleted</SelectItem>
             </SelectContent>
           </Select>
@@ -235,7 +234,7 @@ export function ProjectsView() {
               <span className="font-medium text-foreground">{settings.project}</span>
             </>
           ) : (
-            <> · Organization scope</>
+            <> · Whole organization</>
           )}
         </p>
         {settings.project ? (
@@ -246,7 +245,7 @@ export function ProjectsView() {
             className="h-9"
             onClick={() => void handleSetActive(undefined)}
           >
-            Clear active project
+            Clear workspace project
           </Button>
         ) : null}
       </div>
@@ -307,11 +306,6 @@ export function ProjectsView() {
           </div>
         </div>
       ) : null}
-
-      <RequestInspectorCard
-        title="List request"
-        record={listQuery.data?.inspection ?? null}
-      />
 
       <ProjectDetailSheet
         open={detailOpen}
