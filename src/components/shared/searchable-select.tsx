@@ -72,13 +72,14 @@ export function SearchableSelect({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-label={selected?.label ?? placeholder}
           disabled={disabled}
           className="touch-target h-11 w-full justify-between font-normal"
         >
           <span className={cn('truncate', !selected && 'text-muted-foreground')}>
             {selected?.label ?? placeholder}
           </span>
-          <ChevronsUpDown className="size-4 shrink-0 opacity-60" />
+          <ChevronsUpDown className="size-4 shrink-0 opacity-60" aria-hidden />
         </Button>
       </PopoverTrigger>
       <PopoverContent

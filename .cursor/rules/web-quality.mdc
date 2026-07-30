@@ -1,0 +1,25 @@
+---
+description: Lighthouse web quality gate for all user-facing feature work
+alwaysApply: true
+---
+
+# Web quality gate (Step 10+)
+
+After implementing or changing a user-facing screen, verify quality with Chrome DevTools MCP before calling the step done.
+
+## Required checks
+
+1. Run `lighthouse_audit` (`mode: navigation`, primary `device: mobile`). Add desktop when layout differs materially.
+2. Scope: **accessibility** and **best-practices**. SEO/agentic are informational unless trivial to fix.
+3. On a11y failures, use `take_snapshot` / console `issue` messages; parse report failures with node/`jq` — do not dump full JSON into chat.
+4. Write reports under `.lighthouse/` (gitignored). Do not commit raw reports unless asked.
+
+## Pass bar
+
+- Accessibility score ≥ 0.9
+- Best Practices score ≥ 0.9
+- Fix all Critical/Serious accessibility failures on touched routes
+
+## Wrap-up
+
+Summarize route scores and what was fixed. Performance tracing is out of scope unless a polish step requests it.

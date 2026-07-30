@@ -38,15 +38,9 @@ export function AppTopbar() {
             <span className="hidden xl:inline">Connection</span>
           </Link>
         </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          className="touch-target size-11"
-          asChild
-          aria-label="Settings"
-        >
-          <Link href="/settings">
-            <Settings className="size-4" />
+        <Button variant="outline" size="icon" className="touch-target size-11" asChild>
+          <Link href="/settings" aria-label="Settings">
+            <Settings className="size-4" aria-hidden />
           </Link>
         </Button>
         <ThemeToggle />

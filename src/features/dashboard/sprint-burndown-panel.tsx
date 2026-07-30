@@ -456,10 +456,11 @@ export function SprintBurndownPanel() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label>
+            <Label htmlFor="dashboard-team">
               Team <span className="text-destructive">*</span>
             </Label>
             <SearchableSelect
+              id="dashboard-team"
               value={resolvedTeam}
               onChange={(value) => {
                 setTeamName(value);
@@ -473,8 +474,9 @@ export function SprintBurndownPanel() {
             />
           </div>
           <div className="space-y-2">
-            <Label>Member</Label>
+            <Label htmlFor="dashboard-member">Member</Label>
             <SearchableSelect
+              id="dashboard-member"
               value={effectiveMemberKey}
               onChange={(value) => {
                 setMemberId(value);

@@ -8,5 +8,5 @@ function Placeholder({ title, step }: { title: string; step: number }) {
 }
 
 export default function MetadataPage() {
-  return <Placeholder title="Metadata" step={11} />;
+  return <Placeholder title="Metadata" step={12} />;
 }

@@ -8,5 +8,5 @@ function Placeholder({ title, step }: { title: string; step: number }) {
 }
 
 export default function QueriesPage() {
-  return <Placeholder title="Queries" step={10} />;
+  return <Placeholder title="Queries" step={11} />;
 }
