@@ -22,6 +22,7 @@ import type {
   WorkItemClassificationNode,
   WorkItemComment,
   WorkItemCommentList,
+  WorkItemField,
   WorkItemRelationType,
   IterationWorkItems,
   WorkItemStateColor,
@@ -789,6 +790,27 @@ export class AzureDevOpsApi {
     });
     return {
       data: (result.data.value ?? []).filter((type) => !type.isDisabled),
+      inspection: result.inspection,
+    };
+  }
+
+  /**
+   * Lists work item fields available to the project (or organization when project is null).
+   * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/fields/list?view=azure-devops-rest-7.2
+   */
+  async listWorkItemFields(options?: {
+    project?: string | null;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<WorkItemField[]>> {
+    const result = await this.request<AdoListResponse<WorkItemField>>({
+      method: 'GET',
+      path: '_apis/wit/fields',
+      project: options?.project === undefined ? this.project : options.project,
+      signal: options?.signal,
+      retry: true,
+    });
+    return {
+      data: (result.data.value ?? []).filter((field) => !field.isDeleted),
       inspection: result.inspection,
     };
   }

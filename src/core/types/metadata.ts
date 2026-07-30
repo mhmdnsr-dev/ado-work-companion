@@ -136,3 +136,44 @@ export interface WorkItemRelationType {
   url?: string;
   attributes?: WorkItemRelationTypeAttributes;
 }
+
+/**
+ * Work item field definition (org/project fields catalog).
+ * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/fields/list?view=azure-devops-rest-7.2
+ */
+export type WorkItemFieldType =
+  | 'string'
+  | 'integer'
+  | 'dateTime'
+  | 'plainText'
+  | 'html'
+  | 'treePath'
+  | 'history'
+  | 'double'
+  | 'guid'
+  | 'boolean'
+  | 'identity'
+  | 'picklistString'
+  | 'picklistInteger'
+  | 'picklistDouble'
+  | string;
+
+export type WorkItemFieldUsage =
+  'none' | 'workItem' | 'workItemLink' | 'tree' | 'workItemTypeExtension' | string;
+
+export interface WorkItemField {
+  name: string;
+  referenceName: string;
+  description?: string;
+  type?: WorkItemFieldType;
+  usage?: WorkItemFieldUsage;
+  readOnly?: boolean;
+  canSortBy?: boolean;
+  isQueryable?: boolean;
+  isIdentity?: boolean;
+  isPicklist?: boolean;
+  isPicklistSuggested?: boolean;
+  isDeleted?: boolean;
+  url?: string;
+  _links?: ReferenceLinks;
+}

@@ -116,4 +116,39 @@ export const adoQueryKeys = {
     run: (organization: string, project: string, queryId: string) =>
       [...adoQueryKeys.queries.all, 'run', organization, project, queryId] as const,
   },
+  metadata: {
+    all: ['ado', 'metadata'] as const,
+    teams: (organization: string, project: string) =>
+      [...adoQueryKeys.metadata.all, 'teams', organization, project] as const,
+    members: (organization: string, project: string, team: string) =>
+      [...adoQueryKeys.metadata.all, 'members', organization, project, team] as const,
+    teamIterations: (organization: string, project: string, team: string) =>
+      [
+        ...adoQueryKeys.metadata.all,
+        'team-iterations',
+        organization,
+        project,
+        team,
+      ] as const,
+    types: (organization: string, project: string) =>
+      [...adoQueryKeys.metadata.all, 'types', organization, project] as const,
+    states: (organization: string, project: string, type: string) =>
+      [...adoQueryKeys.metadata.all, 'states', organization, project, type] as const,
+    fields: (organization: string, project: string) =>
+      [...adoQueryKeys.metadata.all, 'fields', organization, project] as const,
+    classification: (
+      organization: string,
+      project: string,
+      group: 'areas' | 'iterations',
+    ) =>
+      [
+        ...adoQueryKeys.metadata.all,
+        'classification',
+        organization,
+        project,
+        group,
+      ] as const,
+    relationTypes: (organization: string) =>
+      [...adoQueryKeys.metadata.all, 'relation-types', organization] as const,
+  },
 } as const;

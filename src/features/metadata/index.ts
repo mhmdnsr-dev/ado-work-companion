@@ -1,1 +1,1 @@
-export {};
+export { MetadataView } from './metadata-view';
