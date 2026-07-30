@@ -3,4 +3,4 @@ export type {
   AdoRequestOptions,
   AdoRequestResult,
   AzureDevOpsApiOptions,
-} from './azure-devops-api';
+} from './types';
