@@ -52,7 +52,12 @@ function statusBadge(status: string) {
   }
 }
 
-export function ConfigurationForm() {
+export function ConfigurationForm({
+  mode = 'setup',
+}: {
+  /** `setup` is the /configure gate; `settings` embeds the same form in-app. */
+  mode?: 'setup' | 'settings';
+}) {
   const router = useRouter();
   const {
     hydrated,
@@ -72,6 +77,8 @@ export function ConfigurationForm() {
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingProjects, setLoadingProjects] = useState(false);
+  const formId = mode === 'settings' ? 'ado-settings-config-form' : 'ado-config-form';
+  const isSettings = mode === 'settings';
 
   const form = useForm<AdoConnectionFormValues>({
     resolver: zodResolver(adoConnectionSchema),
@@ -138,7 +145,9 @@ export function ConfigurationForm() {
       }
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : 'Could not save your settings. Please try again.',
+        error instanceof Error
+          ? error.message
+          : 'Could not save your settings. Please try again.',
       );
     } finally {
       setSaving(false);
@@ -168,7 +177,9 @@ export function ConfigurationForm() {
         });
       } else {
         toast.error(
-          error instanceof Error ? error.message : 'Could not reach Azure DevOps. Please try again.',
+          error instanceof Error
+            ? error.message
+            : 'Could not reach Azure DevOps. Please try again.',
         );
       }
     } finally {
@@ -195,7 +206,9 @@ export function ConfigurationForm() {
         toast.error(error.message, { description: error.suggestions[0] });
       } else {
         toast.error(
-          error instanceof Error ? error.message : 'Could not load projects. Please try again.',
+          error instanceof Error
+            ? error.message
+            : 'Could not load projects. Please try again.',
         );
       }
     } finally {
@@ -212,6 +225,9 @@ export function ConfigurationForm() {
       pat: '',
     });
     toast.message('Connection settings cleared');
+    if (isSettings) {
+      router.push('/configure');
+    }
   }
 
   function onContinue() {
@@ -224,7 +240,7 @@ export function ConfigurationForm() {
 
   if (!hydrated) {
     return (
-      <Card className="w-full max-w-2xl">
+      <Card className={isSettings ? 'w-full' : 'w-full max-w-2xl'}>
         <CardHeader>
           <Skeleton className="h-7 w-48" />
           <Skeleton className="h-4 w-72" />
@@ -240,23 +256,29 @@ export function ConfigurationForm() {
   }
 
   return (
-    <Card className="w-full max-w-2xl">
+    <Card className={isSettings ? 'w-full' : 'w-full max-w-2xl'}>
       <CardHeader className="gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="mb-1 text-xs tracking-wide text-muted-foreground uppercase">
-              Azure DevOps
-            </p>
-            <CardTitle className="text-2xl">
-              {isConfigured ? 'Update connection' : 'Connect your organization'}
+            {!isSettings ? (
+              <p className="mb-1 text-xs tracking-wide text-muted-foreground uppercase">
+                Azure DevOps
+              </p>
+            ) : null}
+            <CardTitle className={isSettings ? 'text-xl' : 'text-2xl'}>
+              {isSettings
+                ? 'Connection'
+                : isConfigured
+                  ? 'Update connection'
+                  : 'Connect your organization'}
             </CardTitle>
           </div>
           {statusBadge(health.status)}
         </div>
         <CardDescription>
-          Enter your Azure DevOps organization and personal access token to get started.
-          Project is optional — leave it blank to work at the organization level. Your
-          token is kept securely on this device and is never placed in URLs.
+          {isSettings
+            ? 'Update organization, project, API version, or personal access token anytime. Leave the token blank to keep the one already saved on this device.'
+            : 'Enter your Azure DevOps organization and personal access token to get started. Project is optional — leave it blank to work at the organization level. Your token is kept securely on this device and is never placed in URLs.'}
         </CardDescription>
         {hasServerPat ? (
           <Alert>
@@ -267,13 +289,15 @@ export function ConfigurationForm() {
             </AlertDescription>
           </Alert>
         ) : null}
-        <Alert>
-          <AlertTitle>Need a fresh start?</AlertTitle>
-          <AlertDescription>
-            Reset clears your saved connection settings and access token from this
-            device. You can set them up again anytime on this page.
-          </AlertDescription>
-        </Alert>
+        {!isSettings ? (
+          <Alert>
+            <AlertTitle>Need a fresh start?</AlertTitle>
+            <AlertDescription>
+              Reset clears your saved connection settings and access token from this
+              device. You can set them up again anytime on this page.
+            </AlertDescription>
+          </Alert>
+        ) : null}
         {health.message ? (
           <Alert variant={health.status === 'failed' ? 'destructive' : 'default'}>
             <AlertTitle>Connection status</AlertTitle>
@@ -283,11 +307,7 @@ export function ConfigurationForm() {
       </CardHeader>
 
       <CardContent>
-        <form
-          id="ado-config-form"
-          onSubmit={form.handleSubmit(onSave)}
-          className="space-y-6"
-        >
+        <form id={formId} onSubmit={form.handleSubmit(onSave)} className="space-y-6">
           <FieldGroup>
             <Controller
               name="organization"
@@ -389,7 +409,7 @@ export function ConfigurationForm() {
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <Button
             type="submit"
-            form="ado-config-form"
+            form={formId}
             className="touch-target h-11"
             disabled={saving}
           >
@@ -439,15 +459,17 @@ export function ConfigurationForm() {
           </Button>
         </div>
 
-        <Button
-          type="button"
-          variant="default"
-          className="touch-target h-11 w-full"
-          onClick={onContinue}
-          disabled={!isConfigured && !canCallApi}
-        >
-          {isConfigured ? 'Back to Dashboard' : 'Continue to Dashboard'}
-        </Button>
+        {!isSettings ? (
+          <Button
+            type="button"
+            variant="default"
+            className="touch-target h-11 w-full"
+            onClick={onContinue}
+            disabled={!isConfigured && !canCallApi}
+          >
+            {isConfigured ? 'Back to Dashboard' : 'Continue to Dashboard'}
+          </Button>
+        ) : null}
       </CardFooter>
     </Card>
   );

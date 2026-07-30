@@ -1,1 +1,1 @@
-export {};
+export { SettingsView } from './settings-view';

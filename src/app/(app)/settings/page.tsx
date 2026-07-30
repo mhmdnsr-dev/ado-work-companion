@@ -1,12 +1,13 @@
-function Placeholder({ title, step }: { title: string; step: number }) {
-  return (
-    <main id="main-content" className="p-4 md:p-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Implemented in Step {step}.</p>
-    </main>
-  );
-}
+import type { Metadata } from 'next';
+
+import { SettingsView } from '@/features/settings';
+
+export const metadata: Metadata = {
+  title: 'Settings',
+  description:
+    'Manage theme, Azure DevOps connection, and local preferences for this app.',
+};
 
 export default function SettingsPage() {
-  return <Placeholder title="Settings" step={15} />;
+  return <SettingsView />;
 }
