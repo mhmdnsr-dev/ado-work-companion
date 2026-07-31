@@ -1,38 +1,47 @@
-import { queryAnalytics } from './resources/analytics';
 import {
-  attachFileToWorkItem,
-  detachWorkItemAttachment,
-  downloadAttachment,
-  uploadAttachment,
+  queryAnalytics as queryAnalyticsRequest,
+} from './resources/analytics';
+import {
+  attachFileToWorkItem as attachFileToWorkItemRequest,
+  detachWorkItemAttachment as detachWorkItemAttachmentRequest,
+  downloadAttachment as downloadAttachmentRequest,
+  uploadAttachment as uploadAttachmentRequest,
 } from './resources/attachments';
-import { addWorkItemComment, listWorkItemComments } from './resources/comments';
 import {
-  getClassificationNode,
-  getIterationWorkItems,
-  getTeamSettings,
-  listTeamIterations,
-  listTeamMembers,
-  listTeams,
-  listWorkItemFields,
-  listWorkItemRelationTypes,
-  listWorkItemTypes,
-  listWorkItemTypeStates,
+  addWorkItemComment as addWorkItemCommentRequest,
+  listWorkItemComments as listWorkItemCommentsRequest,
+} from './resources/comments';
+import {
+  getClassificationNode as getClassificationNodeRequest,
+  getIterationWorkItems as getIterationWorkItemsRequest,
+  getTeamSettings as getTeamSettingsRequest,
+  listTeamIterations as listTeamIterationsRequest,
+  listTeamMembers as listTeamMembersRequest,
+  listTeams as listTeamsRequest,
+  listWorkItemFields as listWorkItemFieldsRequest,
+  listWorkItemRelationTypes as listWorkItemRelationTypesRequest,
+  listWorkItemTypes as listWorkItemTypesRequest,
+  listWorkItemTypeStates as listWorkItemTypeStatesRequest,
 } from './resources/metadata';
 import {
-  getAuthenticatedUser,
-  getProject,
-  listProjects,
-  testConnection,
+  getAuthenticatedUser as getAuthenticatedUserRequest,
+  getProject as getProjectRequest,
+  listProjects as listProjectsRequest,
+  testConnection as testConnectionRequest,
 } from './resources/projects';
-import { getQuery, listQueries, queryById } from './resources/queries';
 import {
-  createWorkItem,
-  deleteWorkItem,
-  getWorkItem,
-  getWorkItems,
-  listWorkItemRevisions,
-  queryByWiql,
-  updateWorkItem,
+  getQuery as getQueryRequest,
+  listQueries as listQueriesRequest,
+  queryById as queryByIdRequest,
+} from './resources/queries';
+import {
+  createWorkItem as createWorkItemRequest,
+  deleteWorkItem as deleteWorkItemRequest,
+  getWorkItem as getWorkItemRequest,
+  getWorkItems as getWorkItemsRequest,
+  listWorkItemRevisions as listWorkItemRevisionsRequest,
+  queryByWiql as queryByWiqlRequest,
+  updateWorkItem as updateWorkItemRequest,
 } from './resources/work-items';
 import { AdoTransport } from './transport';
 import type {
@@ -40,6 +49,8 @@ import type {
   AdoRequestResult,
   AzureDevOpsApiOptions,
 } from './types';
+import type { QueryExpand } from '../types/queries';
+import type { JsonPatchOperation, WorkItemExpand } from '../types/work-items';
 
 export type {
   AdoRequestOptions,
@@ -48,7 +59,8 @@ export type {
 } from './types';
 
 /**
- * Flat ADO client facade. Endpoint logic lives in `resources/*`; HTTP lives in `AdoTransport`.
+ * Public ADO client. Each method just forwards to a resource function.
+ * Real HTTP logic lives in `AdoTransport`; endpoint logic lives in `resources/*`.
  */
 export class AzureDevOpsApi {
   private readonly transport: AdoTransport;
@@ -76,182 +88,284 @@ export class AzureDevOpsApi {
     return this.transport.getConfig();
   }
 
-  listProjects(...args: Parameters<typeof listProjects> extends [unknown, ...infer R] ? R : never) {
-    return listProjects(this.transport, ...args);
+  // --- Projects ---
+
+  listProjects(options?: {
+    signal?: AbortSignal;
+    stateFilter?: string;
+    top?: number;
+    skip?: number;
+    getDefaultTeamImageUrl?: boolean;
+  }) {
+    return listProjectsRequest(this.transport, options);
   }
 
-  getAuthenticatedUser(
-    ...args: Parameters<typeof getAuthenticatedUser> extends [unknown, ...infer R] ? R : never
-  ) {
-    return getAuthenticatedUser(this.transport, ...args);
+  getAuthenticatedUser(options?: { signal?: AbortSignal }) {
+    return getAuthenticatedUserRequest(this.transport, options);
   }
 
-  getProject(...args: Parameters<typeof getProject> extends [unknown, ...infer R] ? R : never) {
-    return getProject(this.transport, ...args);
-  }
-
-  testConnection(
-    ...args: Parameters<typeof testConnection> extends [unknown, ...infer R] ? R : never
-  ) {
-    return testConnection(this.transport, ...args);
-  }
-
-  queryByWiql(...args: Parameters<typeof queryByWiql> extends [unknown, ...infer R] ? R : never) {
-    return queryByWiql(this.transport, ...args);
-  }
-
-  listQueries(...args: Parameters<typeof listQueries> extends [unknown, ...infer R] ? R : never) {
-    return listQueries(this.transport, ...args);
-  }
-
-  getQuery(...args: Parameters<typeof getQuery> extends [unknown, ...infer R] ? R : never) {
-    return getQuery(this.transport, ...args);
-  }
-
-  queryById(...args: Parameters<typeof queryById> extends [unknown, ...infer R] ? R : never) {
-    return queryById(this.transport, ...args);
-  }
-
-  getWorkItems(...args: Parameters<typeof getWorkItems> extends [unknown, ...infer R] ? R : never) {
-    return getWorkItems(this.transport, ...args);
-  }
-
-  getWorkItem(...args: Parameters<typeof getWorkItem> extends [unknown, ...infer R] ? R : never) {
-    return getWorkItem(this.transport, ...args);
-  }
-
-  createWorkItem(
-    ...args: Parameters<typeof createWorkItem> extends [unknown, ...infer R] ? R : never
-  ) {
-    return createWorkItem(this.transport, ...args);
-  }
-
-  updateWorkItem(
-    ...args: Parameters<typeof updateWorkItem> extends [unknown, ...infer R] ? R : never
-  ) {
-    return updateWorkItem(this.transport, ...args);
-  }
-
-  uploadAttachment(
-    ...args: Parameters<typeof uploadAttachment> extends [unknown, ...infer R] ? R : never
-  ) {
-    return uploadAttachment(this.transport, ...args);
-  }
-
-  downloadAttachment(
-    ...args: Parameters<typeof downloadAttachment> extends [unknown, ...infer R] ? R : never
-  ) {
-    return downloadAttachment(this.transport, ...args);
-  }
-
-  attachFileToWorkItem(
-    ...args: Parameters<typeof attachFileToWorkItem> extends [unknown, ...infer R] ? R : never
-  ) {
-    return attachFileToWorkItem(this.transport, ...args);
-  }
-
-  detachWorkItemAttachment(
-    ...args: Parameters<typeof detachWorkItemAttachment> extends [unknown, ...infer R] ? R : never
-  ) {
-    return detachWorkItemAttachment(this.transport, ...args);
-  }
-
-  deleteWorkItem(
-    ...args: Parameters<typeof deleteWorkItem> extends [unknown, ...infer R] ? R : never
-  ) {
-    return deleteWorkItem(this.transport, ...args);
-  }
-
-  listWorkItemRevisions(
-    ...args: Parameters<typeof listWorkItemRevisions> extends [unknown, ...infer R] ? R : never
-  ) {
-    return listWorkItemRevisions(this.transport, ...args);
-  }
-
-  listTeams(...args: Parameters<typeof listTeams> extends [unknown, ...infer R] ? R : never) {
-    return listTeams(this.transport, ...args);
-  }
-
-  listTeamMembers(
-    ...args: Parameters<typeof listTeamMembers> extends [unknown, ...infer R] ? R : never
-  ) {
-    return listTeamMembers(this.transport, ...args);
-  }
-
-  getTeamSettings(
-    ...args: Parameters<typeof getTeamSettings> extends [unknown, ...infer R] ? R : never
-  ) {
-    return getTeamSettings(this.transport, ...args);
-  }
-
-  listTeamIterations(
-    ...args: Parameters<typeof listTeamIterations> extends [unknown, ...infer R] ? R : never
-  ) {
-    return listTeamIterations(this.transport, ...args);
-  }
-
-  getIterationWorkItems(
-    ...args: Parameters<typeof getIterationWorkItems> extends [unknown, ...infer R] ? R : never
-  ) {
-    return getIterationWorkItems(this.transport, ...args);
-  }
-
-  getClassificationNode(
-    ...args: Parameters<typeof getClassificationNode> extends [unknown, ...infer R] ? R : never
-  ) {
-    return getClassificationNode(this.transport, ...args);
-  }
-
-  listWorkItemTypeStates(
-    ...args: Parameters<typeof listWorkItemTypeStates> extends [unknown, ...infer R] ? R : never
-  ) {
-    return listWorkItemTypeStates(this.transport, ...args);
-  }
-
-  listWorkItemTypes(
-    ...args: Parameters<typeof listWorkItemTypes> extends [unknown, ...infer R] ? R : never
-  ) {
-    return listWorkItemTypes(this.transport, ...args);
-  }
-
-  listWorkItemFields(
-    ...args: Parameters<typeof listWorkItemFields> extends [unknown, ...infer R] ? R : never
-  ) {
-    return listWorkItemFields(this.transport, ...args);
-  }
-
-  listWorkItemRelationTypes(
-    ...args: Parameters<typeof listWorkItemRelationTypes> extends [unknown, ...infer R] ? R : never
-  ) {
-    return listWorkItemRelationTypes(this.transport, ...args);
-  }
-
-  listWorkItemComments(
-    ...args: Parameters<typeof listWorkItemComments> extends [unknown, ...infer R] ? R : never
-  ) {
-    return listWorkItemComments(this.transport, ...args);
-  }
-
-  addWorkItemComment(
-    ...args: Parameters<typeof addWorkItemComment> extends [unknown, ...infer R] ? R : never
-  ) {
-    return addWorkItemComment(this.transport, ...args);
-  }
-
-  queryAnalytics<T>(
-    options: {
-      project: string;
-      entity: string;
-      apply: string;
-      orderby?: string;
-      odataVersion?: string;
+  getProject(
+    projectIdOrName: string,
+    options?: {
       signal?: AbortSignal;
+      includeCapabilities?: boolean;
+      includeHistory?: boolean;
     },
-  ): Promise<AdoRequestResult<T>> {
-    return queryAnalytics<T>(this.transport, options);
+  ) {
+    return getProjectRequest(this.transport, projectIdOrName, options);
   }
 
-  /** Low-level request — prefer resource methods. Kept for parity with the prior public surface. */
+  testConnection(options?: { signal?: AbortSignal }) {
+    return testConnectionRequest(this.transport, options);
+  }
+
+  // --- Work items ---
+
+  queryByWiql(options: {
+    query: string;
+    top?: number;
+    project?: string | null;
+    signal?: AbortSignal;
+  }) {
+    return queryByWiqlRequest(this.transport, options);
+  }
+
+  getWorkItems(options: {
+    ids: number[];
+    fields?: readonly string[];
+    expand?: WorkItemExpand;
+    project?: string | null;
+    signal?: AbortSignal;
+  }) {
+    return getWorkItemsRequest(this.transport, options);
+  }
+
+  getWorkItem(options: {
+    id: number;
+    fields?: readonly string[];
+    expand?: WorkItemExpand;
+    project?: string | null;
+    signal?: AbortSignal;
+  }) {
+    return getWorkItemRequest(this.transport, options);
+  }
+
+  createWorkItem(options: {
+    type: string;
+    operations: JsonPatchOperation[];
+    project: string;
+    signal?: AbortSignal;
+  }) {
+    return createWorkItemRequest(this.transport, options);
+  }
+
+  updateWorkItem(options: {
+    id: number;
+    operations: JsonPatchOperation[];
+    project?: string | null;
+    signal?: AbortSignal;
+  }) {
+    return updateWorkItemRequest(this.transport, options);
+  }
+
+  deleteWorkItem(options: {
+    id: number;
+    destroy?: boolean;
+    project?: string | null;
+    signal?: AbortSignal;
+  }) {
+    return deleteWorkItemRequest(this.transport, options);
+  }
+
+  listWorkItemRevisions(options: {
+    id: number;
+    top?: number;
+    skip?: number;
+    project?: string | null;
+    signal?: AbortSignal;
+  }) {
+    return listWorkItemRevisionsRequest(this.transport, options);
+  }
+
+  // --- Queries ---
+
+  listQueries(options?: {
+    depth?: number;
+    expand?: QueryExpand;
+    includeDeleted?: boolean;
+    project?: string | null;
+    signal?: AbortSignal;
+  }) {
+    return listQueriesRequest(this.transport, options);
+  }
+
+  getQuery(options: {
+    idOrPath: string;
+    depth?: number;
+    expand?: QueryExpand;
+    project?: string | null;
+    signal?: AbortSignal;
+  }) {
+    return getQueryRequest(this.transport, options);
+  }
+
+  queryById(options: {
+    id: string;
+    top?: number;
+    timePrecision?: boolean;
+    project?: string | null;
+    signal?: AbortSignal;
+  }) {
+    return queryByIdRequest(this.transport, options);
+  }
+
+  // --- Attachments ---
+
+  uploadAttachment(options: {
+    fileName: string;
+    content: ArrayBuffer | Blob;
+    project?: string | null;
+    signal?: AbortSignal;
+  }) {
+    return uploadAttachmentRequest(this.transport, options);
+  }
+
+  downloadAttachment(options: {
+    id: string;
+    fileName?: string;
+    project?: string | null;
+    signal?: AbortSignal;
+  }) {
+    return downloadAttachmentRequest(this.transport, options);
+  }
+
+  attachFileToWorkItem(options: {
+    workItemId: number;
+    fileName: string;
+    content: ArrayBuffer | Blob;
+    comment?: string;
+    project?: string | null;
+    signal?: AbortSignal;
+  }) {
+    return attachFileToWorkItemRequest(this.transport, options);
+  }
+
+  detachWorkItemAttachment(options: {
+    workItemId: number;
+    relationIndex: number;
+    project?: string | null;
+    signal?: AbortSignal;
+  }) {
+    return detachWorkItemAttachmentRequest(this.transport, options);
+  }
+
+  // --- Metadata ---
+
+  listTeams(options: { project: string; top?: number; signal?: AbortSignal }) {
+    return listTeamsRequest(this.transport, options);
+  }
+
+  listTeamMembers(options: {
+    project: string;
+    team: string;
+    top?: number;
+    signal?: AbortSignal;
+  }) {
+    return listTeamMembersRequest(this.transport, options);
+  }
+
+  getTeamSettings(options: {
+    project: string;
+    team: string;
+    signal?: AbortSignal;
+  }) {
+    return getTeamSettingsRequest(this.transport, options);
+  }
+
+  listTeamIterations(options: {
+    project: string;
+    team: string;
+    timeframe?: 'current' | 'past' | 'future';
+    signal?: AbortSignal;
+  }) {
+    return listTeamIterationsRequest(this.transport, options);
+  }
+
+  getIterationWorkItems(options: {
+    project: string;
+    team: string;
+    iterationId: string;
+    signal?: AbortSignal;
+  }) {
+    return getIterationWorkItemsRequest(this.transport, options);
+  }
+
+  getClassificationNode(options: {
+    project: string;
+    structureGroup: 'areas' | 'iterations';
+    depth?: number;
+    signal?: AbortSignal;
+  }) {
+    return getClassificationNodeRequest(this.transport, options);
+  }
+
+  listWorkItemTypeStates(options: {
+    project: string;
+    type: string;
+    signal?: AbortSignal;
+  }) {
+    return listWorkItemTypeStatesRequest(this.transport, options);
+  }
+
+  listWorkItemTypes(options: { project: string; signal?: AbortSignal }) {
+    return listWorkItemTypesRequest(this.transport, options);
+  }
+
+  listWorkItemFields(options?: {
+    project?: string | null;
+    signal?: AbortSignal;
+  }) {
+    return listWorkItemFieldsRequest(this.transport, options);
+  }
+
+  listWorkItemRelationTypes(options?: { signal?: AbortSignal }) {
+    return listWorkItemRelationTypesRequest(this.transport, options);
+  }
+
+  // --- Comments ---
+
+  listWorkItemComments(options: {
+    id: number;
+    project: string;
+    top?: number;
+    signal?: AbortSignal;
+  }) {
+    return listWorkItemCommentsRequest(this.transport, options);
+  }
+
+  addWorkItemComment(options: {
+    id: number;
+    project: string;
+    text: string;
+    signal?: AbortSignal;
+  }) {
+    return addWorkItemCommentRequest(this.transport, options);
+  }
+
+  // --- Analytics ---
+
+  queryAnalytics<T>(options: {
+    project: string;
+    entity: string;
+    apply: string;
+    orderby?: string;
+    odataVersion?: string;
+    signal?: AbortSignal;
+  }): Promise<AdoRequestResult<T>> {
+    return queryAnalyticsRequest<T>(this.transport, options);
+  }
+
+  /** Low-level request — prefer the methods above. */
   request<T>(options: AdoRequestOptions): Promise<AdoRequestResult<T>> {
     return this.transport.request<T>(options);
   }

@@ -6,4 +6,8 @@ node_modules
 next-env.d.ts
 package-lock.json
 public/sw.js
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
 Azure DevOps REST API v7.2-Preview.postman_collection.json

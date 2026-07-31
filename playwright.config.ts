@@ -6,6 +6,11 @@ const baseURL = `http://127.0.0.1:${PORT}`;
 /**
  * Smoke e2e — Chromium only. Starts Next.js when no server is already running.
  * Requires ADO_SESSION_SECRET (≥32 chars); falls back to a local test secret.
+ *
+ * `process.env.CI` is set automatically by CI systems (e.g. GitHub Actions sets
+ * `CI=true`). Locally it is unset. When truthy, Playwright runs in stricter mode:
+ * forbids leftover `test.only`, retries once, uses one worker, GitHub reporter,
+ * and always starts a fresh webServer (never reuses an existing one).
  */
 export default defineConfig({
   testDir: './e2e',

@@ -9,9 +9,6 @@
 !.yarn/sdks
 !.yarn/versions
 
-# testing
-/coverage
-
 # next.js
 /.next/
 /out/
@@ -47,12 +44,12 @@ yarn-error.log*
 # tooling caches
 .eslintcache
 
-# test artifacts
-/coverage
-/test-results
-/playwright-report
-/blob-report
-/playwright/.cache
+# test artifacts (never commit Playwright/Vitest outputs)
+coverage/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
 
 # local Cursor / IDE metadata (keep committed project rules)
 .cursor/*
