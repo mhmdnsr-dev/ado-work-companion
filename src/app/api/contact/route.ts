@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const DEFAULT_TO = 'mhmdnsr.dev@gmail.com';
-const DEFAULT_FROM = 'Azure DevOps Explorer <onboarding@resend.dev>';
+const DEFAULT_FROM = 'ADO Work Companion <onboarding@resend.dev>';
 
 type RateBucket = { count: number; resetAt: number };
 
@@ -98,19 +98,19 @@ export async function POST(request: NextRequest) {
 
   const to = process.env.CONTACT_TO_EMAIL?.trim() || DEFAULT_TO;
   const from = process.env.CONTACT_FROM_EMAIL?.trim() || DEFAULT_FROM;
-  const subject = `[ADO Explorer] ${body.subject}`;
+  const subject = `[ADO Work] ${body.subject}`;
   const text = [
     `From: ${body.replyEmail}`,
     '',
     body.message,
     '',
     '—',
-    'Sent via Azure DevOps Explorer Message me form.',
+    'Sent via ADO Work Companion Message me form.',
   ].join('\n');
   const html = [
     `<p><strong>From:</strong> ${escapeHtml(body.replyEmail)}</p>`,
     `<p>${escapeHtml(body.message).replaceAll('\n', '<br />')}</p>`,
-    `<hr /><p style="color:#666;font-size:12px">Sent via Azure DevOps Explorer Message me form.</p>`,
+    `<hr /><p style="color:#666;font-size:12px">Sent via ADO Work Companion Message me form.</p>`,
   ].join('');
 
   const idempotencyKey =

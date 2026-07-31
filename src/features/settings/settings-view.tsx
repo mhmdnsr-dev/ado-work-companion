@@ -6,7 +6,7 @@ import { useMemo, useSyncExternalStore, useState } from 'react';
 import { Download, Info, Monitor, Moon, RotateCcw, Sun } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { STORAGE_KEYS } from '@core/constants';
+import { STORAGE_KEYS, APP_INFO } from '@core/constants';
 import { clearWorkItemFilters } from '@core/domain';
 import type { ThemePreference } from '@core/types';
 import { useConnection } from '@/components/providers';
@@ -127,11 +127,15 @@ export function SettingsView() {
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Settings</h1>
         <p className="text-sm text-muted-foreground md:text-base">
-          Change appearance, connection details, and local defaults for{' '}
-          <span className="font-medium text-foreground">
-            {settings.organization || 'this device'}
-          </span>
-          .
+          Appearance, install options, and your Azure DevOps connection for this device
+          {settings.organization ? (
+            <>
+              {' '}
+              (
+              <span className="font-medium text-foreground">{settings.organization}</span>)
+            </>
+          ) : null}
+          . Use Connection below to change organization, project, or access token.
         </p>
       </header>
 
@@ -183,8 +187,8 @@ export function SettingsView() {
         <CardHeader className="gap-1">
           <CardTitle className="text-xl">Install app</CardTitle>
           <CardDescription>
-            Install as a Progressive Web App for a standalone window and offline app
-            shell. Live Azure DevOps calls still need a network connection.
+            Add {APP_INFO.shortName} to your home screen for a full-screen app feel. You
+            still need a network connection to talk to Azure DevOps.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -200,13 +204,12 @@ export function SettingsView() {
               onClick={() => void onInstallApp()}
             >
               <Download className="size-4" aria-hidden />
-              {installing ? 'Opening install…' : 'Install ADO Explorer'}
+              {installing ? 'Opening install…' : `Install ${APP_INFO.shortName}`}
             </Button>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Install is offered by Chromium-based browsers when the app meets PWA
-              criteria (HTTPS production build with a service worker). Use your browser’s
-              “Install app” / “Add to Home Screen” menu if available.
+              On Chrome (or similar), open the browser menu and choose “Install app” or
+              “Add to Home screen” if it appears. Some phone browsers hide that option.
             </p>
           )}
         </CardContent>
@@ -242,7 +245,7 @@ export function SettingsView() {
         <CardHeader className="gap-1">
           <CardTitle className="text-xl">About</CardTitle>
           <CardDescription>
-            Version notes and project context for this Azure DevOps work item tool.
+            Who {APP_INFO.shortName} is for and how to get help.
           </CardDescription>
         </CardHeader>
         <CardContent>

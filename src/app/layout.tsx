@@ -20,17 +20,17 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Azure DevOps API Explorer',
-    template: '%s · Azure DevOps API Explorer',
+    default: 'ADO Work Companion',
+    template: '%s · ADO Work Companion',
   },
   description:
-    'Production Azure DevOps REST API explorer and work item management tool for internal engineering teams.',
-  applicationName: 'Azure DevOps API Explorer',
+    'A daily companion for anyone with Azure DevOps tasks—update task status and remaining hours, add or read comments, and upload or view attachments.',
+  applicationName: 'ADO Work Companion',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'ADO Explorer',
+    title: 'ADO Work',
   },
   icons: {
     icon: [

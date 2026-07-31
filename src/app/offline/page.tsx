@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { APP_INFO } from '@core/constants';
+
 export const metadata: Metadata = {
   title: 'Offline',
-  description: 'You are offline. Reconnect to continue using Azure DevOps Explorer.',
+  description: `You are offline. Reconnect to continue using ${APP_INFO.name}.`,
   robots: { index: false, follow: false },
 };
 
@@ -21,12 +23,10 @@ export default function OfflinePage() {
         <p className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
           Offline
         </p>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          You’re offline
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight">You’re offline</h1>
         <p className="text-sm text-muted-foreground md:text-base">
-          Azure DevOps Explorer needs a network connection for live API calls. Cached
-          shell pages may still open; reconnect to load projects and work items.
+          {APP_INFO.shortName} needs a network connection to reach Azure DevOps. Some
+          cached pages may still open; reconnect to load projects and work items.
         </p>
       </div>
       <Link

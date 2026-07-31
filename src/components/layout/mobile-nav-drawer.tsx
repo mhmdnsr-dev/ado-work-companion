@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_INFO } from '@core/constants';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import {
   Sheet,
@@ -24,7 +25,7 @@ export function MobileNavDrawer({ open, onOpenChange }: MobileNavDrawerProps) {
       >
         <SheetHeader className="sr-only">
           <SheetTitle>Navigation</SheetTitle>
-          <SheetDescription>Browse Azure DevOps API Explorer sections</SheetDescription>
+          <SheetDescription>Browse {APP_INFO.name} sections</SheetDescription>
         </SheetHeader>
         <AppSidebar
           className="h-full w-full border-0"

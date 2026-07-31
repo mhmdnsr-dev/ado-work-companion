@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
 
+import { APP_INFO } from '@core/constants';
 import { HowToUseView } from '@/features/how-to-use';
 import { AppFooter } from '@/components/shared/app-footer';
 
 export const metadata: Metadata = {
   title: 'How to use',
-  description:
-    'Connect with a PAT, explore features, and use Work Items in Azure DevOps API Explorer.',
+  description: `Connect and use ${APP_INFO.shortName} for Azure DevOps tasks—status, hours, comments, and attachments.`,
 };
 
 /**

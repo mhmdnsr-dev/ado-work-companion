@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { KeyRound } from 'lucide-react';
 
-import { NAV_ITEMS } from '@core/constants';
+import { APP_INFO, NAV_ITEMS } from '@core/constants';
 import { NavLink } from '@/components/layout/nav-link';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -28,8 +28,8 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
           ADO
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold tracking-tight">API Explorer</p>
-          <p className="truncate text-xs text-muted-foreground">Azure DevOps</p>
+          <p className="truncate text-sm font-semibold tracking-tight">{APP_INFO.shortName}</p>
+          <p className="truncate text-xs text-muted-foreground">Work Companion</p>
         </div>
       </div>
 
