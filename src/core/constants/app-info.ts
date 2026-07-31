@@ -5,7 +5,7 @@ export const APP_INFO = {
   name: 'Azure DevOps API Explorer',
   shortName: 'ADO Explorer',
   version: '0.1.0',
-  adoApiVersion: '7.2',
+  adoApiVersion: '7.2-preview',
   description:
     'A production-oriented Azure DevOps REST API explorer and work item management tool for internal engineering teams.',
   stack: [

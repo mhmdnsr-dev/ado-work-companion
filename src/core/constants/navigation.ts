@@ -58,6 +58,12 @@ export const NAV_ITEMS = [
     icon: 'Settings',
   },
   {
+    id: 'how-to-use',
+    label: 'How to use',
+    href: '/how-to-use',
+    icon: 'BookOpen',
+  },
+  {
     id: 'about',
     label: 'About',
     href: '/about',

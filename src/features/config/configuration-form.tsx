@@ -2,6 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FolderSync, Loader2, PlugZap, RotateCcw, Save } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -321,7 +322,13 @@ function ConfigurationFormLoaded({
         <CardDescription>
           {isSettings
             ? 'Update organization, project, API version, or personal access token anytime. Leave the token blank to keep the one already saved on this device.'
-            : 'Enter your Azure DevOps organization and personal access token to get started. Project is optional — leave it blank to work at the organization level. Your token is kept securely on this device and is never placed in URLs.'}
+            : 'Enter your Azure DevOps organization and personal access token to get started. Project is optional — leave it blank to work at the organization level. Your token is kept securely on this device and is never placed in URLs.'}{' '}
+          <Link
+            href="/how-to-use"
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+          >
+            How to use guide
+          </Link>
         </CardDescription>
         {hasServerPat ? (
           <Alert>

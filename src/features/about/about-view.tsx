@@ -195,7 +195,13 @@ export function AboutView() {
         </CardHeader>
         <CardContent>
           <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
-            <li>Connect with an organization and HttpOnly PAT cookie session.</li>
+            <li>
+              Connect with an organization and HttpOnly PAT cookie session. See{' '}
+              <Link href="/how-to-use" className="underline-offset-4 hover:underline">
+                How to use
+              </Link>{' '}
+              for PAT setup.
+            </li>
             <li>
               Browse projects, work items, saved queries, metadata, comments, and
               attachments.

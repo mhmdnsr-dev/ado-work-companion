@@ -2,7 +2,7 @@
 
 Production-oriented **Azure DevOps REST API Explorer & Work Item Management** tool for internal engineering teams.
 
-Built with Next.js (App Router), React 19, TypeScript, Tailwind CSS v4, shadcn/ui, TanStack Query, React Hook Form, and Zod. Targets Azure DevOps REST API **7.2**.
+Built with Next.js (App Router), React 19, TypeScript, Tailwind CSS v4, shadcn/ui, TanStack Query, React Hook Form, and Zod. Targets Azure DevOps REST API **7.2-preview** (configurable).
 
 > Author: **Mohamed Nasr** · [mhmdnsr.dev@gmail.com](mailto:mhmdnsr.dev@gmail.com) · [LinkedIn](https://www.linkedin.com/in/mdnsr/) · [GitHub](https://github.com/mhmdnsr-dev)
 
@@ -10,7 +10,8 @@ Built with Next.js (App Router), React 19, TypeScript, Tailwind CSS v4, shadcn/u
 
 ## Features (current)
 
-- **Configuration gate** — organization (required), project (optional), API version, PAT
+- **Configuration gate** — organization (required), project (optional), API version (`7.2-preview` default), PAT
+- **How to use** — public guide for PAT setup, features, and Work Items
 - **PAT cookie lifetime** — remember token on this device for 7 / 14 (default) / 30 / 90 days or Forever (~400 days browser max)
 - **Hybrid storage** — org/project/apiVersion/theme/cookie lifetime in `localStorage`; PAT in an **HttpOnly** encrypted cookie
 - **Test Connection / Load Projects** use live form values
@@ -120,6 +121,7 @@ Same-origin Next.js does not need CORS. Client fetches use `credentials: 'includ
 | ----- | -------- |
 | `/` | → `/dashboard` if org in localStorage **and** PAT cookie exists; else `/configure` |
 | `/configure` | Always available to create/update/reset |
+| `/how-to-use` | Public guide (PAT setup, features, Work Items) |
 | `/inspector` | Session request log (in-memory) |
 | App routes | Require org + PAT cookie |
 
@@ -137,7 +139,7 @@ src/
   features/inspector # Request Inspector UI
 ```
 
-API reference: [Azure DevOps REST API 7.2](https://learn.microsoft.com/en-us/rest/api/azure/devops/?view=azure-devops-rest-7.2)
+API reference: [Azure DevOps REST API 7.2](https://learn.microsoft.com/en-us/rest/api/azure/devops/?view=azure-devops-rest-7.2) (app default query param: `api-version=7.2-preview`)
 
 ---
 
