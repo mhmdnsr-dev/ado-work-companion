@@ -3,13 +3,14 @@
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useMemo, useSyncExternalStore, useState } from 'react';
-import { Info, Monitor, Moon, RotateCcw, Sun } from 'lucide-react';
+import { Download, Info, Monitor, Moon, RotateCcw, Sun } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { STORAGE_KEYS } from '@core/constants';
 import { clearWorkItemFilters } from '@core/domain';
 import type { ThemePreference } from '@core/types';
 import { useConnection } from '@/components/providers';
+import { usePwaInstall } from '@/components/pwa/pwa-install-provider';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -61,8 +62,10 @@ function useIsClient(): boolean {
 export function SettingsView() {
   const { hydrated, settings, setThemePreference } = useConnection();
   const { theme, setTheme } = useTheme();
+  const { canInstall, isStandalone, promptInstall } = usePwaInstall();
   const mounted = useIsClient();
   const [clearing, setClearing] = useState(false);
+  const [installing, setInstalling] = useState(false);
   const storage = useMemo(() => createLocalStorageAdapter(), []);
 
   if (!hydrated) {
@@ -102,6 +105,20 @@ export function SettingsView() {
       );
     } finally {
       setClearing(false);
+    }
+  }
+
+  async function onInstallApp() {
+    setInstalling(true);
+    try {
+      const outcome = await promptInstall();
+      if (outcome === 'accepted') {
+        toast.success('App installed');
+      } else if (outcome === 'unavailable') {
+        toast.message('Install is not available in this browser right now');
+      }
+    } finally {
+      setInstalling(false);
     }
   }
 
@@ -161,6 +178,39 @@ export function SettingsView() {
       </Card>
 
       <ConfigurationForm mode="settings" />
+
+      <Card>
+        <CardHeader className="gap-1">
+          <CardTitle className="text-xl">Install app</CardTitle>
+          <CardDescription>
+            Install as a Progressive Web App for a standalone window and offline app
+            shell. Live Azure DevOps calls still need a network connection.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isStandalone ? (
+            <p className="text-sm text-muted-foreground">
+              You’re already running the installed app.
+            </p>
+          ) : canInstall ? (
+            <Button
+              type="button"
+              className="touch-target h-11 gap-2"
+              disabled={installing}
+              onClick={() => void onInstallApp()}
+            >
+              <Download className="size-4" aria-hidden />
+              {installing ? 'Opening install…' : 'Install ADO Explorer'}
+            </Button>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Install is offered by Chromium-based browsers when the app meets PWA
+              criteria (HTTPS production build with a service worker). Use your browser’s
+              “Install app” / “Add to Home Screen” menu if available.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="gap-1">

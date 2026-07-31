@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import withPWAInit from '@ducanh2912/next-pwa';
 
 /**
  * The PAT is forwarded from the browser to our own Route Handler proxy and must
@@ -14,6 +15,42 @@ const securityHeaders = [
     value: 'camera=(), microphone=(), geolocation=(), payment=()',
   },
 ];
+
+const withPWA = withPWAInit({
+  dest: 'public',
+  disable: process.env.NODE_ENV === 'development',
+  register: true,
+  cacheOnFrontEndNav: true,
+  aggressiveFrontEndNavCaching: false,
+  fallbacks: {
+    document: '/offline',
+  },
+  // Prepend NetworkOnly for /api so PAT-backed proxies are never Workbox-cached.
+  // Matching cacheName "apis" replaces the default NetworkFirst /api/ rule.
+  extendDefaultRuntimeCaching: true,
+  workboxOptions: {
+    runtimeCaching: [
+      {
+        urlPattern: ({ sameOrigin, url: { pathname } }) =>
+          Boolean(sameOrigin && pathname.startsWith('/api/')),
+        handler: 'NetworkOnly',
+        method: 'GET',
+        options: {
+          cacheName: 'apis',
+        },
+      },
+      {
+        urlPattern: ({ sameOrigin, url: { pathname } }) =>
+          Boolean(sameOrigin && pathname.startsWith('/api/')),
+        handler: 'NetworkOnly',
+        method: 'POST',
+        options: {
+          cacheName: 'apis-mutating',
+        },
+      },
+    ],
+  },
+});
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -43,4 +80,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withPWA(nextConfig);
