@@ -1,9 +1,16 @@
 'use client';
 
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ExternalLink, Loader2, Mail, Send, Settings } from 'lucide-react';
 import Link from 'next/link';
-import { ExternalLink, Mail, Send, Settings } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 
 import { APP_INFO } from '@core/constants';
+import {
+  contactMessageSchema,
+  type ContactMessageFormValues,
+} from '@core/schemas';
 import { AUTHOR } from '@/components/shared/app-footer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,9 +21,15 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { ContactApiError, sendContactMessage } from '@/lib/contact-api';
 
 function LinkedInIcon({ className }: { className?: string }) {
   return (
@@ -31,6 +44,130 @@ function GitHubIcon({ className }: { className?: string }) {
     <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
       <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
     </svg>
+  );
+}
+
+function MessageMeForm() {
+  const form = useForm<ContactMessageFormValues>({
+    resolver: zodResolver(contactMessageSchema),
+    defaultValues: {
+      replyEmail: '',
+      subject: '',
+      message: '',
+      company: '',
+    },
+    mode: 'onBlur',
+  });
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = form;
+
+  async function onSubmit(values: ContactMessageFormValues) {
+    try {
+      await sendContactMessage({
+        ...values,
+        idempotencyKey:
+          typeof crypto !== 'undefined' && 'randomUUID' in crypto
+            ? `contact/${crypto.randomUUID()}`
+            : undefined,
+      });
+      toast.success('Message sent', {
+        description: 'Thanks — I’ll get back to you by email.',
+      });
+      reset({ replyEmail: '', subject: '', message: '', company: '' });
+    } catch (error) {
+      const description =
+        error instanceof ContactApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : 'Could not send your message.';
+      toast.error('Message not sent', { description });
+    }
+  }
+
+  return (
+    <form
+      className="space-y-4"
+      aria-label="Message me by email"
+      onSubmit={handleSubmit(onSubmit)}
+      noValidate
+    >
+      <FieldGroup>
+        <Field data-invalid={Boolean(errors.replyEmail) || undefined}>
+          <FieldLabel htmlFor="about-message-email">Your email</FieldLabel>
+          <Input
+            id="about-message-email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            className="touch-target h-11"
+            aria-invalid={Boolean(errors.replyEmail) || undefined}
+            disabled={isSubmitting}
+            {...register('replyEmail')}
+          />
+          <FieldError errors={[errors.replyEmail]} />
+        </Field>
+
+        <Field data-invalid={Boolean(errors.subject) || undefined}>
+          <FieldLabel htmlFor="about-message-subject">Subject</FieldLabel>
+          <Input
+            id="about-message-subject"
+            placeholder="What’s this about?"
+            className="touch-target h-11"
+            autoComplete="off"
+            aria-invalid={Boolean(errors.subject) || undefined}
+            disabled={isSubmitting}
+            {...register('subject')}
+          />
+          <FieldError errors={[errors.subject]} />
+        </Field>
+
+        <Field data-invalid={Boolean(errors.message) || undefined}>
+          <FieldLabel htmlFor="about-message-body">Message</FieldLabel>
+          <Textarea
+            id="about-message-body"
+            rows={4}
+            placeholder="Write your message…"
+            aria-invalid={Boolean(errors.message) || undefined}
+            disabled={isSubmitting}
+            {...register('message')}
+          />
+          <FieldError errors={[errors.message]} />
+        </Field>
+      </FieldGroup>
+
+      {/* Honeypot — hidden from assistive tech and pointer users */}
+      <div
+        className="absolute -left-[10000px] h-px w-px overflow-hidden"
+        aria-hidden
+      >
+        <label htmlFor="about-message-company">Company</label>
+        <Input
+          id="about-message-company"
+          tabIndex={-1}
+          autoComplete="off"
+          {...register('company')}
+        />
+      </div>
+
+      <Button
+        type="submit"
+        className="touch-target h-11 gap-2"
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? (
+          <Loader2 className="size-4 animate-spin" aria-hidden />
+        ) : (
+          <Send className="size-4" aria-hidden />
+        )}
+        {isSubmitting ? 'Sending…' : 'Message me'}
+      </Button>
+    </form>
   );
 }
 
@@ -143,51 +280,13 @@ export function AboutView() {
 
       <Card>
         <CardHeader className="gap-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <CardTitle className="text-xl">Message me</CardTitle>
-            <Badge variant="secondary">Soon</Badge>
-          </div>
+          <CardTitle className="text-xl">Message me</CardTitle>
           <CardDescription>
-            Send a note by email from this page. Live delivery will land in a later update
-            — for now you can still use the email link above.
+            Send a note by email from this page. Replies go to the address you provide.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form
-            className="space-y-4"
-            aria-label="Message me by email"
-            onSubmit={(event) => event.preventDefault()}
-          >
-            <fieldset disabled className="space-y-4">
-              <legend className="sr-only">Message form (coming soon)</legend>
-              <div className="space-y-2">
-                <Label htmlFor="about-message-subject">Subject</Label>
-                <Input
-                  id="about-message-subject"
-                  name="subject"
-                  placeholder="What’s this about?"
-                  className="touch-target h-11"
-                  autoComplete="off"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="about-message-body">Message</Label>
-                <Textarea
-                  id="about-message-body"
-                  name="message"
-                  rows={4}
-                  placeholder="Write your message…"
-                />
-              </div>
-              <Button type="submit" className="touch-target h-11 gap-2">
-                <Send className="size-4" aria-hidden />
-                Message me
-              </Button>
-            </fieldset>
-            <p className="text-xs text-muted-foreground">
-              Emailing from the app is not available yet.
-            </p>
-          </form>
+        <CardContent className="relative">
+          <MessageMeForm />
         </CardContent>
       </Card>
     </div>
