@@ -3,7 +3,7 @@
  * Source of truth: https://learn.microsoft.com/en-us/rest/api/azure/devops/?view=azure-devops-rest-7.2
  */
 export const ADO_API = {
-  DEFAULT_VERSION: '7.2',
+  DEFAULT_VERSION: '7.2-preview',
   BASE_HOST_SUFFIX: 'dev.azure.com',
   /** Absolute timeout for a single outbound call (ms). */
   DEFAULT_TIMEOUT_MS: 30_000,

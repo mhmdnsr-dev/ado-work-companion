@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
+  BookOpen,
   Database,
   FolderKanban,
   Info,
@@ -24,6 +25,7 @@ const NAV_ICON_MAP = {
   Paperclip,
   Activity,
   Settings,
+  BookOpen,
   Info,
 } as const satisfies Record<NavItem['icon'], LucideIcon>;
 
