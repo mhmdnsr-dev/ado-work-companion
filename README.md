@@ -34,9 +34,11 @@ Open [http://localhost:3000](http://localhost:3000).
 | Script           | Description                     |
 | ---------------- | ------------------------------- |
 | `npm run dev`    | Dev server (Turbopack)          |
-| `npm run build`  | Production build                |
+| `npm run build`  | Production build (webpack/PWA)  |
 | `npm run start`  | Serve production build          |
-| `npm run verify` | typecheck + lint + format check |
+| `npm run test`   | Vitest unit tests (core helpers)|
+| `npm run test:e2e` | Playwright smoke (Chromium)   |
+| `npm run verify` | typecheck + lint + format + unit tests |
 
 ---
 

@@ -90,6 +90,9 @@ const eslintConfig = defineConfig([
     'next-env.d.ts',
     'public/**',
     'coverage/**',
+    'test-results/**',
+    'playwright-report/**',
+    'blob-report/**',
     'Azure DevOps REST API v7.2-Preview.postman_collection.json',
   ]),
 ]);

@@ -47,6 +47,13 @@ yarn-error.log*
 # tooling caches
 .eslintcache
 
+# test artifacts
+/coverage
+/test-results
+/playwright-report
+/blob-report
+/playwright/.cache
+
 # local Cursor / IDE metadata (keep committed project rules)
 .cursor/*
 !.cursor/rules/
