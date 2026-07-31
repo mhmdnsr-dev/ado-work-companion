@@ -3,6 +3,7 @@ export {
   adoPatStatusSchema,
   adoPersistedSettingsSchema,
   normalizeOptionalProject,
+  patCookieLifetimeSchema,
   themePreferenceSchema,
 } from './config';
 export type {

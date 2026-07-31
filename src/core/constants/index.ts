@@ -13,3 +13,10 @@ export type { NavItem, NavItemId } from './navigation';
 export { adoQueryKeys } from './query-keys';
 export { STORAGE_KEYS } from './storage-keys';
 export type { StorageKey } from './storage-keys';
+export {
+  DEFAULT_PAT_COOKIE_LIFETIME,
+  isPatCookieLifetime,
+  PAT_COOKIE_LIFETIME_OPTIONS,
+  patCookieMaxAgeSeconds,
+} from './pat-cookie';
+export type { PatCookieLifetime } from './pat-cookie';

@@ -1,6 +1,10 @@
 import type { StorageAdapter } from '../ports/storage';
 import { STORAGE_KEYS } from '../constants/storage-keys';
 import { ADO_API } from '../constants/api';
+import {
+  DEFAULT_PAT_COOKIE_LIFETIME,
+  isPatCookieLifetime,
+} from '../constants/pat-cookie';
 import { adoPersistedSettingsSchema, type AdoPersistedSettings } from '../schemas/config';
 import type { ConnectionHealth, ThemePreference } from '../types/config';
 
@@ -18,12 +22,17 @@ export async function loadPersistedSettings(
     (await storage.getItem(STORAGE_KEYS.API_VERSION)) ?? ADO_API.DEFAULT_VERSION;
   const theme = ((await storage.getItem(STORAGE_KEYS.THEME)) ??
     'system') as ThemePreference;
+  const lifetimeRaw = await storage.getItem(STORAGE_KEYS.PAT_COOKIE_LIFETIME);
+  const patCookieLifetime = isPatCookieLifetime(lifetimeRaw)
+    ? lifetimeRaw
+    : DEFAULT_PAT_COOKIE_LIFETIME;
 
   const parsed = adoPersistedSettingsSchema.safeParse({
     organization,
     project: projectRaw && projectRaw.length > 0 ? projectRaw : undefined,
     apiVersion,
     theme,
+    patCookieLifetime,
   });
 
   return parsed.success
@@ -32,6 +41,7 @@ export async function loadPersistedSettings(
         organization: '',
         apiVersion: ADO_API.DEFAULT_VERSION,
         theme: 'system',
+        patCookieLifetime: DEFAULT_PAT_COOKIE_LIFETIME,
       };
 }
 
@@ -47,6 +57,7 @@ export async function savePersistedSettings(
   }
   await storage.setItem(STORAGE_KEYS.API_VERSION, settings.apiVersion);
   await storage.setItem(STORAGE_KEYS.THEME, settings.theme);
+  await storage.setItem(STORAGE_KEYS.PAT_COOKIE_LIFETIME, settings.patCookieLifetime);
   // Never persist PAT or rememberPat leftovers.
   await storage.removeItem(STORAGE_KEYS.PAT);
   await storage.removeItem(STORAGE_KEYS.REMEMBER_PAT);
@@ -81,6 +92,7 @@ export async function clearConnectionLocalState(
     storage.removeItem(STORAGE_KEYS.ORGANIZATION),
     storage.removeItem(STORAGE_KEYS.PROJECT),
     storage.removeItem(STORAGE_KEYS.API_VERSION),
+    storage.removeItem(STORAGE_KEYS.PAT_COOKIE_LIFETIME),
     storage.removeItem(STORAGE_KEYS.REMEMBER_PAT),
     storage.removeItem(STORAGE_KEYS.PAT),
     storage.removeItem(STORAGE_KEYS.CONNECTION_STATUS),
@@ -97,5 +109,6 @@ export function emptyClientSettings(
     organization: '',
     apiVersion: ADO_API.DEFAULT_VERSION,
     theme,
+    patCookieLifetime: DEFAULT_PAT_COOKIE_LIFETIME,
   };
 }

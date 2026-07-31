@@ -7,7 +7,13 @@ import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
-import { ADO_API } from '@core/constants';
+import {
+  ADO_API,
+  DEFAULT_PAT_COOKIE_LIFETIME,
+  isPatCookieLifetime,
+  PAT_COOKIE_LIFETIME_OPTIONS,
+  type PatCookieLifetime,
+} from '@core/constants';
 import {
   adoConnectionSchema,
   normalizeOptionalProject,
@@ -36,6 +42,13 @@ import {
   FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -52,15 +65,52 @@ function statusBadge(status: string) {
   }
 }
 
+function resolvePatCookieLifetime(value: unknown): PatCookieLifetime {
+  return isPatCookieLifetime(value) ? value : DEFAULT_PAT_COOKIE_LIFETIME;
+}
+
+function ConfigurationFormSkeleton({ isSettings }: { isSettings: boolean }) {
+  return (
+    <Card className={isSettings ? 'w-full' : 'w-full max-w-2xl'}>
+      <CardHeader>
+        <Skeleton className="h-7 w-48" />
+        <Skeleton className="h-4 w-72" />
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Skeleton className="h-11 w-full" />
+        <Skeleton className="h-11 w-full" />
+        <Skeleton className="h-11 w-full" />
+        <Skeleton className="h-11 w-full" />
+      </CardContent>
+    </Card>
+  );
+}
+
 export function ConfigurationForm({
   mode = 'setup',
 }: {
   /** `setup` is the /configure gate; `settings` embeds the same form in-app. */
   mode?: 'setup' | 'settings';
 }) {
+  const { hydrated } = useConnection();
+  const isSettings = mode === 'settings';
+
+  // Mount the form only after settings hydrate so org/project/lifetime autofill
+  // from localStorage on first paint (same as a saved configure session).
+  if (!hydrated) {
+    return <ConfigurationFormSkeleton isSettings={isSettings} />;
+  }
+
+  return <ConfigurationFormLoaded mode={mode} />;
+}
+
+function ConfigurationFormLoaded({
+  mode,
+}: {
+  mode: 'setup' | 'settings';
+}) {
   const router = useRouter();
   const {
-    hydrated,
     settings,
     health,
     projects,
@@ -83,26 +133,34 @@ export function ConfigurationForm({
   const form = useForm<AdoConnectionFormValues>({
     resolver: zodResolver(adoConnectionSchema),
     defaultValues: {
-      organization: '',
-      project: '',
-      apiVersion: ADO_API.DEFAULT_VERSION,
+      organization: settings.organization,
+      project: settings.project ?? '',
+      apiVersion: settings.apiVersion || ADO_API.DEFAULT_VERSION,
       pat: '',
+      patCookieLifetime: resolvePatCookieLifetime(settings.patCookieLifetime),
     },
     mode: 'onBlur',
   });
 
   useEffect(() => {
-    if (!hydrated) return;
     form.reset({
       organization: settings.organization,
       project: settings.project ?? '',
       apiVersion: settings.apiVersion || ADO_API.DEFAULT_VERSION,
       pat: '',
+      patCookieLifetime: resolvePatCookieLifetime(settings.patCookieLifetime),
     });
-  }, [hydrated, settings, form]);
+  }, [
+    form,
+    settings.organization,
+    settings.project,
+    settings.apiVersion,
+    settings.patCookieLifetime,
+  ]);
 
   const organization = form.watch('organization');
   const patValue = form.watch('pat');
+  const patCookieLifetime = form.watch('patCookieLifetime');
   const canCallApi = Boolean(organization?.trim() && (patValue || hasServerPat));
 
   function toLiveCredentials(values: AdoConnectionFormValues) {
@@ -111,6 +169,7 @@ export function ConfigurationForm({
       project: normalizeOptionalProject(values.project),
       apiVersion: values.apiVersion,
       pat: values.pat,
+      patCookieLifetime: values.patCookieLifetime,
     };
   }
 
@@ -223,6 +282,7 @@ export function ConfigurationForm({
       project: '',
       apiVersion: ADO_API.DEFAULT_VERSION,
       pat: '',
+      patCookieLifetime: DEFAULT_PAT_COOKIE_LIFETIME,
     });
     toast.message('Connection settings cleared');
     if (isSettings) {
@@ -236,23 +296,6 @@ export function ConfigurationForm({
       return;
     }
     router.push('/dashboard');
-  }
-
-  if (!hydrated) {
-    return (
-      <Card className={isSettings ? 'w-full' : 'w-full max-w-2xl'}>
-        <CardHeader>
-          <Skeleton className="h-7 w-48" />
-          <Skeleton className="h-4 w-72" />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Skeleton className="h-11 w-full" />
-          <Skeleton className="h-11 w-full" />
-          <Skeleton className="h-11 w-full" />
-          <Skeleton className="h-11 w-full" />
-        </CardContent>
-      </Card>
-    );
   }
 
   return (
@@ -352,6 +395,51 @@ export function ConfigurationForm({
                 </Field>
               )}
             />
+
+            <Controller
+              name="patCookieLifetime"
+              control={form.control}
+              render={({ field }) => {
+                const lifetime = resolvePatCookieLifetime(field.value);
+                return (
+                  <Field>
+                    <FieldLabel htmlFor="patCookieLifetime">
+                      Remember token on this device
+                    </FieldLabel>
+                    <Select value={lifetime} onValueChange={field.onChange}>
+                      <SelectTrigger
+                        id="patCookieLifetime"
+                        className="touch-target h-11 w-full max-w-xs"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PAT_COOKIE_LIFETIME_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FieldDescription>
+                      Controls how long this app keeps the encrypted token cookie — not the
+                      expiry date of the PAT in Azure DevOps.
+                    </FieldDescription>
+                  </Field>
+                );
+              }}
+            />
+
+            {patCookieLifetime === 'forever' ? (
+              <Alert>
+                <AlertTitle>Long-lived device session</AlertTitle>
+                <AlertDescription>
+                  Forever keeps the token cookie on this browser for as long as the
+                  browser allows (often about a year). Prefer a shorter window on shared
+                  machines, and use Reset when you are done.
+                </AlertDescription>
+              </Alert>
+            ) : null}
 
             <Separator />
 

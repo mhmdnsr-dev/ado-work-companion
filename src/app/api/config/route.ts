@@ -1,5 +1,11 @@
 import type { NextRequest } from 'next/server';
 
+import {
+  DEFAULT_PAT_COOKIE_LIFETIME,
+  isPatCookieLifetime,
+  patCookieMaxAgeSeconds,
+  type PatCookieLifetime,
+} from '@core/constants';
 import { applyCorsHeaders, corsPreflightResponse, jsonWithCors } from '@/lib/server/cors';
 import {
   applyPatCookie,
@@ -16,6 +22,12 @@ interface PatConfigBody {
   pat?: string;
   /** When true, clears the HttpOnly PAT cookie. */
   reset?: boolean;
+  /** How long the encrypted cookie should live on this device. */
+  cookieLifetime?: PatCookieLifetime;
+}
+
+function resolveLifetime(raw: unknown): PatCookieLifetime {
+  return isPatCookieLifetime(raw) ? raw : DEFAULT_PAT_COOKIE_LIFETIME;
 }
 
 export async function OPTIONS(request: NextRequest) {
@@ -33,7 +45,7 @@ export async function GET(request: NextRequest) {
 /**
  * Save PAT → encrypted HttpOnly cookie.
  * - `{ pat: "…" }` → set / replace cookie
- * - `{ pat: "" }` with existing cookie → keep (client updated org/project only)
+ * - `{ pat: "" }` with existing cookie → keep value; refresh Max-Age when lifetime sent
  * - `{ reset: true }` or empty reset payload → clear cookie
  */
 export async function POST(request: NextRequest) {
@@ -59,10 +71,19 @@ export async function POST(request: NextRequest) {
 
   const patInput = body.pat?.trim() ?? '';
   const existingPat = readPatFromRequest(request);
+  const lifetime = resolveLifetime(body.cookieLifetime);
+  const maxAge = patCookieMaxAgeSeconds(lifetime);
 
   if (!patInput) {
     if (existingPat) {
-      return jsonWithCors(request, { hasPat: true, configured: true, kept: true });
+      const response = jsonWithCors(request, {
+        hasPat: true,
+        configured: true,
+        kept: true,
+      });
+      // Refresh Max-Age with the chosen lifetime while keeping the same PAT.
+      applyPatCookie(response, existingPat, maxAge);
+      return applyCorsHeaders(request, response);
     }
     return jsonWithCors(
       request,
@@ -72,7 +93,7 @@ export async function POST(request: NextRequest) {
   }
 
   const response = jsonWithCors(request, { hasPat: true, configured: true });
-  applyPatCookie(response, patInput);
+  applyPatCookie(response, patInput, maxAge);
   return applyCorsHeaders(request, response);
 }
 

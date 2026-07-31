@@ -7,6 +7,7 @@ export const STORAGE_KEYS = {
   PROJECT: 'ado.project',
   API_VERSION: 'ado.apiVersion',
   THEME: 'ado.theme',
+  PAT_COOKIE_LIFETIME: 'ado.patCookieLifetime',
   REMEMBER_PAT: 'ado.rememberPat',
   PAT: 'ado.pat',
   FAVORITES: 'ado.favorites',

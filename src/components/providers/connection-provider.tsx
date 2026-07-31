@@ -11,7 +11,12 @@ import {
 } from 'react';
 
 import { AzureDevOpsApi } from '@core/api';
-import { ADO_API, STORAGE_KEYS } from '@core/constants';
+import {
+  ADO_API,
+  DEFAULT_PAT_COOKIE_LIFETIME,
+  STORAGE_KEYS,
+  type PatCookieLifetime,
+} from '@core/constants';
 import {
   clearConnectionLocalState,
   emptyClientSettings,
@@ -37,6 +42,8 @@ export interface LiveConnectionCredentials {
   apiVersion: string;
   /** Empty keeps the existing HttpOnly PAT cookie when one already exists. */
   pat: string;
+  /** How long the encrypted PAT cookie should live on this device. */
+  patCookieLifetime?: PatCookieLifetime;
 }
 
 interface ConnectionContextValue {
@@ -170,17 +177,21 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
 
   const saveConfiguration = useCallback(
     async (input: LiveConnectionCredentials) => {
+      const patCookieLifetime =
+        input.patCookieLifetime ?? settings.patCookieLifetime ?? DEFAULT_PAT_COOKIE_LIFETIME;
+
       const nextSettings: AdoPersistedSettings = {
         organization: input.organization.trim(),
         project: input.project?.trim() || undefined,
         apiVersion: input.apiVersion.trim() || ADO_API.DEFAULT_VERSION,
         theme: settings.theme,
+        patCookieLifetime,
       };
 
       await savePersistedSettings(storage, nextSettings);
       setSettings(nextSettings);
 
-      const patStatus = await savePatCookie(input.pat.trim());
+      const patStatus = await savePatCookie(input.pat.trim(), patCookieLifetime);
       setHasServerPat(patStatus.hasPat);
 
       if (!patStatus.hasPat || !nextSettings.organization) {
@@ -199,7 +210,7 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
         apiVersion: nextSettings.apiVersion,
       });
     },
-    [health.status, rebuildApi, settings.theme, storage],
+    [health.status, rebuildApi, settings.patCookieLifetime, settings.theme, storage],
   );
 
   const resetConfiguration = useCallback(async () => {

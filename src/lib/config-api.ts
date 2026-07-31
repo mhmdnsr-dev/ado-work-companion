@@ -3,6 +3,10 @@
  * Org/project/apiVersion are stored in localStorage by the client.
  */
 
+import {
+  DEFAULT_PAT_COOKIE_LIFETIME,
+  type PatCookieLifetime,
+} from '@core/constants';
 import { adoPatStatusSchema, type AdoPatStatus } from '@core/schemas';
 
 async function parsePatStatus(response: Response): Promise<AdoPatStatus> {
@@ -34,13 +38,16 @@ export async function fetchPatStatus(): Promise<AdoPatStatus> {
 }
 
 /** Set or replace the HttpOnly PAT cookie. Pass empty string to keep existing. */
-export async function savePatCookie(pat: string): Promise<AdoPatStatus> {
+export async function savePatCookie(
+  pat: string,
+  cookieLifetime: PatCookieLifetime = DEFAULT_PAT_COOKIE_LIFETIME,
+): Promise<AdoPatStatus> {
   const response = await fetch('/api/config', {
     method: 'POST',
     credentials: 'include',
     cache: 'no-store',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ pat }),
+    body: JSON.stringify({ pat, cookieLifetime }),
   });
   return parsePatStatus(response);
 }

@@ -1,6 +1,15 @@
 import { z } from 'zod';
 
 import { ADO_API } from '../constants/api';
+import { DEFAULT_PAT_COOKIE_LIFETIME } from '../constants/pat-cookie';
+
+export const patCookieLifetimeSchema = z.enum([
+  '7d',
+  '14d',
+  '30d',
+  '90d',
+  'forever',
+]);
 
 /**
  * Connection form schema (shared web + future mobile).
@@ -16,6 +25,8 @@ export const adoConnectionSchema = z.object({
   project: z.string(),
   apiVersion: z.string().trim().min(1, 'API version is required'),
   pat: z.string(),
+  /** How long to keep the encrypted PAT cookie on this device. */
+  patCookieLifetime: patCookieLifetimeSchema,
 });
 
 export type AdoConnectionFormValues = z.infer<typeof adoConnectionSchema>;
@@ -34,6 +45,7 @@ export const adoPersistedSettingsSchema = z.object({
   project: z.string().optional(),
   apiVersion: z.string().min(1).default(ADO_API.DEFAULT_VERSION),
   theme: themePreferenceSchema.default('system'),
+  patCookieLifetime: patCookieLifetimeSchema.default(DEFAULT_PAT_COOKIE_LIFETIME),
 });
 
 export type AdoPersistedSettings = z.infer<typeof adoPersistedSettingsSchema>;

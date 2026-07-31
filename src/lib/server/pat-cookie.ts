@@ -3,7 +3,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:
 import type { NextRequest, NextResponse } from 'next/server';
 
 const COOKIE_NAME = 'ado_pat';
-const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 14; // 14 days
+const DEFAULT_MAX_AGE_SECONDS = 60 * 60 * 24 * 14; // 14 days
 
 export function getPatCookieName(): string {
   return COOKIE_NAME;
@@ -76,7 +76,16 @@ export function readPatFromRequest(request: NextRequest): string | null {
   return decryptPat(encrypted);
 }
 
-export function applyPatCookie(response: NextResponse, pat: string): void {
+export function applyPatCookie(
+  response: NextResponse,
+  pat: string,
+  maxAgeSeconds: number = DEFAULT_MAX_AGE_SECONDS,
+): void {
+  const maxAge =
+    Number.isFinite(maxAgeSeconds) && maxAgeSeconds > 0
+      ? Math.floor(maxAgeSeconds)
+      : DEFAULT_MAX_AGE_SECONDS;
+
   response.cookies.set({
     name: COOKIE_NAME,
     value: encryptPat(pat),
@@ -84,7 +93,7 @@ export function applyPatCookie(response: NextResponse, pat: string): void {
     secure: true,
     sameSite: 'lax',
     path: '/',
-    maxAge: SESSION_MAX_AGE_SECONDS,
+    maxAge,
   });
 }
 
