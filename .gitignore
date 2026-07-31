@@ -51,10 +51,8 @@ playwright-report/
 blob-report/
 playwright/.cache/
 
-# local Cursor / IDE metadata (keep committed project rules)
-.cursor/*
-!.cursor/rules/
-!.cursor/rules/**
+# local Cursor / IDE metadata (do not track project rules either)
+.cursor/
 
 # Lighthouse audit reports (Step 10+ quality gate)
 .lighthouse/

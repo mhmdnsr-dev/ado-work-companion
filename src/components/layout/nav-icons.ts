@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import {
+  Activity,
   Database,
   FolderKanban,
   Info,
@@ -21,6 +22,7 @@ const NAV_ICON_MAP = {
   MessageSquare,
   Database,
   Paperclip,
+  Activity,
   Settings,
   Info,
 } as const satisfies Record<NavItem['icon'], LucideIcon>;

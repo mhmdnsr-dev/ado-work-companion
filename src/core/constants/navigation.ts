@@ -46,6 +46,12 @@ export const NAV_ITEMS = [
     icon: 'Paperclip',
   },
   {
+    id: 'inspector',
+    label: 'Request Inspector',
+    href: '/inspector',
+    icon: 'Activity',
+  },
+  {
     id: 'settings',
     label: 'Settings',
     href: '/settings',

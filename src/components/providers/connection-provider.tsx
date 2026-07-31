@@ -61,6 +61,7 @@ interface ConnectionContextValue {
   isConfigured: boolean;
   saveConfiguration: (input: LiveConnectionCredentials) => Promise<AzureDevOpsApi | null>;
   resetConfiguration: () => Promise<void>;
+  clearRecentRequests: () => void;
   testConnection: (
     credentials?: LiveConnectionCredentials,
   ) => Promise<{ projectCount: number }>;
@@ -70,6 +71,24 @@ interface ConnectionContextValue {
   /** Updates the active project scope in localStorage and rebuilds the API client. */
   setActiveProject: (projectName: string | undefined) => Promise<void>;
   setThemePreference: (theme: ThemePreference) => Promise<void>;
+}
+
+const INSPECTION_BODY_MAX_CHARS = 32_768;
+
+function truncateInspectionBody(value: string | null): string | null {
+  if (value == null) return null;
+  if (value.length <= INSPECTION_BODY_MAX_CHARS) return value;
+  return `${value.slice(0, INSPECTION_BODY_MAX_CHARS)}\n… [truncated]`;
+}
+
+function sanitizeInspectionRecord(
+  record: RequestInspectionRecord,
+): RequestInspectionRecord {
+  return {
+    ...record,
+    body: truncateInspectionBody(record.body),
+    responseBody: truncateInspectionBody(record.responseBody),
+  };
 }
 
 const ConnectionContext = createContext<ConnectionContextValue | null>(null);
@@ -104,7 +123,12 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
   const [api, setApi] = useState<AzureDevOpsApi | null>(null);
 
   const pushInspection = useCallback((record: RequestInspectionRecord) => {
-    setRecentRequests((prev) => [record, ...prev].slice(0, 25));
+    const next = sanitizeInspectionRecord(record);
+    setRecentRequests((prev) => [next, ...prev].slice(0, 25));
+  }, []);
+
+  const clearRecentRequests = useCallback(() => {
+    setRecentRequests([]);
   }, []);
 
   const rebuildApi = useCallback(
@@ -221,6 +245,7 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
     setHealth({ status: 'unconfigured' });
     setProjects([]);
     setProjectsError(null);
+    setRecentRequests([]);
     setApi(null);
   }, [settings.theme, storage]);
 
@@ -340,6 +365,7 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
       isConfigured: Boolean(settings.organization && hasServerPat),
       saveConfiguration,
       resetConfiguration,
+      clearRecentRequests,
       testConnection,
       loadProjects,
       setActiveProject,
@@ -357,6 +383,7 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
       api,
       saveConfiguration,
       resetConfiguration,
+      clearRecentRequests,
       testConnection,
       loadProjects,
       setActiveProject,

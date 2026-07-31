@@ -278,7 +278,6 @@ export class AdoTransport {
         null;
       inspection.finishedAt = new Date().toISOString();
       inspection.durationMs = Date.now() - startedMs;
-      this.onRequestComplete?.(inspection);
 
       if (response.status < 200 || response.status >= 300) {
         const ado = parseAdoErrorBody(response.bodyText);
@@ -303,6 +302,7 @@ export class AdoTransport {
             requestId: inspection.requestId,
           });
         }
+        this.onRequestComplete?.(inspection);
         return {
           data: {
             buffer: response.bodyArrayBuffer,
@@ -314,6 +314,7 @@ export class AdoTransport {
       }
 
       if (!response.bodyText) {
+        this.onRequestComplete?.(inspection);
         return { data: undefined as T, inspection };
       }
 
@@ -334,6 +335,7 @@ export class AdoTransport {
             retryable: false,
           });
         }
+        this.onRequestComplete?.(inspection);
         return { data, inspection };
       } catch (cause) {
         if (cause instanceof AdoClientError) throw cause;
@@ -346,6 +348,8 @@ export class AdoTransport {
         });
       }
     } catch (error) {
+      // Notify once for failures (including HTTP errors thrown above). Success
+      // paths already notified before return — avoid duplicate inspector rows.
       if (error instanceof AdoClientError) {
         inspection.errorMessage = error.message;
         inspection.finishedAt = new Date().toISOString();

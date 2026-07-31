@@ -1,1 +1,1 @@
-export {};
+export { InspectorView } from './inspector-view';
