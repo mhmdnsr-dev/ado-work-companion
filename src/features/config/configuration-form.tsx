@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 
 import {
   ADO_API,
+  APP_INFO,
   DEFAULT_PAT_COOKIE_LIFETIME,
   isPatCookieLifetime,
   PAT_COOKIE_LIFETIME_OPTIONS,
@@ -306,23 +307,23 @@ function ConfigurationFormLoaded({
           <div>
             {!isSettings ? (
               <p className="mb-1 text-xs tracking-wide text-muted-foreground uppercase">
-                Azure DevOps
+                {APP_INFO.shortName}
               </p>
             ) : null}
             <CardTitle className={isSettings ? 'text-xl' : 'text-2xl'}>
               {isSettings
                 ? 'Connection'
                 : isConfigured
-                  ? 'Update connection'
-                  : 'Connect your organization'}
+                  ? 'Update your connection'
+                  : 'Connect so you can work on your tasks'}
             </CardTitle>
           </div>
           {statusBadge(health.status)}
         </div>
         <CardDescription>
           {isSettings
-            ? 'Update organization, project, API version, or personal access token anytime. Leave the token blank to keep the one already saved on this device.'
-            : 'Enter your Azure DevOps organization and personal access token to get started. Project is optional — leave it blank to work at the organization level. Your token is kept securely on this device and is never placed in URLs.'}{' '}
+            ? 'Organization, project, and access token for this device. Leave the token blank to keep the one already saved.'
+            : 'Enter your Azure DevOps organization and access token to get started. Project is optional. Your token stays on this device and is never placed in the address bar.'}{' '}
           <Link
             href="/how-to-use"
             className="font-medium text-foreground underline-offset-4 hover:underline"

@@ -37,7 +37,7 @@ export function AppFooter({ className }: { className?: string }) {
       }
     >
       <p className="font-medium text-foreground">{AUTHOR.name}</p>
-      <p className="mt-1">Built with care for Azure DevOps engineers.</p>
+      <p className="mt-1">Built for anyone with Azure DevOps tasks.</p>
       <nav
         aria-label="Author links"
         className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2"

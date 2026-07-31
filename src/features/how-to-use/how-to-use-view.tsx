@@ -29,23 +29,23 @@ const GITHUB_URL = 'https://github.com/mhmdnsr-dev/azure-devOps-work-item-manage
 const FEATURES = [
   {
     title: 'Connect once',
-    body: 'Enter your organization, optional project, and access token. The token is saved securely on this device so you do not have to paste it every visit.',
+    body: 'Enter your organization, optional project, and access token. The token is saved on this device so you do not have to paste it every visit.',
   },
   {
-    title: 'Work Items',
-    body: 'Find items by type, status, team, sprint, or person; search; create new ones; open a panel to edit details, links, and comments.',
+    title: 'Work Items (main job)',
+    body: 'Find your tasks, update status and remaining hours, add or read comments, and open attachments—all from a list and side panel.',
   },
   {
     title: 'Queries & comments',
-    body: 'Run your saved Azure DevOps searches and read discussions without jumping around in the classic boards.',
+    body: 'Run your saved Azure DevOps searches and follow discussions without jumping around in classic boards.',
   },
   {
-    title: 'Projects, metadata, attachments',
-    body: 'Switch projects, browse types and fields, and manage files on work items.',
+    title: 'Projects, details & files',
+    body: 'Switch projects, browse work item types and fields, and manage files on a work item.',
   },
   {
     title: 'Dashboard & request log',
-    body: 'See connection status, pin favorite pages, track sprint progress when available, and review recent requests this app made for you.',
+    body: 'See connection status, pin favorite pages, track sprint progress when available, and review recent activity from this app.',
   },
 ] as const;
 
@@ -53,8 +53,8 @@ const WORK_ITEM_STEPS = [
   'Choose a project first (in Settings or with the project picker). Work Items needs a project.',
   'Open Work Items from the side menu.',
   'Narrow the list by type, open or closed, team, sprint, assignee, or search text.',
-  'Click a card to open the side panel: title, status, assignee, priority, description, links, and comments.',
-  'Use New to create an item, or Save / Delete in the panel when your account allows it.',
+  'Click a card to open the side panel: title, status, assignee, remaining hours, description, links, comments, and files.',
+  'Update status or hours, leave a comment, then Save. Use New to create an item when you need one.',
 ] as const;
 
 const PAT_PERMISSIONS = [
@@ -72,8 +72,10 @@ export function HowToUseView() {
           <Badge variant="secondary">v{APP_INFO.version}</Badge>
         </div>
         <p className="text-sm text-muted-foreground md:text-base">
-          A short guide to {APP_INFO.shortName}: connect your Azure DevOps account, then manage
-          work — especially Work Items — from this app.
+          {APP_INFO.shortName} is for {APP_INFO.audience.toLowerCase()}—including
+          developers, QA, product owners, and anyone else on the team. Connect once, then
+          update status and hours, comment, and attach files without living in classic
+          boards.
         </p>
         <Button asChild className="touch-target h-11 w-fit">
           <Link href="/configure">
@@ -89,7 +91,7 @@ export function HowToUseView() {
             <Sparkles className="size-5" aria-hidden />
             What you can do
           </CardTitle>
-          <CardDescription>The main areas of the app.</CardDescription>
+          <CardDescription>Focus on daily task work first; the rest supports it.</CardDescription>
         </CardHeader>
         <CardContent>
           <ul className="space-y-4">
@@ -134,8 +136,8 @@ export function HowToUseView() {
             </li>
             <li>
               Click <span className="font-medium text-foreground">New Token</span>, give it a
-              clear name (for example “ADO Explorer”), pick an expiry date, and set the
-              permissions below.
+              clear name (for example “{APP_INFO.shortName}”), pick an expiry date, and set
+              the permissions below.
             </li>
             <li>
               Create the token, <span className="font-medium text-foreground">copy it once</span>
@@ -228,7 +230,7 @@ export function HowToUseView() {
             Work Items
           </CardTitle>
           <CardDescription>
-            Where you spend most of your time once a project is selected.
+            Where you update status, hours, comments, and files once a project is selected.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm text-muted-foreground">
@@ -246,10 +248,10 @@ export function HowToUseView() {
             </ul>
             <p className="pt-2 font-medium text-foreground">In the side panel</p>
             <ul className="list-disc space-y-1.5 pl-5">
-              <li>Edit main fields and description</li>
-              <li>Manage links to related work</li>
+              <li>Change status, remaining hours, and other main fields</li>
               <li>Read and add comments</li>
-              <li>Save changes or delete when your permissions allow</li>
+              <li>Manage links to related work</li>
+              <li>Save changes when your permissions allow</li>
             </ul>
           </div>
 
@@ -280,12 +282,16 @@ export function HowToUseView() {
         <CardContent>
           <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
             <li>
+              Settings holds appearance, install, and your connection. About explains who the
+              app is for.
+            </li>
+            <li>
               Request Inspector shows recent activity from this session so you can see what the
               app asked Azure DevOps for.
             </li>
             <li>
-              On phones and tablets you can often install this site like an app from the
-              browser menu.
+              On phones, use Chrome’s menu → Install app / Add to Home screen if the in-app
+              button is missing.
             </li>
             <li>
               Source code:{' '}

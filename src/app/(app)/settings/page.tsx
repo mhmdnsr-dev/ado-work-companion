@@ -5,7 +5,7 @@ import { SettingsView } from '@/features/settings';
 export const metadata: Metadata = {
   title: 'Settings',
   description:
-    'Manage theme, Azure DevOps connection, and local preferences for this app.',
+    'Appearance, install options, and your Azure DevOps connection for this device.',
 };
 
 export default function SettingsPage() {

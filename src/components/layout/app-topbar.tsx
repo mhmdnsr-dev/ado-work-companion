@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { KeyRound, Settings } from 'lucide-react';
 
-import { NAV_ITEMS } from '@core/constants';
+import { APP_INFO, NAV_ITEMS } from '@core/constants';
 import { ConnectionSummary } from '@/components/layout/connection-summary';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ function titleForPath(pathname: string): string {
   const match = NAV_ITEMS.find(
     (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
   );
-  return match?.label ?? 'Azure DevOps API Explorer';
+  return match?.label ?? APP_INFO.name;
 }
 
 export function AppTopbar() {

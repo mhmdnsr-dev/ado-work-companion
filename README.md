@@ -1,6 +1,6 @@
-# Azure DevOps API Explorer
+# ADO Work Companion
 
-Production-oriented **Azure DevOps REST API Explorer & Work Item Management** tool for internal engineering teams.
+A daily companion for **anyone with Azure DevOps tasks**—update status and remaining hours, add or read comments, and upload or view attachments without living in classic boards. Useful for developers, QA, product owners, and anyone else on the team.
 
 Built with Next.js (App Router), React 19, TypeScript, Tailwind CSS v4, shadcn/ui, TanStack Query, React Hook Form, and Zod. Targets Azure DevOps REST API **7.2-preview** (configurable).
 
@@ -10,8 +10,8 @@ Built with Next.js (App Router), React 19, TypeScript, Tailwind CSS v4, shadcn/u
 
 ## Features (current)
 
-- **Configuration gate** — organization (required), project (optional), API version (`7.2-preview` default), PAT
-- **How to use** — public guide for PAT setup, features, and Work Items
+- **Configuration gate** — organization (required), project (optional), API version (`7.2-preview` default), access token
+- **How to use** — public guide for token setup, features, and Work Items
 - **PAT cookie lifetime** — remember token on this device for 7 / 14 (default) / 30 / 90 days or Forever (~400 days browser max)
 - **Hybrid storage** — org/project/apiVersion/theme/cookie lifetime in `localStorage`; PAT in an **HttpOnly** encrypted cookie
 - **Test Connection / Load Projects** use live form values

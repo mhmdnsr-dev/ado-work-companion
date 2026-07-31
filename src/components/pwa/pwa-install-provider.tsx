@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from 'react';
 
+import { APP_INFO } from '@core/constants';
 import { Button } from '@/components/ui/button';
 
 const DISMISS_KEY = 'ado.pwaInstallDismissed';
@@ -139,10 +140,10 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
         >
           <div className="flex items-start gap-3">
             <div className="min-w-0 flex-1 space-y-1">
-              <p className="text-sm font-medium">Install ADO Explorer</p>
+              <p className="text-sm font-medium">Install {APP_INFO.shortName}</p>
               <p className="text-xs text-muted-foreground">
-                Add a home-screen shortcut for faster access. Works offline for the app
-                shell only.
+                Add a home-screen shortcut for faster access to your tasks. Offline covers
+                the app shell only—Azure DevOps still needs a network.
               </p>
             </div>
             <Button

@@ -1,7 +1,7 @@
 {
-  "name": "Azure DevOps API Explorer",
-  "short_name": "ADO Explorer",
-  "description": "Azure DevOps REST API explorer and work item management tool",
+  "name": "ADO Work Companion",
+  "short_name": "ADO Work",
+  "description": "A daily companion for anyone with Azure DevOps tasks—update status and hours, comments, and attachments.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

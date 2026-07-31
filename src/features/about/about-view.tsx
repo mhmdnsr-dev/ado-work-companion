@@ -188,34 +188,29 @@ export function AboutView() {
 
       <Card>
         <CardHeader className="gap-1">
-          <CardTitle className="text-xl">What it does</CardTitle>
+          <CardTitle className="text-xl">Who it’s for</CardTitle>
           <CardDescription>
-            Organize Azure DevOps work without living in the classic boards UI.
+            For {APP_INFO.audience.toLowerCase()}—including developers, QA, product
+            owners, and anyone else on the team.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
             <li>
-              Connect with an organization and HttpOnly PAT cookie session. See{' '}
+              Update a task’s status and remaining hours without digging through classic
+              boards.
+            </li>
+            <li>Add or read comments, and upload or open attachments on your work items.</li>
+            <li>
+              Filter and open work by project, team, sprint, or assignee—then save changes
+              in a side panel.
+            </li>
+            <li>
+              Connect once with your organization and access token. See{' '}
               <Link href="/how-to-use" className="underline-offset-4 hover:underline">
                 How to use
               </Link>{' '}
-              for PAT setup.
-            </li>
-            <li>
-              Browse projects, work items, saved queries, metadata, comments, and
-              attachments.
-            </li>
-            <li>
-              Track sprint burndown with Analytics when available, and REST fallbacks for
-              Stakeholder access.
-            </li>
-            <li>
-              Targets Azure DevOps REST API{' '}
-              <span className="font-medium text-foreground">
-                {APP_INFO.adoApiVersion}
-              </span>
-              .
+              for setup steps.
             </li>
           </ul>
         </CardContent>
