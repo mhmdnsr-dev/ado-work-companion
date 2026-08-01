@@ -22,7 +22,6 @@ export interface AzureDevOpsApiOptions {
    * (e.g. `/api/analytics`).
    */
   analyticsProxyBaseUrl?: string;
-  onRequestComplete?: (record: RequestInspectionRecord) => void;
 }
 
 export interface AdoRequestOptions {

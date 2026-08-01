@@ -56,6 +56,7 @@ import {
 } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { WorkItemAttachmentsPanel } from '@/features/attachments';
 import { WorkItemCommentsPanel } from '@/features/work-items/work-item-comments-panel';
 import { WorkItemLinkFields } from '@/features/work-items/work-item-link-fields';
 
@@ -203,6 +204,9 @@ function WorkItemEditor({
   }));
 
   const relations = item.relations ?? [];
+  const nonAttachmentRelations = relations.filter(
+    (relation) => relation.rel !== 'AttachedFile',
+  );
 
   function hourPatch(field: string, value: string, operations: JsonPatchOperation[]) {
     const trimmed = value.trim();
@@ -485,11 +489,27 @@ function WorkItemEditor({
             />
           ) : null}
 
-          {relations.length > 0 ? (
+          {item.id ? (
+            <WorkItemAttachmentsPanel
+              workItemId={item.id}
+              project={project}
+              organization={organization}
+              relations={item.relations}
+              onChanged={async () => {
+                const workItemId = item.id;
+                if (workItemId == null) return;
+                await queryClient.invalidateQueries({
+                  queryKey: adoQueryKeys.workItems.detail(organization, workItemId),
+                });
+              }}
+            />
+          ) : null}
+
+          {nonAttachmentRelations.length > 0 ? (
             <section className="space-y-2">
               <h3 className="text-sm font-medium">Related work</h3>
               <ul className="space-y-2">
-                {relations.map((relation: WorkItemRelation, index: number) => (
+                {nonAttachmentRelations.map((relation: WorkItemRelation, index: number) => (
                   <li
                     key={`${relation.rel}-${relation.url}-${index}`}
                     className="rounded-md border border-border px-3 py-2 text-sm"

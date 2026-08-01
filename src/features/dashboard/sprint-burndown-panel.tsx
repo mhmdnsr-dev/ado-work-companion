@@ -417,7 +417,7 @@ export function SprintBurndownPanel() {
         <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <span>Sprint charts need an active project and team with a current sprint.</span>
           <Button asChild className="touch-target h-11 shrink-0">
-            <Link href="/projects">Browse projects</Link>
+            <Link href="/settings">Open Settings</Link>
           </Button>
         </AlertDescription>
       </Alert>

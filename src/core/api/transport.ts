@@ -39,7 +39,6 @@ export class AdoTransport {
   private pat: string;
   private readonly proxyBaseUrl: string | undefined;
   private readonly analyticsProxyBaseUrl: string | undefined;
-  private readonly onRequestComplete?: (record: RequestInspectionRecord) => void;
 
   constructor(options: AzureDevOpsApiOptions) {
     this.http = options.http;
@@ -49,7 +48,6 @@ export class AdoTransport {
     this.pat = options.pat ?? '';
     this.proxyBaseUrl = options.proxyBaseUrl?.replace(/\/+$/, '');
     this.analyticsProxyBaseUrl = options.analyticsProxyBaseUrl?.replace(/\/+$/, '');
-    this.onRequestComplete = options.onRequestComplete;
 
     if (!this.proxyBaseUrl && !this.pat) {
       throw new Error(
@@ -302,7 +300,6 @@ export class AdoTransport {
             requestId: inspection.requestId,
           });
         }
-        this.onRequestComplete?.(inspection);
         return {
           data: {
             buffer: response.bodyArrayBuffer,
@@ -314,7 +311,6 @@ export class AdoTransport {
       }
 
       if (!response.bodyText) {
-        this.onRequestComplete?.(inspection);
         return { data: undefined as T, inspection };
       }
 
@@ -335,7 +331,6 @@ export class AdoTransport {
             retryable: false,
           });
         }
-        this.onRequestComplete?.(inspection);
         return { data, inspection };
       } catch (cause) {
         if (cause instanceof AdoClientError) throw cause;
@@ -348,13 +343,10 @@ export class AdoTransport {
         });
       }
     } catch (error) {
-      // Notify once for failures (including HTTP errors thrown above). Success
-      // paths already notified before return — avoid duplicate inspector rows.
       if (error instanceof AdoClientError) {
         inspection.errorMessage = error.message;
         inspection.finishedAt = new Date().toISOString();
         inspection.durationMs = Date.now() - startedMs;
-        this.onRequestComplete?.(inspection);
         throw error;
       }
 
@@ -367,7 +359,6 @@ export class AdoTransport {
         inspection.errorMessage = clientError.message;
         inspection.finishedAt = new Date().toISOString();
         inspection.durationMs = Date.now() - startedMs;
-        this.onRequestComplete?.(inspection);
         throw clientError;
       }
 
@@ -380,7 +371,6 @@ export class AdoTransport {
       inspection.errorMessage = clientError.message;
       inspection.finishedAt = new Date().toISOString();
       inspection.durationMs = Date.now() - startedMs;
-      this.onRequestComplete?.(inspection);
       throw clientError;
     }
   }

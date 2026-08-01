@@ -40,12 +40,12 @@ const FEATURES = [
     body: 'Run your saved Azure DevOps searches and follow discussions without jumping around in classic boards.',
   },
   {
-    title: 'Projects, details & files',
-    body: 'Switch projects, browse work item types and fields, and manage files on a work item.',
+    title: 'Projects, files & estimate',
+    body: 'Pick your project in Settings, manage attachments on each work item, and run a planning poker estimate session (or open the Azure DevOps Estimate hub).',
   },
   {
-    title: 'Dashboard & request log',
-    body: 'See connection status, pin favorite pages, track sprint progress when available, and review recent activity from this app.',
+    title: 'Dashboard',
+    body: 'See connection status, pin favorite pages, and track sprint progress when available.',
   },
 ] as const;
 
@@ -53,7 +53,7 @@ const WORK_ITEM_STEPS = [
   'Choose a project first (in Settings or with the project picker). Work Items needs a project.',
   'Open Work Items from the side menu.',
   'Narrow the list by type, open or closed, team, sprint, assignee, or search text.',
-  'Click a card to open the side panel: title, status, assignee, remaining hours, description, links, comments, and files.',
+  'Click a card to open the side panel: title, status, assignee, remaining hours, description, links, comments, and attachments.',
   'Update status or hours, leave a comment, then Save. Use New to create an item when you need one.',
 ] as const;
 
@@ -282,12 +282,12 @@ export function HowToUseView() {
         <CardContent>
           <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
             <li>
-              Settings holds appearance, install, and your connection. About explains who the
-              app is for.
+              Settings holds appearance, install, connection, and project selection. About
+              explains who the app is for.
             </li>
             <li>
-              Request Inspector shows recent activity from this session so you can see what the
-              app asked Azure DevOps for.
+              Use Estimate for a lightweight planning poker session, or open the Azure DevOps
+              Estimate hub for a live multiplayer room.
             </li>
             <li>
               On phones, use Chrome’s menu → Install app / Add to Home screen if the in-app

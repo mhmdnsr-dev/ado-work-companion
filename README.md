@@ -17,8 +17,8 @@ Built with Next.js (App Router), React 19, TypeScript, Tailwind CSS v4, shadcn/u
 - **Test Connection / Load Projects** use live form values
 - **Searchable project combobox** with manual entry fallback
 - **Proxied ADO calls** (`/api/ado/...`) — PAT decrypted from the cookie on the server
-- **Work items, queries, comments, metadata, attachments, dashboard / sprint panels**
-- **Request Inspector** — in-memory log of recent ADO calls (method, URL, status, timing, bodies; Auth redacted)
+- **Work items** (with inline attachments), **queries**, **comments**, **estimate sessions**, **dashboard / sprint panels**
+- **Projects** managed from Settings (connection + project browser)
 - **PWA** — installable offline shell
 - **Theme** — light / dark / system
 - **Shared `src/core`** — portable for a future React Native / Expo app
@@ -79,7 +79,6 @@ Browser                         Next.js API                      Azure DevOps
 | Organization, project, API version, theme, PAT cookie lifetime preference | `localStorage` | Yes |
 | PAT | HttpOnly cookie `ado_pat` (encrypted) | **No** |
 | Connection health (UI banner) | `localStorage` | Yes |
-| Request Inspector log | In-memory (session) | Yes |
 
 ### PAT cookie lifetime
 
@@ -122,7 +121,7 @@ Same-origin Next.js does not need CORS. Client fetches use `credentials: 'includ
 | `/` | → `/dashboard` if org in localStorage **and** PAT cookie exists; else `/configure` |
 | `/configure` | Always available to create/update/reset |
 | `/how-to-use` | Public guide (PAT setup, features, Work Items) |
-| `/inspector` | Session request log (in-memory) |
+| `/estimate` | Planning poker sessions + link to ADO Estimate hub |
 | App routes | Require org + PAT cookie |
 
 ---
@@ -135,8 +134,8 @@ src/
   app/api/ado        # proxy; decrypts PAT from cookie
   lib/server/        # pat-cookie, CORS
   lib/config-api.ts  # browser → /api/config
-  core/              # schemas, domain (localStorage prefs), API client + inspection hook
-  features/inspector # Request Inspector UI
+  core/              # schemas, domain (localStorage prefs), API client
+  features/estimate  # Planning poker + Estimate hub deep link
 ```
 
 API reference: [Azure DevOps REST API 7.2](https://learn.microsoft.com/en-us/rest/api/azure/devops/?view=azure-devops-rest-7.2) (app default query param: `api-version=7.2-preview`)

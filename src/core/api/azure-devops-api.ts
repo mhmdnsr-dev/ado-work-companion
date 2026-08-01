@@ -18,7 +18,6 @@ import {
   listTeamIterations as listTeamIterationsRequest,
   listTeamMembers as listTeamMembersRequest,
   listTeams as listTeamsRequest,
-  listWorkItemFields as listWorkItemFieldsRequest,
   listWorkItemRelationTypes as listWorkItemRelationTypesRequest,
   listWorkItemTypes as listWorkItemTypesRequest,
   listWorkItemTypeStates as listWorkItemTypeStatesRequest,
@@ -319,13 +318,6 @@ export class AzureDevOpsApi {
 
   listWorkItemTypes(options: { project: string; signal?: AbortSignal }) {
     return listWorkItemTypesRequest(this.transport, options);
-  }
-
-  listWorkItemFields(options?: {
-    project?: string | null;
-    signal?: AbortSignal;
-  }) {
-    return listWorkItemFieldsRequest(this.transport, options);
   }
 
   listWorkItemRelationTypes(options?: { signal?: AbortSignal }) {

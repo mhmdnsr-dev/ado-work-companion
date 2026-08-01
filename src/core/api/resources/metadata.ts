@@ -6,7 +6,6 @@ import type {
   TeamSettingsIteration,
   WebApiTeam,
   WorkItemClassificationNode,
-  WorkItemField,
   WorkItemRelationType,
   WorkItemStateColor,
   WorkItemType,
@@ -200,30 +199,6 @@ export async function listWorkItemTypes(
   });
   return {
     data: (result.data.value ?? []).filter((type) => !type.isDisabled),
-    inspection: result.inspection,
-  };
-}
-
-/**
- * Lists work item fields available to the project (or organization when project is null).
- * @see https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/fields/list?view=azure-devops-rest-7.2
- */
-export async function listWorkItemFields(
-  transport: AdoTransport,
-  options?: {
-    project?: string | null;
-    signal?: AbortSignal;
-  },
-): Promise<AdoRequestResult<WorkItemField[]>> {
-  const result = await transport.request<AdoListResponse<WorkItemField>>({
-    method: 'GET',
-    path: '_apis/wit/fields',
-    project: options?.project === undefined ? transport.getProject() : options.project,
-    signal: options?.signal,
-    retry: true,
-  });
-  return {
-    data: (result.data.value ?? []).filter((field) => !field.isDeleted),
     inspection: result.inspection,
   };
 }

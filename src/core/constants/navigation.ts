@@ -10,12 +10,6 @@ export const NAV_ITEMS = [
     icon: 'LayoutDashboard',
   },
   {
-    id: 'projects',
-    label: 'Projects',
-    href: '/projects',
-    icon: 'FolderKanban',
-  },
-  {
     id: 'work-items',
     label: 'Work Items',
     href: '/work-items',
@@ -34,22 +28,16 @@ export const NAV_ITEMS = [
     icon: 'MessageSquare',
   },
   {
-    id: 'metadata',
-    label: 'Metadata',
-    href: '/metadata',
-    icon: 'Database',
-  },
-  {
     id: 'attachments',
     label: 'Attachments',
     href: '/attachments',
     icon: 'Paperclip',
   },
   {
-    id: 'inspector',
-    label: 'Request Inspector',
-    href: '/inspector',
-    icon: 'Activity',
+    id: 'estimate',
+    label: 'Estimate',
+    href: '/estimate',
+    icon: 'Dices',
   },
   {
     id: 'settings',

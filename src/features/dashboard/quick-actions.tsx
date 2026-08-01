@@ -17,13 +17,13 @@ import {
 } from '@/components/ui/card';
 
 const QUICK_ACTIONS = NAV_ITEMS.filter((item) =>
-  ['work-items', 'queries', 'projects', 'comments'].includes(item.id),
+  ['work-items', 'queries', 'estimate', 'comments'].includes(item.id),
 );
 
 const ACTION_HINTS: Record<string, string> = {
   'work-items': 'Find and update tasks, bugs, and user stories',
   queries: 'Run saved searches across your backlog',
-  projects: 'Switch the project you are organizing work in',
+  estimate: 'Run a planning poker session and write story points',
   comments: 'Review discussion on work items',
 };
 

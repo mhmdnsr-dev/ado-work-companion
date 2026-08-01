@@ -11,7 +11,6 @@ export const STORAGE_KEYS = {
   REMEMBER_PAT: 'ado.rememberPat',
   PAT: 'ado.pat',
   FAVORITES: 'ado.favorites',
-  RECENT_REQUESTS: 'ado.recentRequests',
   CONNECTION_STATUS: 'ado.connectionStatus',
   WORK_ITEM_FILTERS: 'ado.workItemFilters',
   DASHBOARD_TEAM: 'ado.dashboardTeam',

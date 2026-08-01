@@ -1,6 +1,6 @@
 'use client';
 
-import { fieldNumber, fieldString, identityDisplayName } from '@core/domain';
+import { fieldNumber, fieldString, identityDisplayName, listWorkItemAttachments } from '@core/domain';
 import type { WorkItem } from '@core/types';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Paperclip } from 'lucide-react';
 
 function formatDate(iso: string): string {
   if (!iso) return '';
@@ -42,6 +43,7 @@ export function WorkItemListCard({
   const tags = fieldString(item, 'System.Tags');
   const remainingLabel =
     remainingHours != null ? `${remainingHours} h remaining` : 'No remaining hours';
+  const attachmentCount = listWorkItemAttachments(item.relations).length;
 
   return (
     <Card
@@ -69,6 +71,12 @@ export function WorkItemListCard({
             <Badge className="border-transparent bg-primary text-primary-foreground">
               {remainingLabel}
             </Badge>
+            {attachmentCount > 0 ? (
+              <Badge variant="outline" className="gap-1">
+                <Paperclip className="size-3" aria-hidden />
+                {attachmentCount}
+              </Badge>
+            ) : null}
           </div>
           <CardTitle className="text-base leading-snug sm:text-lg">{title}</CardTitle>
           <CardDescription>
