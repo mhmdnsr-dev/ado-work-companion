@@ -3,7 +3,8 @@ import Image from 'next/image';
 import { APP_INFO } from '@core/constants';
 import { cn } from '@/lib/utils';
 
-const MARK_SRC = '/brand/logo-mark.png';
+/** Circular-cropped emblem for small chrome (sidebar / mobile). */
+const MARK_SRC = '/brand/logo-mark-round.png';
 
 interface BrandMarkProps {
   size?: number;
@@ -12,6 +13,9 @@ interface BrandMarkProps {
   plate?: boolean;
 }
 
+/**
+ * Compact brand emblem — circular crop with a soft light plate for dark sidebars.
+ */
 export function BrandMark({ size = 32, className, plate = true }: BrandMarkProps) {
   const image = (
     <Image
@@ -19,7 +23,7 @@ export function BrandMark({ size = 32, className, plate = true }: BrandMarkProps
       alt={APP_INFO.name}
       width={size}
       height={size}
-      className={cn('object-contain', !plate && className)}
+      className={cn('object-contain', !plate && 'rounded-full', !plate && className)}
     />
   );
 
@@ -28,7 +32,7 @@ export function BrandMark({ size = 32, className, plate = true }: BrandMarkProps
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center justify-center overflow-hidden rounded-md bg-white',
+        'inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-border/50',
         className,
       )}
       style={{ width: size, height: size }}

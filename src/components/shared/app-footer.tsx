@@ -2,12 +2,7 @@
 
 import { Mail } from 'lucide-react';
 
-const AUTHOR = {
-  name: 'Mohamed Nasr',
-  email: 'mhmdnsr.dev@gmail.com',
-  linkedin: 'https://www.linkedin.com/in/mdnsr/',
-  github: 'https://github.com/mhmdnsr-dev',
-} as const;
+import { AUTHOR } from '@core/constants';
 
 function LinkedInIcon({ className }: { className?: string }) {
   return (
@@ -72,4 +67,4 @@ export function AppFooter({ className }: { className?: string }) {
   );
 }
 
-export { AUTHOR };
+export { AUTHOR } from '@core/constants';

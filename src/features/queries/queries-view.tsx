@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -29,9 +30,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { WorkItemDetailSheet } from '@/features/work-items/work-item-detail-sheet';
 import { WorkItemListCard } from '@/features/work-items/work-item-list-card';
 import { cn } from '@/lib/utils';
+
+const WorkItemDetailSheet = dynamic(
+  () =>
+    import('@/features/work-items/work-item-detail-sheet').then((mod) => ({
+      default: mod.WorkItemDetailSheet,
+    })),
+  { ssr: false },
+);
 
 const PAGE_SIZE = 12;
 const RUN_TOP = 100;

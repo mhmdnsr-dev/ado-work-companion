@@ -103,6 +103,7 @@ Preference is stored in `localStorage` so the Configure / Settings dropdown rest
 | Variable | Purpose |
 |----------|---------|
 | `ADO_SESSION_SECRET` | **Required always.** Encrypts the PAT cookie (AES-256-GCM). Min 32 chars. Generate with `openssl rand -base64 32` |
+| `NEXT_PUBLIC_SITE_URL` | Optional. Canonical origin for SEO (`metadataBase`, sitemap, robots). Defaults to `http://localhost:3000` |
 | `CORS_ALLOWED_ORIGIN` | Optional. One origin or comma-separated list for credentialed CORS |
 | `RESEND_API_KEY` / contact vars | Optional. About → Message me (Resend) |
 

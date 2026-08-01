@@ -4,8 +4,27 @@ import withPWAInit from '@ducanh2912/next-pwa';
 /**
  * The PAT is forwarded from the browser to our own Route Handler proxy and must
  * never be cached, logged by an intermediary, or leaked through a referrer.
+ *
+ * CSP notes: Next.js App Router + next-themes + PWA need 'unsafe-inline' for
+ * styles (and scripts in practice without a nonce pipeline). Tighten further
+ * when adopting nonces.
  */
-const securityHeaders = [
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+  "img-src 'self' data: blob:",
+  "font-src 'self' data:",
+  "style-src 'self' 'unsafe-inline'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "worker-src 'self' blob:",
+  "manifest-src 'self'",
+  "connect-src 'self'",
+].join('; ');
+
+const baseSecurityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'Referrer-Policy', value: 'no-referrer' },
@@ -14,7 +33,19 @@ const securityHeaders = [
     key: 'Permissions-Policy',
     value: 'camera=(), microphone=(), geolocation=(), payment=()',
   },
+  { key: 'Content-Security-Policy', value: contentSecurityPolicy },
 ];
+
+const securityHeaders =
+  process.env.NODE_ENV === 'production'
+    ? [
+        ...baseSecurityHeaders,
+        {
+          key: 'Strict-Transport-Security',
+          value: 'max-age=63072000; includeSubDomains; preload',
+        },
+      ]
+    : baseSecurityHeaders;
 
 const withPWA = withPWAInit({
   dest: 'public',

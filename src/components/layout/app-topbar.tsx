@@ -24,7 +24,7 @@ export function AppTopbar() {
   return (
     <header className="sticky top-0 z-30 hidden h-14 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/80 md:flex md:px-6">
       <div className="min-w-0 flex-1">
-        <h1 className="truncate text-base font-semibold tracking-tight">{title}</h1>
+        <p className="truncate text-base font-semibold tracking-tight">{title}</p>
       </div>
 
       <ConnectionSummary className="hidden lg:flex" />
@@ -33,7 +33,7 @@ export function AppTopbar() {
 
       <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" className="touch-target h-11 gap-2" asChild>
-          <Link href="/configure">
+          <Link href="/configure" aria-label="Update connection">
             <KeyRound className="size-4" aria-hidden />
             <span className="hidden xl:inline">Connection</span>
           </Link>

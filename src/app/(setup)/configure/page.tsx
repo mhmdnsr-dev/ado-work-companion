@@ -1,7 +1,7 @@
-'use client';
-
 import { ConfigurationForm } from '@/features/config';
 import { AppFooter } from '@/components/shared/app-footer';
+import { JsonLd } from '@/components/seo/json-ld';
+import { buildConfigurePageSchema } from '@/lib/seo/schema';
 
 /**
  * Configuration is always reachable so users can update org / project / PAT.
@@ -10,6 +10,7 @@ import { AppFooter } from '@/components/shared/app-footer';
 export default function ConfigurePage() {
   return (
     <div className="relative flex min-h-dvh w-full flex-col bg-gradient-to-b from-background via-background to-accent/30">
+      <JsonLd data={buildConfigurePageSchema()} />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_oklch(0.563_0.156_254.3_/_0.08),_transparent_55%)]"

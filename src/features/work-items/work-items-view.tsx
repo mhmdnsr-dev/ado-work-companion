@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -44,9 +45,16 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { createLocalStorageAdapter } from '@/lib/adapters';
 import { WorkItemCreateDialog } from '@/features/work-items/work-item-create-dialog';
-import { WorkItemDetailSheet } from '@/features/work-items/work-item-detail-sheet';
 import { WorkItemListCard } from '@/features/work-items/work-item-list-card';
 import { cn } from '@/lib/utils';
+
+const WorkItemDetailSheet = dynamic(
+  () =>
+    import('@/features/work-items/work-item-detail-sheet').then((mod) => ({
+      default: mod.WorkItemDetailSheet,
+    })),
+  { ssr: false },
+);
 
 const PAGE_SIZE = 12;
 

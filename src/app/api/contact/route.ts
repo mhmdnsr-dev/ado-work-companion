@@ -5,41 +5,16 @@ import { Resend } from 'resend';
 
 import { contactMessageSchema } from '@core/schemas';
 import { corsPreflightResponse, jsonWithCors } from '@/lib/server/cors';
+import {
+  clientIpFromRequest,
+  contactRateLimit,
+} from '@/lib/server/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const RATE_LIMIT_MAX = 5;
-const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const DEFAULT_TO = 'mhmdnsr.dev@gmail.com';
 const DEFAULT_FROM = 'ADO Work Companion <onboarding@resend.dev>';
-
-type RateBucket = { count: number; resetAt: number };
-
-const rateBuckets = new Map<string, RateBucket>();
-
-function clientIp(request: NextRequest): string {
-  const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded) {
-    const first = forwarded.split(',')[0]?.trim();
-    if (first) return first;
-  }
-  return request.headers.get('x-real-ip')?.trim() || 'unknown';
-}
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const existing = rateBuckets.get(ip);
-  if (!existing || existing.resetAt <= now) {
-    rateBuckets.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return false;
-  }
-  if (existing.count >= RATE_LIMIT_MAX) {
-    return true;
-  }
-  existing.count += 1;
-  return false;
-}
 
 function escapeHtml(value: string): string {
   return value
@@ -75,8 +50,8 @@ export async function POST(request: NextRequest) {
     return jsonWithCors(request, { ok: true as const });
   }
 
-  const ip = clientIp(request);
-  if (isRateLimited(ip)) {
+  const ip = clientIpFromRequest(request);
+  if (contactRateLimit.isLimited(ip)) {
     return jsonWithCors(
       request,
       { message: 'Too many messages. Please try again later.' },
