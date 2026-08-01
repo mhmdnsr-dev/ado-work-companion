@@ -250,8 +250,8 @@ export function EstimateHubLiveSession({
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">Live session</h1>
           <p className="text-sm text-muted-foreground">
-            Experimental — same Extension Data channel as the Estimate hub. Prefer the
-            hub if anything looks out of sync.
+            Experimental — same Extension Data channel as the Estimate hub. Prefer the hub
+            if anything looks out of sync.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -284,7 +284,9 @@ export function EstimateHubLiveSession({
       <Card>
         <CardHeader className="gap-2">
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">#{sessionId.slice(0, 8)}…</Badge>
+            <Badge variant="outline">
+              #{sessionId.length > 10 ? sessionId.slice(0, 10) + '…' : sessionId}
+            </Badge>
             {selectedWorkItemId ? (
               <Badge variant="secondary">WI #{selectedWorkItemId}</Badge>
             ) : (
