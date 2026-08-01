@@ -1,9 +1,22 @@
 'use client';
 
+import dynamic from 'next/dynamic';
+
 import { DashboardFavorites } from '@/features/dashboard/favorites-panel';
 import { DashboardQuickActions } from '@/features/dashboard/quick-actions';
-import { SprintBurndownPanel } from '@/features/dashboard/sprint-burndown-panel';
 import { DashboardStatusCards } from '@/features/dashboard/status-cards';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const SprintBurndownPanel = dynamic(
+  () =>
+    import('@/features/dashboard/sprint-burndown-panel').then((mod) => ({
+      default: mod.SprintBurndownPanel,
+    })),
+  {
+    loading: () => <Skeleton className="h-72 w-full rounded-xl" />,
+    ssr: false,
+  },
+);
 
 export function DashboardView() {
   return (

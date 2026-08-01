@@ -8,6 +8,7 @@ export {
 } from './api';
 export type { AdoHttpMethod } from './api';
 export { APP_INFO } from './app-info';
+export { AUTHOR } from './author';
 export { NAV_ITEMS } from './navigation';
 export type { NavItem, NavItemId } from './navigation';
 export { adoQueryKeys } from './query-keys';

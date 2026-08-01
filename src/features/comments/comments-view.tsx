@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -25,7 +26,14 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WorkItemCommentsPanel } from '@/features/work-items/work-item-comments-panel';
-import { WorkItemDetailSheet } from '@/features/work-items/work-item-detail-sheet';
+
+const WorkItemDetailSheet = dynamic(
+  () =>
+    import('@/features/work-items/work-item-detail-sheet').then((mod) => ({
+      default: mod.WorkItemDetailSheet,
+    })),
+  { ssr: false },
+);
 
 export function CommentsView() {
   const { settings, hydrated } = useConnection();

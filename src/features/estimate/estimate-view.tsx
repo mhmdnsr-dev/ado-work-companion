@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
 import {
   ExternalLink,
@@ -24,9 +25,19 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EstimateHubLiveSession } from '@/features/estimate/estimate-hub-live-session';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+
+const EstimateHubLiveSession = dynamic(
+  () =>
+    import('@/features/estimate/estimate-hub-live-session').then((mod) => ({
+      default: mod.EstimateHubLiveSession,
+    })),
+  {
+    loading: () => <Skeleton className="h-96 w-full rounded-xl" />,
+    ssr: false,
+  },
+);
 
 function formatTime(iso?: string): string {
   if (!iso) return '';

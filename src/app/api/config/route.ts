@@ -13,6 +13,10 @@ import {
   hasPatCookie,
   readPatFromRequest,
 } from '@/lib/server/pat-cookie';
+import {
+  clientIpFromRequest,
+  configWriteRateLimit,
+} from '@/lib/server/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -49,6 +53,15 @@ export async function GET(request: NextRequest) {
  * - `{ reset: true }` or empty reset payload → clear cookie
  */
 export async function POST(request: NextRequest) {
+  const ip = clientIpFromRequest(request);
+  if (configWriteRateLimit.isLimited(ip)) {
+    return jsonWithCors(
+      request,
+      { message: 'Too many configuration updates. Please try again later.' },
+      { status: 429 },
+    );
+  }
+
   let body: PatConfigBody = {};
   try {
     const text = await request.text();
@@ -99,6 +112,15 @@ export async function POST(request: NextRequest) {
 
 /** Explicit reset — clears the HttpOnly PAT cookie. */
 export async function DELETE(request: NextRequest) {
+  const ip = clientIpFromRequest(request);
+  if (configWriteRateLimit.isLimited(ip)) {
+    return jsonWithCors(
+      request,
+      { message: 'Too many configuration updates. Please try again later.' },
+      { status: 429 },
+    );
+  }
+
   const response = jsonWithCors(request, {
     hasPat: false,
     configured: false,

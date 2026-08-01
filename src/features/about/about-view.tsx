@@ -6,13 +6,12 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
-import { APP_INFO } from '@core/constants';
+import { APP_INFO, AUTHOR } from '@core/constants';
 import {
   contactMessageSchema,
   type ContactMessageFormValues,
 } from '@core/schemas';
 import { BrandLockup } from '@/components/brand';
-import { AUTHOR } from '@/components/shared/app-footer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {

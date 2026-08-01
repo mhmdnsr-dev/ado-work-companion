@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import type { ReactNode } from 'react';
 
+import { APP_INFO, AUTHOR } from '@core/constants';
 import { AppProviders } from '@/components/providers';
+import { getSiteUrl } from '@/lib/site-url';
 
 import './globals.css';
 
@@ -18,19 +20,35 @@ const geistMono = Geist_Mono({
   display: 'swap',
 });
 
+const siteUrl = getSiteUrl();
+const description =
+  'A daily companion for anyone with Azure DevOps tasks—update task status and remaining hours, add or read comments, and upload or view attachments.';
+
 export const metadata: Metadata = {
+  metadataBase: siteUrl,
   title: {
-    default: 'ADO Work Companion',
-    template: '%s · ADO Work Companion',
+    default: APP_INFO.name,
+    template: `%s · ${APP_INFO.name}`,
   },
-  description:
-    'A daily companion for anyone with Azure DevOps tasks—update task status and remaining hours, add or read comments, and upload or view attachments.',
-  applicationName: 'ADO Work Companion',
+  description,
+  applicationName: APP_INFO.name,
+  authors: [{ name: AUTHOR.name, url: AUTHOR.url }],
+  creator: AUTHOR.name,
+  publisher: AUTHOR.name,
+  keywords: [
+    'Azure DevOps',
+    'work items',
+    'ADO',
+    'task management',
+    'Story Points',
+    'Estimate',
+    APP_INFO.name,
+  ],
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'ADO Work',
+    title: APP_INFO.shortName,
   },
   icons: {
     icon: [
@@ -44,8 +62,28 @@ export const metadata: Metadata = {
     ],
     shortcut: '/favicon.ico',
   },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: siteUrl,
+    siteName: APP_INFO.name,
+    title: APP_INFO.name,
+    description,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: APP_INFO.name,
+    description,
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
   formatDetection: {
     telephone: false,
+  },
+  alternates: {
+    canonical: '/',
   },
 };
 

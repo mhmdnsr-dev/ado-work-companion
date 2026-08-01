@@ -5,6 +5,10 @@ import { buildPatAuthorizationHeader } from '@core/utils';
 
 import { applyCorsHeaders, corsPreflightResponse, jsonWithCors } from '@/lib/server/cors';
 import { readPatFromRequest } from '@/lib/server/pat-cookie';
+import {
+  adoProxyRateLimit,
+  clientIpFromRequest,
+} from '@/lib/server/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -21,6 +25,15 @@ const ANALYTICS_HOST = 'analytics.dev.azure.com';
  * Requires PAT scope: Analytics (read).
  */
 async function proxy(request: NextRequest, pathSegments: string[]): Promise<Response> {
+  const ip = clientIpFromRequest(request);
+  if (adoProxyRateLimit.isLimited(ip)) {
+    return jsonWithCors(
+      request,
+      { message: 'Too many requests. Please try again shortly.' },
+      { status: 429 },
+    );
+  }
+
   if (pathSegments.length === 0) {
     return jsonWithCors(
       request,

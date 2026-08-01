@@ -1,8 +1,11 @@
 {
+  "id": "/",
   "name": "ADO Work Companion",
   "short_name": "ADO Work",
   "description": "A daily companion for anyone with Azure DevOps tasks—update status and hours, comments, and attachments.",
+  "lang": "en",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0078D4",
