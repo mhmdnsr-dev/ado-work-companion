@@ -4,6 +4,8 @@ import type { ReactNode } from 'react';
 
 import { APP_INFO, AUTHOR } from '@core/constants';
 import { AppProviders } from '@/components/providers';
+import { JsonLd } from '@/components/seo/json-ld';
+import { buildSiteGraph } from '@/lib/seo/schema';
 import { getSiteUrl } from '@/lib/site-url';
 
 import './globals.css';
@@ -105,6 +107,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
       <body className="min-h-dvh font-sans">
+        <JsonLd data={buildSiteGraph()} />
         <a
           href="#main-content"
           className="sr-only bg-primary text-primary-foreground focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:px-3 focus:py-2 focus:ring-2 focus:ring-ring"

@@ -9,7 +9,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: '*',
-        allow: ['/', '/configure', '/how-to-use', '/about'],
+        allow: ['/', '/configure', '/how-to-use', '/about', '/llms.txt'],
         disallow: [
           '/api/',
           '/dashboard',
@@ -24,5 +24,6 @@ export default function robots(): MetadataRoute.Robots {
       },
     ],
     sitemap: `${site}/sitemap.xml`,
+    host: site,
   };
 }

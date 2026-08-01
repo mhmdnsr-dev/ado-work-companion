@@ -26,7 +26,7 @@ export function MobileAppBar({ onOpenMenu }: MobileAppBarProps) {
         <Menu className="size-5" />
       </Button>
 
-      <BrandMark size={28} className="shadow-sm ring-1 ring-border/60" />
+      <BrandMark size={28} />
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold tracking-tight">{APP_INFO.shortName}</p>
