@@ -22,6 +22,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ConfigurationForm } from '@/features/config';
+import { ProjectsView } from '@/features/projects';
 import { createLocalStorageAdapter } from '@/lib/adapters';
 import { cn } from '@/lib/utils';
 
@@ -60,7 +61,7 @@ function useIsClient(): boolean {
 }
 
 export function SettingsView() {
-  const { hydrated, settings, setThemePreference } = useConnection();
+  const { hydrated, settings, hasServerPat, setThemePreference } = useConnection();
   const { theme, setTheme } = useTheme();
   const { canInstall, isStandalone, promptInstall } = usePwaInstall();
   const mounted = useIsClient();
@@ -182,6 +183,23 @@ export function SettingsView() {
       </Card>
 
       <ConfigurationForm mode="settings" />
+
+      {settings.organization && hasServerPat ? (
+        <Card>
+          <CardHeader className="gap-1">
+            <CardTitle className="text-xl">Projects</CardTitle>
+            <CardDescription>
+              Browse projects in{' '}
+              <span className="font-medium text-foreground">{settings.organization}</span>{' '}
+              and set which one this app uses for work items and queries. You can also
+              pick a project in Connection above.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ProjectsView embedded />
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader className="gap-1">

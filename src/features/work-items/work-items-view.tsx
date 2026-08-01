@@ -245,7 +245,7 @@ function WorkItemsViewContent({
             id,
             project,
             signal,
-            expand: 'None',
+            expand: 'Relations',
           });
           return { items: [single.data], asOf: new Date().toISOString() };
         } catch {
@@ -293,7 +293,12 @@ function WorkItemsViewContent({
       const batches: WorkItem[] = [];
       for (let i = 0; i < ids.length; i += 200) {
         const slice = ids.slice(i, i + 200);
-        const batch = await api.getWorkItems({ ids: slice, project, signal });
+        const batch = await api.getWorkItems({
+          ids: slice,
+          project,
+          signal,
+          expand: 'Relations',
+        });
         batches.push(...batch.data);
       }
 
@@ -404,7 +409,7 @@ function WorkItemsViewContent({
               backlog.
             </span>
             <Button asChild className="touch-target h-11 shrink-0">
-              <Link href="/projects">Browse projects</Link>
+              <Link href="/settings">Open Settings</Link>
             </Button>
           </AlertDescription>
         </Alert>

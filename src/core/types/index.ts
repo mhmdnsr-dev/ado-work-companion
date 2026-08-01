@@ -59,3 +59,17 @@ export type {
   WorkItemStateColor,
   WorkItemType,
 } from './metadata';
+export type {
+  EstimateHubSessionDocument,
+  EstimateHubSessionInfo,
+  EstimateHubSessionView,
+} from './estimate-hub';
+export {
+  ESTIMATE_EXTENSION,
+  ESTIMATE_HUB_CONTRIBUTION,
+  ESTIMATE_PUBLISHER,
+  EstimateHubSessionMode,
+  EstimateHubSessionSource,
+  buildEstimateHubHomeUrl,
+  buildEstimateHubSessionUrl,
+} from './estimate-hub';

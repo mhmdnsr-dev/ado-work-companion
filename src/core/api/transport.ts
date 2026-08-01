@@ -39,7 +39,7 @@ export class AdoTransport {
   private pat: string;
   private readonly proxyBaseUrl: string | undefined;
   private readonly analyticsProxyBaseUrl: string | undefined;
-  private readonly onRequestComplete?: (record: RequestInspectionRecord) => void;
+  private readonly extensionManagementProxyBaseUrl: string | undefined;
 
   constructor(options: AzureDevOpsApiOptions) {
     this.http = options.http;
@@ -49,7 +49,8 @@ export class AdoTransport {
     this.pat = options.pat ?? '';
     this.proxyBaseUrl = options.proxyBaseUrl?.replace(/\/+$/, '');
     this.analyticsProxyBaseUrl = options.analyticsProxyBaseUrl?.replace(/\/+$/, '');
-    this.onRequestComplete = options.onRequestComplete;
+    this.extensionManagementProxyBaseUrl =
+      options.extensionManagementProxyBaseUrl?.replace(/\/+$/, '');
 
     if (!this.proxyBaseUrl && !this.pat) {
       throw new Error(
@@ -68,6 +69,10 @@ export class AdoTransport {
 
   getAnalyticsProxyBaseUrl(): string | undefined {
     return this.analyticsProxyBaseUrl;
+  }
+
+  getExtensionManagementProxyBaseUrl(): string | undefined {
+    return this.extensionManagementProxyBaseUrl;
   }
 
   updateConfig(partial: {
@@ -165,6 +170,15 @@ export class AdoTransport {
     const parsed = new URL(analyticsUrl);
     const pathAndQuery = `${parsed.pathname}${parsed.search}`;
     return `${this.analyticsProxyBaseUrl}${pathAndQuery}`;
+  }
+
+  toExtensionManagementProxyUrl(extmgmtUrl: string): string {
+    if (!this.extensionManagementProxyBaseUrl) {
+      throw new Error('extensionManagementProxyBaseUrl is not configured.');
+    }
+    const parsed = new URL(extmgmtUrl);
+    const pathAndQuery = `${parsed.pathname}${parsed.search}`;
+    return `${this.extensionManagementProxyBaseUrl}${pathAndQuery}`;
   }
 
   private async executeOnce<T>(
@@ -302,7 +316,6 @@ export class AdoTransport {
             requestId: inspection.requestId,
           });
         }
-        this.onRequestComplete?.(inspection);
         return {
           data: {
             buffer: response.bodyArrayBuffer,
@@ -314,7 +327,6 @@ export class AdoTransport {
       }
 
       if (!response.bodyText) {
-        this.onRequestComplete?.(inspection);
         return { data: undefined as T, inspection };
       }
 
@@ -335,7 +347,6 @@ export class AdoTransport {
             retryable: false,
           });
         }
-        this.onRequestComplete?.(inspection);
         return { data, inspection };
       } catch (cause) {
         if (cause instanceof AdoClientError) throw cause;
@@ -348,13 +359,10 @@ export class AdoTransport {
         });
       }
     } catch (error) {
-      // Notify once for failures (including HTTP errors thrown above). Success
-      // paths already notified before return — avoid duplicate inspector rows.
       if (error instanceof AdoClientError) {
         inspection.errorMessage = error.message;
         inspection.finishedAt = new Date().toISOString();
         inspection.durationMs = Date.now() - startedMs;
-        this.onRequestComplete?.(inspection);
         throw error;
       }
 
@@ -367,7 +375,6 @@ export class AdoTransport {
         inspection.errorMessage = clientError.message;
         inspection.finishedAt = new Date().toISOString();
         inspection.durationMs = Date.now() - startedMs;
-        this.onRequestComplete?.(inspection);
         throw clientError;
       }
 
@@ -380,7 +387,6 @@ export class AdoTransport {
       inspection.errorMessage = clientError.message;
       inspection.finishedAt = new Date().toISOString();
       inspection.durationMs = Date.now() - startedMs;
-      this.onRequestComplete?.(inspection);
       throw clientError;
     }
   }

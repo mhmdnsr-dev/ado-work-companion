@@ -258,7 +258,7 @@ function AttachmentsViewContent({
               Attachments belong to work items inside a project. Pick one to continue.
             </span>
             <Button asChild className="touch-target h-11 shrink-0">
-              <Link href="/projects">Browse projects</Link>
+              <Link href="/settings">Open Settings</Link>
             </Button>
           </AlertDescription>
         </Alert>

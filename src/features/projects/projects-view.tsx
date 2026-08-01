@@ -50,7 +50,12 @@ function filterProjects(
   });
 }
 
-export function ProjectsView() {
+export function ProjectsView({
+  embedded = false,
+}: {
+  /** When true, render as a Settings section (no page-level H1). */
+  embedded?: boolean;
+} = {}) {
   const { api, settings, setActiveProject } = useConnection();
   const [search, setSearch] = useState('');
   const [stateFilter, setStateFilter] = useState<StateFilter>('wellFormed');
@@ -112,14 +117,16 @@ export function ProjectsView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Projects</h1>
-        <p className="text-sm text-muted-foreground md:text-base">
-          Choose which project in{' '}
-          <span className="font-medium text-foreground">{settings.organization}</span> you
-          want to organize work in.
-        </p>
-      </header>
+      {embedded ? null : (
+        <header className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Projects</h1>
+          <p className="text-sm text-muted-foreground md:text-base">
+            Choose which project in{' '}
+            <span className="font-medium text-foreground">{settings.organization}</span> you
+            want to organize work in.
+          </p>
+        </header>
+      )}
 
       <section
         aria-label="Project filters"

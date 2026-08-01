@@ -1,9 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
-  Activity,
   BookOpen,
-  Database,
-  FolderKanban,
+  Dices,
   Info,
   LayoutDashboard,
   ListTodo,
@@ -17,13 +15,11 @@ import type { NavItem } from '@core/constants';
 
 const NAV_ICON_MAP = {
   LayoutDashboard,
-  FolderKanban,
   ListTodo,
   Search,
   MessageSquare,
-  Database,
   Paperclip,
-  Activity,
+  Dices,
   Settings,
   BookOpen,
   Info,

@@ -22,7 +22,11 @@ export interface AzureDevOpsApiOptions {
    * (e.g. `/api/analytics`).
    */
   analyticsProxyBaseUrl?: string;
-  onRequestComplete?: (record: RequestInspectionRecord) => void;
+  /**
+   * When set, Extension Management requests go here instead of extmgmt.dev.azure.com
+   * (e.g. `/api/extmgmt`).
+   */
+  extensionManagementProxyBaseUrl?: string;
 }
 
 export interface AdoRequestOptions {

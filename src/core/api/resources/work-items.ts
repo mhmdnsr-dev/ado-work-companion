@@ -65,8 +65,13 @@ export async function getWorkItems(
     project: options.project === undefined ? transport.getProject() : options.project,
     query: {
       ids: ids.join(','),
-      fields: (options.fields ?? WORK_ITEM_LIST_FIELDS).join(','),
-      $expand: options.expand,
+      // `$expand=Relations` and `fields` cannot be combined reliably — prefer expand.
+      ...(options.expand === 'Relations' || options.expand === 'All'
+        ? { $expand: options.expand }
+        : {
+            fields: (options.fields ?? WORK_ITEM_LIST_FIELDS).join(','),
+            $expand: options.expand,
+          }),
       errorPolicy: 'omit',
     },
     signal: options.signal,
