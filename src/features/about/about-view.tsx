@@ -11,6 +11,7 @@ import {
   contactMessageSchema,
   type ContactMessageFormValues,
 } from '@core/schemas';
+import { BrandLockup } from '@/components/brand';
 import { AUTHOR } from '@/components/shared/app-footer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -175,6 +176,9 @@ export function AboutView() {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <header className="space-y-3">
+        <div className="max-w-sm rounded-lg bg-white px-3 py-2 ring-1 ring-border/60 dark:bg-white">
+          <BrandLockup width={320} priority />
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
             {APP_INFO.name}

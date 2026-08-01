@@ -3,6 +3,7 @@
 import { Menu } from 'lucide-react';
 
 import { APP_INFO } from '@core/constants';
+import { BrandMark } from '@/components/brand';
 import { ConnectionSummary } from '@/components/layout/connection-summary';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,8 @@ export function MobileAppBar({ onOpenMenu }: MobileAppBarProps) {
       >
         <Menu className="size-5" />
       </Button>
+
+      <BrandMark size={28} className="shadow-sm ring-1 ring-border/60" />
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold tracking-tight">{APP_INFO.shortName}</p>

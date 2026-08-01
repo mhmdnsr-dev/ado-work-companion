@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { KeyRound } from 'lucide-react';
 
 import { APP_INFO, NAV_ITEMS } from '@core/constants';
+import { BrandMark } from '@/components/brand';
 import { NavLink } from '@/components/layout/nav-link';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -24,9 +25,7 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
       aria-label="Primary"
     >
       <div className="flex h-14 shrink-0 items-center gap-2 px-4">
-        <div className="flex size-8 items-center justify-center rounded-md bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground">
-          ADO
-        </div>
+        <BrandMark size={32} className="shadow-sm ring-1 ring-border/60" />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold tracking-tight">{APP_INFO.shortName}</p>
           <p className="truncate text-xs text-muted-foreground">Work Companion</p>

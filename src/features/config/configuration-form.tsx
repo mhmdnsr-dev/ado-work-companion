@@ -10,7 +10,6 @@ import { toast } from 'sonner';
 
 import {
   ADO_API,
-  APP_INFO,
   DEFAULT_PAT_COOKIE_LIFETIME,
   isPatCookieLifetime,
   PAT_COOKIE_LIFETIME_OPTIONS,
@@ -23,6 +22,7 @@ import {
 } from '@core/schemas';
 import { AdoClientError } from '@core/types';
 import { useConnection } from '@/components/providers';
+import { BrandLockup } from '@/components/brand';
 import { PatInput } from '@/components/shared/pat-input';
 import { ProjectCombobox } from '@/components/shared/project-combobox';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -303,13 +303,13 @@ function ConfigurationFormLoaded({
   return (
     <Card className={isSettings ? 'w-full' : 'w-full max-w-2xl'}>
       <CardHeader className="gap-3">
+        {!isSettings ? (
+          <div className="rounded-lg bg-white px-3 py-2 ring-1 ring-border/60 dark:bg-white">
+            <BrandLockup width={260} priority />
+          </div>
+        ) : null}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            {!isSettings ? (
-              <p className="mb-1 text-xs tracking-wide text-muted-foreground uppercase">
-                {APP_INFO.shortName}
-              </p>
-            ) : null}
             <CardTitle className={isSettings ? 'text-xl' : 'text-2xl'}>
               {isSettings
                 ? 'Connection'
