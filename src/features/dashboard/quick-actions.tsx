@@ -23,7 +23,7 @@ const QUICK_ACTIONS = NAV_ITEMS.filter((item) =>
 const ACTION_HINTS: Record<string, string> = {
   'work-items': 'Find and update tasks, bugs, and user stories',
   queries: 'Run saved searches across your backlog',
-  estimate: 'Run a planning poker session and write story points',
+  estimate: 'Open the same Estimate hub sessions as Azure DevOps',
   comments: 'Review discussion on work items',
 };
 

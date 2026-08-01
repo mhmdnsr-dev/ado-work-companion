@@ -2,6 +2,15 @@ import {
   queryAnalytics as queryAnalyticsRequest,
 } from './resources/analytics';
 import {
+  listEstimateHubSessions as listEstimateHubSessionsRequest,
+  probeEstimateHubWriteAccess as probeEstimateHubWriteAccessRequest,
+} from './resources/estimate-hub';
+import {
+  appendEstimateChannelAction as appendEstimateChannelActionRequest,
+  getEstimatePollingDocument as getEstimatePollingDocumentRequest,
+  joinEstimatePollingSession as joinEstimatePollingSessionRequest,
+} from './resources/estimate-polling';
+import {
   attachFileToWorkItem as attachFileToWorkItemRequest,
   detachWorkItemAttachment as detachWorkItemAttachmentRequest,
   downloadAttachment as downloadAttachmentRequest,
@@ -355,6 +364,50 @@ export class AzureDevOpsApi {
     signal?: AbortSignal;
   }): Promise<AdoRequestResult<T>> {
     return queryAnalyticsRequest<T>(this.transport, options);
+  }
+
+  // --- Estimate hub (ms-devlabs extension data) ---
+
+  listEstimateHubSessions(options: { project: string; signal?: AbortSignal }) {
+    return listEstimateHubSessionsRequest(this.transport, options);
+  }
+
+  probeEstimateHubWriteAccess(options?: { signal?: AbortSignal }) {
+    return probeEstimateHubWriteAccessRequest(this.transport, options);
+  }
+
+  getEstimatePollingDocument(sessionId: string, options?: { signal?: AbortSignal }) {
+    return getEstimatePollingDocumentRequest(this.transport, sessionId, options);
+  }
+
+  joinEstimatePollingSession(
+    sessionId: string,
+    userInfo: { tfId: string; name: string; imageUrl?: string },
+    options?: { signal?: AbortSignal },
+  ) {
+    return joinEstimatePollingSessionRequest(
+      this.transport,
+      sessionId,
+      userInfo,
+      options,
+    );
+  }
+
+  appendEstimateChannelAction(
+    sessionId: string,
+    type: 'join' | 'left' | 'estimate' | 'estimate-updated' | 'reveal' | 'switch' | 'snapshot',
+    payload: unknown,
+    senderId: string,
+    options?: { signal?: AbortSignal },
+  ) {
+    return appendEstimateChannelActionRequest(
+      this.transport,
+      sessionId,
+      type,
+      payload,
+      senderId,
+      options,
+    );
   }
 
   /** Low-level request — prefer the methods above. */

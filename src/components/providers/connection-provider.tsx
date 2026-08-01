@@ -84,6 +84,7 @@ function createApi(params: {
     apiVersion: params.apiVersion,
     proxyBaseUrl: '/api/ado',
     analyticsProxyBaseUrl: '/api/analytics',
+    extensionManagementProxyBaseUrl: '/api/extmgmt',
   });
 }
 

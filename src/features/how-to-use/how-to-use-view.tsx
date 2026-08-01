@@ -41,7 +41,7 @@ const FEATURES = [
   },
   {
     title: 'Projects, files & estimate',
-    body: 'Pick your project in Settings, manage attachments on each work item, and run a planning poker estimate session (or open the Azure DevOps Estimate hub).',
+    body: 'Pick your project in Settings, manage attachments on each work item, and open the same Estimate hub sessions your team uses in Azure DevOps (Boards → Estimate).',
   },
   {
     title: 'Dashboard',
@@ -286,8 +286,9 @@ export function HowToUseView() {
               explains who the app is for.
             </li>
             <li>
-              Use Estimate for a lightweight planning poker session, or open the Azure DevOps
-              Estimate hub for a live multiplayer room.
+              Estimate lists the same sessions as Azure DevOps Boards → Estimate. Join opens
+              that session in ADO so website and companion users stay aligned. Story Points
+              written there still appear on work items in this app.
             </li>
             <li>
               On phones, use Chrome’s menu → Install app / Add to Home screen if the in-app

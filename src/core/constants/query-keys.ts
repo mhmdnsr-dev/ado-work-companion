@@ -127,4 +127,11 @@ export const adoQueryKeys = {
         workItemId,
       ] as const,
   },
+  estimate: {
+    all: ['ado', 'estimate'] as const,
+    hubSessions: (organization: string, project: string) =>
+      [...adoQueryKeys.estimate.all, 'hub-sessions', organization, project] as const,
+    writeProbe: (organization: string) =>
+      [...adoQueryKeys.estimate.all, 'write-probe', organization] as const,
+  },
 } as const;

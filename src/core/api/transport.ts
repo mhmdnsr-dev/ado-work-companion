@@ -39,6 +39,7 @@ export class AdoTransport {
   private pat: string;
   private readonly proxyBaseUrl: string | undefined;
   private readonly analyticsProxyBaseUrl: string | undefined;
+  private readonly extensionManagementProxyBaseUrl: string | undefined;
 
   constructor(options: AzureDevOpsApiOptions) {
     this.http = options.http;
@@ -48,6 +49,8 @@ export class AdoTransport {
     this.pat = options.pat ?? '';
     this.proxyBaseUrl = options.proxyBaseUrl?.replace(/\/+$/, '');
     this.analyticsProxyBaseUrl = options.analyticsProxyBaseUrl?.replace(/\/+$/, '');
+    this.extensionManagementProxyBaseUrl =
+      options.extensionManagementProxyBaseUrl?.replace(/\/+$/, '');
 
     if (!this.proxyBaseUrl && !this.pat) {
       throw new Error(
@@ -66,6 +69,10 @@ export class AdoTransport {
 
   getAnalyticsProxyBaseUrl(): string | undefined {
     return this.analyticsProxyBaseUrl;
+  }
+
+  getExtensionManagementProxyBaseUrl(): string | undefined {
+    return this.extensionManagementProxyBaseUrl;
   }
 
   updateConfig(partial: {
@@ -163,6 +170,15 @@ export class AdoTransport {
     const parsed = new URL(analyticsUrl);
     const pathAndQuery = `${parsed.pathname}${parsed.search}`;
     return `${this.analyticsProxyBaseUrl}${pathAndQuery}`;
+  }
+
+  toExtensionManagementProxyUrl(extmgmtUrl: string): string {
+    if (!this.extensionManagementProxyBaseUrl) {
+      throw new Error('extensionManagementProxyBaseUrl is not configured.');
+    }
+    const parsed = new URL(extmgmtUrl);
+    const pathAndQuery = `${parsed.pathname}${parsed.search}`;
+    return `${this.extensionManagementProxyBaseUrl}${pathAndQuery}`;
   }
 
   private async executeOnce<T>(
