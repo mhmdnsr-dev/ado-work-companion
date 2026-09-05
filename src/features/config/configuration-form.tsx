@@ -1,7 +1,14 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { FolderSync, Loader2, PlugZap, RotateCcw, Save } from 'lucide-react';
+import {
+  ExternalLink,
+  FolderSync,
+  Loader2,
+  PlugZap,
+  RotateCcw,
+  Save,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -106,11 +113,7 @@ export function ConfigurationForm({
   return <ConfigurationFormLoaded mode={mode} />;
 }
 
-function ConfigurationFormLoaded({
-  mode,
-}: {
-  mode: 'setup' | 'settings';
-}) {
+function ConfigurationFormLoaded({ mode }: { mode: 'setup' | 'settings' }) {
   const router = useRouter();
   const {
     settings,
@@ -397,7 +400,16 @@ function ConfigurationFormLoaded({
                   <FieldDescription id="pat-hint">
                     {hasServerPat
                       ? 'Leave blank to keep your saved token, or enter a new one to replace it.'
-                      : 'Required. Create a token in Azure DevOps with at least Project (Read) access.'}
+                      : 'Required. Create a token in Azure DevOps with at least Project (Read) access.'}{' '}
+                    <a
+                      className="inline-flex items-center gap-1 font-medium text-foreground"
+                      href="https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      How to get a token
+                      <ExternalLink className="size-3.5 opacity-70" aria-hidden />
+                    </a>
                   </FieldDescription>
                   {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
                 </Field>
@@ -430,8 +442,8 @@ function ConfigurationFormLoaded({
                       </SelectContent>
                     </Select>
                     <FieldDescription>
-                      Controls how long this app keeps the encrypted token cookie — not the
-                      expiry date of the PAT in Azure DevOps.
+                      Controls how long this app keeps the encrypted token cookie — not
+                      the expiry date of the PAT in Azure DevOps.
                     </FieldDescription>
                   </Field>
                 );
