@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useMemo, useSyncExternalStore, useState } from 'react';
-import { Download, Info, Monitor, Moon, RotateCcw, Sun } from 'lucide-react';
+import { Download, Info, Monitor, Moon, RotateCcw, Smartphone, Sun } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { STORAGE_KEYS, APP_INFO } from '@core/constants';
@@ -63,7 +63,8 @@ function useIsClient(): boolean {
 export function SettingsView() {
   const { hydrated, settings, hasServerPat, setThemePreference } = useConnection();
   const { theme, setTheme } = useTheme();
-  const { canInstall, isStandalone, promptInstall } = usePwaInstall();
+  const { capability, isStandalone, requestInstall, openInstallInstructions } =
+    usePwaInstall();
   const mounted = useIsClient();
   const [clearing, setClearing] = useState(false);
   const [installing, setInstalling] = useState(false);
@@ -112,7 +113,7 @@ export function SettingsView() {
   async function onInstallApp() {
     setInstalling(true);
     try {
-      const outcome = await promptInstall();
+      const outcome = await requestInstall();
       if (outcome === 'accepted') {
         toast.success('App installed');
       } else if (outcome === 'unavailable') {
@@ -133,7 +134,8 @@ export function SettingsView() {
             <>
               {' '}
               (
-              <span className="font-medium text-foreground">{settings.organization}</span>)
+              <span className="font-medium text-foreground">{settings.organization}</span>
+              )
             </>
           ) : null}
           . Use Connection below to change organization, project, or access token.
@@ -214,7 +216,7 @@ export function SettingsView() {
             <p className="text-sm text-muted-foreground">
               You’re already running the installed app.
             </p>
-          ) : canInstall ? (
+          ) : capability === 'native-prompt' ? (
             <Button
               type="button"
               className="touch-target h-11 gap-2"
@@ -224,10 +226,27 @@ export function SettingsView() {
               <Download className="size-4" aria-hidden />
               {installing ? 'Opening install…' : `Install ${APP_INFO.shortName}`}
             </Button>
+          ) : capability === 'ios-safari-manual' || capability === 'ios-other-browser' ? (
+            <div className="flex flex-col items-start gap-3">
+              <p className="text-sm text-muted-foreground">
+                {capability === 'ios-safari-manual'
+                  ? 'Install from Safari’s Share menu to use this site like an app.'
+                  : 'Apple requires installation from Safari. We’ll help you move this page there.'}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="touch-target h-11 gap-2"
+                onClick={openInstallInstructions}
+              >
+                <Smartphone className="size-4" aria-hidden />
+                Show installation steps
+              </Button>
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              On Chrome (or similar), open the browser menu and choose “Install app” or
-              “Add to Home screen” if it appears. Some phone browsers hide that option.
+              This browser does not expose an app installation option. You can continue
+              using {APP_INFO.shortName} normally in the browser.
             </p>
           )}
         </CardContent>
