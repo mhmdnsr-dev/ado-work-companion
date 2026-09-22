@@ -11,14 +11,15 @@ Built with Next.js (App Router), React 19, TypeScript, Tailwind CSS v4, shadcn/u
 ## Features (current)
 
 - **Configuration gate** — organization (required), project (optional), API version (`7.2-preview` default), access token
-- **How to use** — public guide for token setup, features, and Work Items
+- **Help & About** — public guide for token setup, daily workflow, installation, and contact
 - **PAT cookie lifetime** — remember token on this device for 7 / 14 (default) / 30 / 90 days or Forever (~400 days browser max)
 - **Hybrid storage** — org/project/apiVersion/theme/cookie lifetime in `localStorage`; PAT in an **HttpOnly** encrypted cookie
 - **Test Connection / Load Projects** use live form values
 - **Searchable project combobox** with manual entry fallback
 - **Proxied ADO calls** (`/api/ado/...`) — PAT decrypted from the cookie on the server
-- **Work items** (with inline attachments), **queries**, **comments**, **Estimate hub sessions** (same list as Azure DevOps Boards → Estimate), **dashboard / sprint panels**
-- **Projects** managed from Settings (connection + project browser)
+- **Dashboard**, **Work Items**, and **Queries** focused on daily work
+- **Comments and attachments** managed inside each work item
+- **Project selection** managed in the Settings connection form
 - **PWA** — installable offline shell
 - **Theme** — light / dark / system
 - **Shared `src/core`** — portable for a future React Native / Expo app
@@ -36,14 +37,14 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-| Script           | Description                     |
-| ---------------- | ------------------------------- |
-| `npm run dev`    | Dev server (Turbopack)          |
-| `npm run build`  | Production build (webpack/PWA)  |
-| `npm run start`  | Serve production build          |
-| `npm run test`   | Vitest unit tests (core helpers)|
-| `npm run test:e2e` | Playwright smoke (Chromium)   |
-| `npm run verify` | typecheck + lint + format + unit tests |
+| Script             | Description                            |
+| ------------------ | -------------------------------------- |
+| `npm run dev`      | Dev server (Turbopack)                 |
+| `npm run build`    | Production build (webpack/PWA)         |
+| `npm run start`    | Serve production build                 |
+| `npm run test`     | Vitest unit tests (core helpers)       |
+| `npm run test:e2e` | Playwright smoke (Chromium)            |
+| `npm run verify`   | typecheck + lint + format + unit tests |
 
 ---
 
@@ -74,22 +75,22 @@ Browser                         Next.js API                      Azure DevOps
    |  clear localStorage + DELETE   |  clear cookie                   |
 ```
 
-| Data | Where | Readable by JS? |
-| ---- | ----- | --------------- |
-| Organization, project, API version, theme, PAT cookie lifetime preference | `localStorage` | Yes |
-| PAT | HttpOnly cookie `ado_pat` (encrypted) | **No** |
-| Connection health (UI banner) | `localStorage` | Yes |
+| Data                                                                      | Where                                 | Readable by JS? |
+| ------------------------------------------------------------------------- | ------------------------------------- | --------------- |
+| Organization, project, API version, theme, PAT cookie lifetime preference | `localStorage`                        | Yes             |
+| PAT                                                                       | HttpOnly cookie `ado_pat` (encrypted) | **No**          |
+| Connection health (UI banner)                                             | `localStorage`                        | Yes             |
 
 ### PAT cookie lifetime
 
 Controls how long **this app** keeps the encrypted `ado_pat` cookie (`Max-Age`) — **not** the expiry of the PAT in the Azure DevOps portal.
 
-| Option | Cookie Max-Age |
-| ------ | -------------- |
-| 7 days | 7d |
-| 14 days | **Default** |
-| 30 days | 30d |
-| 90 days | 90d |
+| Option  | Cookie Max-Age                            |
+| ------- | ----------------------------------------- |
+| 7 days  | 7d                                        |
+| 14 days | **Default**                               |
+| 30 days | 30d                                       |
+| 90 days | 90d                                       |
 | Forever | ~400 days (practical browser upper bound) |
 
 Preference is stored in `localStorage` so the Configure / Settings dropdown restores your last choice. Saving with an empty PAT field keeps the existing token and refreshes `Max-Age` to the selected lifetime.
@@ -100,12 +101,12 @@ Preference is stored in `localStorage` so the Configure / Settings dropdown rest
 
 ### Env
 
-| Variable | Purpose |
-|----------|---------|
-| `ADO_SESSION_SECRET` | **Required always.** Encrypts the PAT cookie (AES-256-GCM). Min 32 chars. Generate with `openssl rand -base64 32` |
-| `NEXT_PUBLIC_SITE_URL` | Optional. Canonical origin for SEO (`metadataBase`, sitemap, robots). Defaults to `http://localhost:3000` |
-| `CORS_ALLOWED_ORIGIN` | Optional. One origin or comma-separated list for credentialed CORS |
-| `RESEND_API_KEY` / contact vars | Optional. About → Message me (Resend) |
+| Variable                        | Purpose                                                                                                           |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `ADO_SESSION_SECRET`            | **Required always.** Encrypts the PAT cookie (AES-256-GCM). Min 32 chars. Generate with `openssl rand -base64 32` |
+| `NEXT_PUBLIC_SITE_URL`          | Optional. Canonical origin for SEO (`metadataBase`, sitemap, robots). Defaults to `http://localhost:3000`         |
+| `CORS_ALLOWED_ORIGIN`           | Optional. One origin or comma-separated list for credentialed CORS                                                |
+| `RESEND_API_KEY` / contact vars | Optional. Help & About contact form (Resend)                                                                      |
 
 Copy `.env.example` → `.env.local` and set a real secret before running. There is **no development fallback** — a missing or short secret fails the same way locally and in production.
 
@@ -117,13 +118,12 @@ Same-origin Next.js does not need CORS. Client fetches use `credentials: 'includ
 
 ## Routing
 
-| Route | Behavior |
-| ----- | -------- |
-| `/` | → `/dashboard` if org in localStorage **and** PAT cookie exists; else `/configure` |
-| `/configure` | Always available to create/update/reset |
-| `/how-to-use` | Public guide (PAT setup, features, Work Items) |
-| `/estimate` | Azure DevOps Estimate hub sessions (join in ADO; optional experimental live-in-app) |
-| App routes | Require org + PAT cookie |
+| Route        | Behavior                                                                           |
+| ------------ | ---------------------------------------------------------------------------------- |
+| `/`          | → `/dashboard` if org in localStorage **and** PAT cookie exists; else `/configure` |
+| `/configure` | Always available to create/update/reset                                            |
+| `/help`      | Public Help & About page (PAT setup, workflow, installation, contact)              |
+| App routes   | Require org + PAT cookie                                                           |
 
 ---
 
@@ -136,13 +136,10 @@ src/
   lib/server/        # pat-cookie, CORS
   lib/config-api.ts  # browser → /api/config
   core/              # schemas, domain (localStorage prefs), API client
-  features/estimate  # Estimate hub session list + experimental live channel
-  app/api/extmgmt    # Extension Management proxy (Estimate Extension Data)
+  features/          # dashboard, work items, queries, settings, help
 ```
 
 API reference: [Azure DevOps REST API 7.2](https://learn.microsoft.com/en-us/rest/api/azure/devops/?view=azure-devops-rest-7.2) (app default query param: `api-version=7.2-preview`)
-
-**Estimate:** lists the same sessions as Boards → Estimate via [Extension Data](https://learn.microsoft.com/en-us/azure/devops/extend/develop/data-storage) for `ms-devlabs/estimate`. Join opens the ADO hub (`#/session/{id}`). Live-in-app voting is experimental and only appears when the PAT can write `pollingSessions`.
 
 ---
 

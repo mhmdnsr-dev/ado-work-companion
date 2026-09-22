@@ -8,7 +8,7 @@ const navItemIdSchema = z.enum(
   NAV_ITEMS.map((item) => item.id) as [NavItemId, ...NavItemId[]],
 );
 
-const favoritesSchema = z.array(navItemIdSchema);
+const favoritesSchema = z.array(z.string());
 
 const DEFAULT_FAVORITES: NavItemId[] = ['dashboard', 'work-items', 'queries', 'settings'];
 
@@ -18,7 +18,10 @@ export async function loadFavorites(storage: StorageAdapter): Promise<NavItemId[
 
   try {
     const parsed = favoritesSchema.safeParse(JSON.parse(raw));
-    return parsed.success ? parsed.data : [...DEFAULT_FAVORITES];
+    if (!parsed.success) return [...DEFAULT_FAVORITES];
+    return parsed.data.filter(
+      (id): id is NavItemId => navItemIdSchema.safeParse(id).success,
+    );
   } catch {
     return [...DEFAULT_FAVORITES];
   }

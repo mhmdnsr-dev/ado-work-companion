@@ -1,9 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useMemo, useSyncExternalStore, useState } from 'react';
-import { Download, Info, Monitor, Moon, RotateCcw, Smartphone, Sun } from 'lucide-react';
+import { Download, Monitor, Moon, RotateCcw, Smartphone, Sun } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { STORAGE_KEYS, APP_INFO } from '@core/constants';
@@ -22,7 +21,6 @@ import {
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ConfigurationForm } from '@/features/config';
-import { ProjectsView } from '@/features/projects';
 import { createLocalStorageAdapter } from '@/lib/adapters';
 import { cn } from '@/lib/utils';
 
@@ -61,7 +59,7 @@ function useIsClient(): boolean {
 }
 
 export function SettingsView() {
-  const { hydrated, settings, hasServerPat, setThemePreference } = useConnection();
+  const { hydrated, settings, setThemePreference } = useConnection();
   const { theme, setTheme } = useTheme();
   const { capability, isStandalone, requestInstall, openInstallInstructions } =
     usePwaInstall();
@@ -129,18 +127,20 @@ export function SettingsView() {
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Settings</h1>
         <p className="text-sm text-muted-foreground md:text-base">
-          Appearance, install options, and your Azure DevOps connection for this device
+          Manage your Azure DevOps connection and this device’s preferences
           {settings.organization ? (
             <>
-              {' '}
-              (
+              {' ('}
               <span className="font-medium text-foreground">{settings.organization}</span>
-              )
+              {').'}
             </>
-          ) : null}
-          . Use Connection below to change organization, project, or access token.
+          ) : (
+            '.'
+          )}
         </p>
       </header>
+
+      <ConfigurationForm mode="settings" />
 
       <Card>
         <CardHeader className="gap-1">
@@ -183,25 +183,6 @@ export function SettingsView() {
           </fieldset>
         </CardContent>
       </Card>
-
-      <ConfigurationForm mode="settings" />
-
-      {settings.organization && hasServerPat ? (
-        <Card>
-          <CardHeader className="gap-1">
-            <CardTitle className="text-xl">Projects</CardTitle>
-            <CardDescription>
-              Browse projects in{' '}
-              <span className="font-medium text-foreground">{settings.organization}</span>{' '}
-              and set which one this app uses for work items and queries. You can also
-              pick a project in Connection above.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ProjectsView embedded />
-          </CardContent>
-        </Card>
-      ) : null}
 
       <Card>
         <CardHeader className="gap-1">
@@ -254,7 +235,7 @@ export function SettingsView() {
 
       <Card>
         <CardHeader className="gap-1">
-          <CardTitle className="text-xl">Local preferences</CardTitle>
+          <CardTitle className="text-xl">Local data</CardTitle>
           <CardDescription>
             Clear saved work item filters, dashboard team/member picks, and favorite nav
             shortcuts on this device. Connection and theme stay as they are.
@@ -274,23 +255,6 @@ export function SettingsView() {
           >
             <RotateCcw className="size-4" />
             {clearing ? 'Clearing…' : 'Clear local preferences'}
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="gap-1">
-          <CardTitle className="text-xl">About</CardTitle>
-          <CardDescription>
-            Who {APP_INFO.shortName} is for and how to get help.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button asChild variant="outline" className="touch-target h-11 gap-2">
-            <Link href="/about">
-              <Info className="size-4" />
-              Open About
-            </Link>
           </Button>
         </CardContent>
       </Card>

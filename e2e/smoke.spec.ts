@@ -27,6 +27,43 @@ test.describe('configuration gate', () => {
   });
 });
 
+test.describe('focused product routes', () => {
+  test('serves Help & About publicly', async ({ page }) => {
+    await page.goto('/help');
+    await expect(page.getByRole('heading', { name: 'Help & About' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Daily workflow' })).toBeVisible();
+    await expect(page.getByRole('form', { name: 'Contact the author' })).toBeVisible();
+    await expect(
+      page.getByRole('region', { name: 'About' }).getByRole('link', { name: 'GitHub' }),
+    ).toBeVisible();
+  });
+
+  test('shows focused settings with advanced API version disclosure', async ({
+    page,
+  }) => {
+    await page.goto('/help');
+    await page.evaluate(() => {
+      localStorage.setItem('ado.organization', 'contoso');
+      localStorage.setItem('ado.apiVersion', '7.2-preview');
+    });
+    const response = await page.request.post('/api/config', {
+      data: { pat: 'test-pat-for-settings', cookieLifetime: '14d' },
+    });
+    expect(response.ok()).toBe(true);
+
+    await page.goto('/settings');
+    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+    await expect(
+      page.locator('#main-content').getByText('Connection', { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText('Projects', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Load Projects' })).toHaveCount(0);
+    await expect(page.getByRole('textbox', { name: 'API Version' })).toBeHidden();
+    await page.getByText('Advanced', { exact: true }).click();
+    await expect(page.getByRole('textbox', { name: 'API Version' })).toBeVisible();
+  });
+});
+
 test.describe('PWA installation guidance', () => {
   test('shows Safari installation steps on iPhone', async ({ browser }) => {
     const context = await browser.newContext({

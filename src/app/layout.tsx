@@ -43,7 +43,6 @@ export const metadata: Metadata = {
     'ADO',
     'task management',
     'Story Points',
-    'Estimate',
     APP_INFO.name,
   ],
   manifest: '/manifest.json',
