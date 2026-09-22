@@ -1,6 +1,6 @@
 'use client';
 
-import { Download, X } from 'lucide-react';
+import { Check, Copy, Download, Share, Smartphone, X } from 'lucide-react';
 import {
   createContext,
   useCallback,
@@ -14,6 +14,18 @@ import {
 
 import { APP_INFO } from '@core/constants';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+
+import { detectInstallCapability, type InstallCapability } from './install-capability';
+
+export type { InstallCapability } from './install-capability';
 
 const DISMISS_KEY = 'ado.pwaInstallDismissed';
 
@@ -24,9 +36,10 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 interface PwaInstallContextValue {
-  canInstall: boolean;
+  capability: InstallCapability;
   isStandalone: boolean;
-  promptInstall: () => Promise<'accepted' | 'dismissed' | 'unavailable'>;
+  requestInstall: () => Promise<'accepted' | 'dismissed' | 'unavailable'>;
+  openInstallInstructions: () => void;
 }
 
 const PwaInstallContext = createContext<PwaInstallContextValue | null>(null);
@@ -72,6 +85,8 @@ export function usePwaInstall(): PwaInstallContextValue {
 export function PwaInstallProvider({ children }: { children: ReactNode }) {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissedThisSession, setDismissedThisSession] = useState(false);
+  const [instructionsOpen, setInstructionsOpen] = useState(false);
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
   const standalone = useSyncExternalStore(
     subscribeStandalone,
     isStandaloneDisplay,
@@ -101,13 +116,35 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const promptInstall = useCallback(async () => {
+  const capability = detectInstallCapability({
+    userAgent: typeof navigator === 'undefined' ? '' : navigator.userAgent,
+    platform: typeof navigator === 'undefined' ? '' : navigator.platform,
+    maxTouchPoints: typeof navigator === 'undefined' ? 0 : navigator.maxTouchPoints,
+    standalone,
+    nativePromptAvailable: Boolean(deferred),
+  });
+
+  const requestInstall = useCallback(async () => {
     if (!deferred) return 'unavailable' as const;
     await deferred.prompt();
     const { outcome } = await deferred.userChoice;
     setDeferred(null);
     return outcome;
   }, [deferred]);
+
+  const openInstallInstructions = useCallback(() => {
+    setCopyState('idle');
+    setInstructionsOpen(true);
+  }, []);
+
+  const copyCurrentUrl = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopyState('copied');
+    } catch {
+      setCopyState('failed');
+    }
+  }, []);
 
   const dismissBanner = useCallback(() => {
     setDismissedThisSession(true);
@@ -120,14 +157,31 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<PwaInstallContextValue>(
     () => ({
-      canInstall: Boolean(deferred) && !standalone,
+      capability,
       isStandalone: standalone,
-      promptInstall,
+      requestInstall,
+      openInstallInstructions,
     }),
-    [deferred, standalone, promptInstall],
+    [capability, standalone, requestInstall, openInstallInstructions],
   );
 
-  const showBanner = value.canInstall && !dismissed;
+  const showBanner =
+    !dismissed &&
+    (capability === 'native-prompt' ||
+      capability === 'ios-safari-manual' ||
+      capability === 'ios-other-browser');
+
+  const isOtherIosBrowser = capability === 'ios-other-browser';
+
+  const handleBannerInstall = () => {
+    if (capability === 'native-prompt') {
+      void requestInstall().then((outcome) => {
+        if (outcome !== 'accepted') dismissBanner();
+      });
+      return;
+    }
+    openInstallInstructions();
+  };
 
   return (
     <PwaInstallContext.Provider value={value}>
@@ -161,14 +215,14 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
             <Button
               type="button"
               className="touch-target h-11 flex-1 gap-2"
-              onClick={() => {
-                void promptInstall().then((outcome) => {
-                  if (outcome !== 'accepted') dismissBanner();
-                });
-              }}
+              onClick={handleBannerInstall}
             >
-              <Download className="size-4" aria-hidden />
-              Install
+              {capability === 'native-prompt' ? (
+                <Download className="size-4" aria-hidden />
+              ) : (
+                <Smartphone className="size-4" aria-hidden />
+              )}
+              {capability === 'native-prompt' ? 'Install' : 'How to install'}
             </Button>
             <Button
               type="button"
@@ -181,6 +235,62 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
           </div>
         </div>
       ) : null}
+      <Dialog open={instructionsOpen} onOpenChange={setInstructionsOpen}>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Install {APP_INFO.shortName} on your iPhone</DialogTitle>
+            <DialogDescription>
+              {isOtherIosBrowser
+                ? 'Apple requires home-screen web apps to be added from Safari.'
+                : 'Use Safari’s Share menu to add this app to your Home Screen.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {isOtherIosBrowser ? (
+            <div className="space-y-3">
+              <p className="text-sm font-medium">First, open this page in Safari</p>
+              <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
+                <li>Copy this page’s link.</li>
+                <li>Open Safari and paste the link into the address bar.</li>
+                <li>Follow the Safari steps below.</li>
+              </ol>
+              <Button
+                type="button"
+                variant="outline"
+                className="touch-target h-11 w-full gap-2"
+                onClick={() => void copyCurrentUrl()}
+              >
+                {copyState === 'copied' ? (
+                  <Check className="size-4" aria-hidden />
+                ) : (
+                  <Copy className="size-4" aria-hidden />
+                )}
+                {copyState === 'copied' ? 'Link copied' : 'Copy link'}
+              </Button>
+              {copyState === 'failed' ? (
+                <p role="alert" className="text-sm text-destructive">
+                  The link could not be copied. Use this browser’s Share menu to copy it,
+                  then open it in Safari.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className="space-y-3 border-t pt-4">
+            <p className="flex items-center gap-2 text-sm font-medium">
+              <Share className="size-4" aria-hidden />
+              In Safari
+            </p>
+            <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
+              <li>Tap the Share button in Safari’s toolbar.</li>
+              <li>Scroll down and tap Add to Home Screen.</li>
+              <li>Turn on Open as Web App, then tap Add.</li>
+            </ol>
+          </div>
+
+          <DialogFooter showCloseButton />
+        </DialogContent>
+      </Dialog>
     </PwaInstallContext.Provider>
   );
 }

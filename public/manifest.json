@@ -4,6 +4,7 @@
   "short_name": "ADO Work",
   "description": "A daily companion for anyone with Azure DevOps tasks—update status and hours, comments, and attachments.",
   "lang": "en",
+  "categories": ["business", "productivity", "utilities"],
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
