@@ -190,7 +190,7 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
         <div
           role="region"
           aria-label="Install app"
-          className="safe-bottom fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 p-3 shadow-lg backdrop-blur supports-backdrop-filter:bg-background/90 md:inset-x-auto md:right-4 md:bottom-4 md:w-full md:max-w-sm md:rounded-xl md:border"
+          className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-50 border-t border-border bg-background p-3 shadow-lg md:inset-x-auto md:right-4 md:bottom-4 md:w-full md:max-w-sm md:rounded-xl md:border"
         >
           <div className="flex items-start gap-3">
             <div className="min-w-0 flex-1 space-y-1">

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -98,18 +99,21 @@ function QueriesViewContent({
   project: string;
 }) {
   const { api } = useConnection();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedId = searchParams.get('query');
   const [expandedIds, setExpandedIds] = useState<Set<string> | null>(null);
   const [folderChildren, setFolderChildren] = useState<
     Record<string, QueryHierarchyItem[]>
   >({});
   const [runToken, setRunToken] = useState(0);
   const [page, setPage] = useState(0);
-  const [detailId, setDetailId] = useState<number | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
+  const itemParam = searchParams.get('item');
+  const detailId = itemParam && /^\d+$/.test(itemParam) ? Number(itemParam) : null;
   const [loadingFolderId, setLoadingFolderId] = useState<string | null>(null);
 
   const listQuery = useQuery({
@@ -257,7 +261,10 @@ function QueriesViewContent({
       void onExpandFolder(item);
       return;
     }
-    setSelectedId(item.id);
+    const next = new URLSearchParams(searchParams.toString());
+    next.set('query', item.id);
+    next.delete('item');
+    router.push(`${pathname}?${next.toString()}`, { scroll: false });
     setRunToken(0);
     setPage(0);
   }
@@ -266,6 +273,18 @@ function QueriesViewContent({
     if (!canRun || !selectedId) return;
     setPage(0);
     setRunToken((token) => token + 1);
+  }
+
+  function openWorkItem(id: number) {
+    const next = new URLSearchParams(searchParams.toString());
+    next.set('item', String(id));
+    router.push(`${pathname}?${next.toString()}`, { scroll: false });
+  }
+
+  function closeWorkItem() {
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete('item');
+    router.replace(`${pathname}?${next.toString()}`, { scroll: false });
   }
 
   if (!project) {
@@ -296,7 +315,7 @@ function QueriesViewContent({
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <header className="hidden flex-col gap-3 md:flex md:flex-row md:items-end md:justify-between">
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Queries</h1>
           <p className="text-sm text-muted-foreground md:text-base">
@@ -323,7 +342,13 @@ function QueriesViewContent({
         </Button>
       </header>
 
-      <section aria-label="Query search" className="rounded-lg border border-border p-4">
+      <section
+        aria-label="Query search"
+        className={cn(
+          'rounded-lg border border-border p-4',
+          selectedId && 'hidden lg:block',
+        )}
+      >
         <div className="space-y-2">
           <Label htmlFor="queries-search">Search saved queries</Label>
           <div className="relative">
@@ -354,7 +379,13 @@ function QueriesViewContent({
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)]">
-        <section aria-label="Saved queries" className="rounded-lg border border-border">
+        <section
+          aria-label="Saved queries"
+          className={cn(
+            'rounded-lg border border-border',
+            selectedId && 'hidden lg:block',
+          )}
+        >
           <div className="border-b border-border px-4 py-3">
             <h2 className="text-sm font-medium">Library</h2>
             <p className="text-xs text-muted-foreground">My Queries and Shared Queries</p>
@@ -549,8 +580,7 @@ function QueriesViewContent({
                         item={item}
                         onOpen={() => {
                           if (item.id == null) return;
-                          setDetailId(item.id);
-                          setDetailOpen(true);
+                          openWorkItem(item.id);
                         }}
                       />
                     </li>
@@ -563,8 +593,10 @@ function QueriesViewContent({
       </div>
 
       <WorkItemDetailSheet
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
+        open={detailId !== null}
+        onOpenChange={(open) => {
+          if (!open) closeWorkItem();
+        }}
         workItemId={detailId}
         project={project}
         people={[]}

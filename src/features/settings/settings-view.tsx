@@ -124,7 +124,7 @@ export function SettingsView() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <header className="space-y-1">
+      <header className="hidden space-y-1 md:block">
         <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Settings</h1>
         <p className="text-sm text-muted-foreground md:text-base">
           Manage your Azure DevOps connection and this device’s preferences

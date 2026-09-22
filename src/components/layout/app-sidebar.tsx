@@ -27,7 +27,9 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
       <div className="flex h-14 shrink-0 items-center gap-2 px-4">
         <BrandMark size={32} />
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold tracking-tight">{APP_INFO.shortName}</p>
+          <p className="truncate text-sm font-semibold tracking-tight">
+            {APP_INFO.shortName}
+          </p>
           <p className="truncate text-xs text-muted-foreground">Work Companion</p>
         </div>
       </div>

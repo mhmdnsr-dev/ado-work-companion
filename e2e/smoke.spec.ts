@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 test.describe('configuration gate', () => {
   test('unconfigured visitors land on /configure', async ({ page }) => {
@@ -61,6 +61,78 @@ test.describe('focused product routes', () => {
     await expect(page.getByRole('textbox', { name: 'API Version' })).toBeHidden();
     await page.getByText('Advanced', { exact: true }).click();
     await expect(page.getByRole('textbox', { name: 'API Version' })).toBeVisible();
+  });
+});
+
+test.describe('native-like phone shell', () => {
+  async function configurePhone(page: Page) {
+    await page.goto('/help');
+    await page.evaluate(() => {
+      localStorage.setItem('ado.organization', 'contoso');
+      localStorage.setItem('ado.project', 'Mobile Project');
+      localStorage.setItem('ado.apiVersion', '7.2-preview');
+    });
+    const response = await page.request.post('/api/config', {
+      data: { pat: 'test-pat-for-mobile-shell', cookieLifetime: '14d' },
+    });
+    expect(response.ok()).toBe(true);
+  }
+
+  for (const viewport of [
+    { width: 320, height: 700 },
+    { width: 390, height: 844 },
+    { width: 430, height: 932 },
+    { width: 740, height: 360 },
+  ]) {
+    test(`keeps phone navigation reachable at ${viewport.width}x${viewport.height}`, async ({
+      browser,
+    }) => {
+      const context = await browser.newContext({ viewport });
+      const page = await context.newPage();
+      await configurePhone(page);
+      await page.goto('/dashboard');
+
+      const primary = page.getByRole('navigation', { name: 'Primary' });
+      await expect(primary).toBeVisible();
+      await expect(primary.getByRole('link', { name: 'Dashboard' })).toBeVisible();
+      await expect(primary.getByRole('link', { name: 'Work Items' })).toBeVisible();
+      await expect(primary.getByRole('link', { name: 'Queries' })).toBeVisible();
+      await expect(
+        primary.getByRole('button', { name: 'Open more navigation' }),
+      ).toBeVisible();
+
+      const box = await primary.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height + 1);
+      await context.close();
+    });
+  }
+
+  test('provides phone More navigation and work item controls', async ({ browser }) => {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const page = await context.newPage();
+    await configurePhone(page);
+    await page.goto('/dashboard');
+
+    await page.getByRole('button', { name: 'Open more navigation' }).click();
+    await expect(page.getByRole('heading', { name: 'More' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Help & About' })).toBeVisible();
+    await page.getByRole('button', { name: 'Close' }).click();
+
+    await page
+      .getByRole('navigation', { name: 'Primary' })
+      .getByRole('link', { name: 'Work Items' })
+      .click();
+    await expect(page.getByRole('button', { name: 'New work item' })).toBeVisible();
+    await page.getByRole('button', { name: 'Open filters' }).click();
+    await expect(page.getByRole('heading', { name: 'Filters' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Show work items' })).toBeVisible();
+    await page.getByRole('button', { name: 'Show work items' }).click();
+
+    await page.goto('/work-items?item=not-a-number');
+    await expect(page.getByText('Invalid work item link')).toBeVisible();
+    await context.close();
   });
 });
 

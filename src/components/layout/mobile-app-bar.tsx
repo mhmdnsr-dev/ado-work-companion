@@ -1,39 +1,41 @@
 'use client';
 
-import { Menu } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-import { APP_INFO } from '@core/constants';
-import { BrandMark } from '@/components/brand';
+import { APP_INFO, NAV_ITEMS } from '@core/constants';
 import { ConnectionSummary } from '@/components/layout/connection-summary';
-import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { Button } from '@/components/ui/button';
 
-interface MobileAppBarProps {
-  onOpenMenu: () => void;
-}
+export function MobileAppBar() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const hasDetail = searchParams.has('item') || searchParams.has('query');
+  const title = hasDetail
+    ? searchParams.has('item')
+      ? `Work item #${searchParams.get('item')}`
+      : 'Query'
+    : (NAV_ITEMS.find((item) => item.href === pathname)?.label ?? APP_INFO.shortName);
 
-export function MobileAppBar({ onOpenMenu }: MobileAppBarProps) {
   return (
-    <header className="safe-top sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/95 px-3 backdrop-blur supports-backdrop-filter:bg-background/80 md:hidden">
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        className="touch-target size-11 shrink-0"
-        onClick={onOpenMenu}
-        aria-label="Open navigation menu"
-      >
-        <Menu className="size-5" />
-      </Button>
-
-      <BrandMark size={28} />
-
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold tracking-tight">{APP_INFO.shortName}</p>
-        <ConnectionSummary compact />
+    <header className="safe-top sticky top-0 z-30 flex min-h-14 items-center gap-2 border-b border-border bg-background px-2 md:hidden">
+      {hasDetail ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="touch-target size-11"
+          onClick={() => router.back()}
+          aria-label="Go back"
+        >
+          <ArrowLeft className="size-5" />
+        </Button>
+      ) : null}
+      <div className="min-w-0 flex-1 px-2">
+        <p className="truncate text-base font-semibold">{title}</p>
+        {!hasDetail ? <ConnectionSummary compact /> : null}
       </div>
-
-      <ThemeToggle />
     </header>
   );
 }

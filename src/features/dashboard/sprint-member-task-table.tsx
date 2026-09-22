@@ -27,8 +27,8 @@ export function SprintMemberTaskTable({ tasks }: { tasks: MemberSprintTaskRow[] 
             <th className="px-3 py-2 font-medium">Title</th>
             <th className="px-3 py-2 font-medium">Type</th>
             <th className="px-3 py-2 font-medium">State</th>
-            <th className="px-3 py-2 font-medium text-right">Remaining</th>
-            <th className="px-3 py-2 font-medium text-right">Completed</th>
+            <th className="px-3 py-2 text-right font-medium">Remaining</th>
+            <th className="px-3 py-2 text-right font-medium">Completed</th>
           </tr>
         </thead>
         <tbody>
@@ -58,8 +58,12 @@ export function SprintMemberTaskTable({ tasks }: { tasks: MemberSprintTaskRow[] 
                 </td>
                 <td className="px-3 py-2 text-muted-foreground">{task.type}</td>
                 <td className="px-3 py-2">{task.state}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{task.remainingHours} h</td>
-                <td className="px-3 py-2 text-right tabular-nums">{task.completedHours} h</td>
+                <td className="px-3 py-2 text-right tabular-nums">
+                  {task.remainingHours} h
+                </td>
+                <td className="px-3 py-2 text-right tabular-nums">
+                  {task.completedHours} h
+                </td>
               </tr>
             );
           })}

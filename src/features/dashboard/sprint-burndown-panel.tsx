@@ -153,7 +153,11 @@ async function loadSprintWorkItems(
     .map((relation) => relation.target?.id)
     .filter((id): id is number => typeof id === 'number' && id > 0);
   if (ids.length === 0) return [];
-  const items = await api.getWorkItems({ ids, project: params.project, signal: params.signal });
+  const items = await api.getWorkItems({
+    ids,
+    project: params.project,
+    signal: params.signal,
+  });
   return items.data;
 }
 
@@ -181,7 +185,9 @@ export function SprintBurndownPanel() {
   const teams = teamsQuery.data?.data ?? [];
   const preferredTeam = teamName || storedTeam;
   const resolvedTeam =
-    preferredTeam && teams.some((team) => team.name === preferredTeam) ? preferredTeam : '';
+    preferredTeam && teams.some((team) => team.name === preferredTeam)
+      ? preferredTeam
+      : '';
 
   const storedMember = useMemo(
     () => (resolvedTeam ? readStoredMember(organization, project, resolvedTeam) : null),
@@ -241,11 +247,7 @@ export function SprintBurndownPanel() {
   const isMemberView = Boolean(selectedMember?.id);
 
   const sprintQuery = useQuery({
-    queryKey: adoQueryKeys.dashboard.currentSprint(
-      organization,
-      project,
-      resolvedTeam,
-    ),
+    queryKey: adoQueryKeys.dashboard.currentSprint(organization, project, resolvedTeam),
     enabled: Boolean(api && project && resolvedTeam),
     queryFn: async ({ signal }) => {
       if (!api) throw new Error('Connection is not ready.');
@@ -271,11 +273,11 @@ export function SprintBurndownPanel() {
     queryKey: adoQueryKeys.dashboard.burndown(organization, project, resolvedTeam),
     enabled: Boolean(
       api &&
-        project &&
-        resolvedTeam &&
-        currentSprint?.path &&
-        currentSprint.attributes?.startDate &&
-        currentSprint.attributes?.finishDate,
+      project &&
+      resolvedTeam &&
+      currentSprint?.path &&
+      currentSprint.attributes?.startDate &&
+      currentSprint.attributes?.finishDate,
     ),
     staleTime: 60_000,
     queryFn: async ({ signal }): Promise<SprintChartsResult> => {
@@ -354,9 +356,7 @@ export function SprintBurndownPanel() {
 
   const memberItems = useMemo(
     () =>
-      selectedMember?.id
-        ? filterWorkItemsByAssignee(sprintItems, selectedMember.id)
-        : [],
+      selectedMember?.id ? filterWorkItemsByAssignee(sprintItems, selectedMember.id) : [],
     [sprintItems, selectedMember],
   );
 
@@ -366,7 +366,11 @@ export function SprintBurndownPanel() {
   );
 
   const memberModel = useMemo(() => {
-    if (!isMemberView || !currentSprint?.attributes?.startDate || !currentSprint.attributes.finishDate) {
+    if (
+      !isMemberView ||
+      !currentSprint?.attributes?.startDate ||
+      !currentSprint.attributes.finishDate
+    ) {
       return null;
     }
     return buildSprintBurndownFromWorkItems({
@@ -391,7 +395,11 @@ export function SprintBurndownPanel() {
   }));
 
   const memberOptions = [
-    { value: TEAM_OVERVIEW, label: 'Team overview', description: 'Simple sprint summary for the team' },
+    {
+      value: TEAM_OVERVIEW,
+      label: 'Team overview',
+      description: 'Simple sprint summary for the team',
+    },
     ...members.map((member) => ({
       value: member.id!,
       label:
@@ -415,7 +423,9 @@ export function SprintBurndownPanel() {
         <FolderKanban className="size-4" />
         <AlertTitle>Choose a project for sprint charts</AlertTitle>
         <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <span>Sprint charts need an active project and team with a current sprint.</span>
+          <span>
+            Sprint charts need an active project and team with a current sprint.
+          </span>
           <Button asChild className="touch-target h-11 shrink-0">
             <Link href="/settings">Open Settings</Link>
           </Button>
@@ -468,7 +478,9 @@ export function SprintBurndownPanel() {
                 writeStoredTeam(organization, project, value);
               }}
               options={teamOptions}
-              placeholder={teamsQuery.isLoading ? 'Loading teams…' : 'Select team (required)'}
+              placeholder={
+                teamsQuery.isLoading ? 'Loading teams…' : 'Select team (required)'
+              }
               searchPlaceholder="Search teams…"
               disabled={teamsQuery.isLoading || teams.length === 0}
             />
@@ -599,7 +611,10 @@ export function SprintBurndownPanel() {
             {usesRestTeamCharts && nativeChartPath ? (
               <div className="rounded-lg border border-border bg-muted/20 p-3">
                 <p className="mb-2 text-xs text-muted-foreground">Sprint burndown</p>
-                <SprintNativeBurndownImage chartPath={nativeChartPath} className="w-full" />
+                <SprintNativeBurndownImage
+                  chartPath={nativeChartPath}
+                  className="w-full"
+                />
               </div>
             ) : (
               <div className="rounded-lg border border-border bg-muted/20 p-3">
@@ -620,13 +635,14 @@ export function SprintBurndownPanel() {
         ) : null}
 
         {/* Member detail — in-depth */}
-        {isMemberView && memberStats && memberModel && memberSnapshot && !chartsQuery.isError ? (
+        {isMemberView &&
+        memberStats &&
+        memberModel &&
+        memberSnapshot &&
+        !chartsQuery.isError ? (
           <>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              <MetricChip
-                label="Assigned items"
-                value={String(memberStats.totalTasks)}
-              />
+              <MetricChip label="Assigned items" value={String(memberStats.totalTasks)} />
               <MetricChip
                 label="Remaining work"
                 value={`${memberStats.remainingHours} h`}
@@ -639,10 +655,7 @@ export function SprintBurndownPanel() {
                 label="Original estimate"
                 value={`${memberStats.originalEstimateHours} h`}
               />
-              <MetricChip
-                label="Open tasks"
-                value={String(memberStats.openTaskCount)}
-              />
+              <MetricChip label="Open tasks" value={String(memberStats.openTaskCount)} />
               <MetricChip
                 label="Closed tasks"
                 value={String(memberStats.completedTaskCount)}
@@ -681,7 +694,10 @@ export function SprintBurndownPanel() {
                     Ideal
                   </span>
                 </div>
-                <SprintBurndownChart series={memberModel.series} className="h-48 w-full" />
+                <SprintBurndownChart
+                  series={memberModel.series}
+                  className="h-48 w-full"
+                />
               </div>
             </div>
 
@@ -698,7 +714,8 @@ export function SprintBurndownPanel() {
         teamModel.metrics.startingWork === 0 &&
         (teamSnapshot?.openTaskCount ?? 0) === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No task work in this sprint yet. Add Tasks with Remaining Work to see burndown.
+            No task work in this sprint yet. Add Tasks with Remaining Work to see
+            burndown.
           </p>
         ) : null}
       </CardContent>

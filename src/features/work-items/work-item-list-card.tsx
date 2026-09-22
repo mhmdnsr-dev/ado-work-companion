@@ -1,6 +1,11 @@
 'use client';
 
-import { fieldNumber, fieldString, identityDisplayName, listWorkItemAttachments } from '@core/domain';
+import {
+  fieldNumber,
+  fieldString,
+  identityDisplayName,
+  listWorkItemAttachments,
+} from '@core/domain';
 import type { WorkItem } from '@core/types';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -10,7 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Paperclip } from 'lucide-react';
+import { ChevronRight, Paperclip } from 'lucide-react';
 
 function formatDate(iso: string): string {
   if (!iso) return '';
@@ -50,7 +55,7 @@ export function WorkItemListCard({
       role="button"
       tabIndex={0}
       aria-label={`Open work item ${id}: ${title}`}
-      className="cursor-pointer gap-3 py-4 transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="cursor-pointer gap-2 rounded-md py-3 transition-colors hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:bg-muted/60 md:gap-3 md:py-4"
       onClick={onOpen}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -59,16 +64,18 @@ export function WorkItemListCard({
         }
       }}
     >
-      <CardHeader className="gap-2 px-4">
-        <div className="min-w-0 space-y-1">
+      <CardHeader className="flex-row items-center gap-3 px-3 md:px-4">
+        <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">#{id}</Badge>
             <Badge variant="secondary">{type}</Badge>
             <Badge>{state}</Badge>
             {priority != null ? (
-              <Badge variant="outline">Priority {priority}</Badge>
+              <Badge variant="outline" className="hidden md:inline-flex">
+                Priority {priority}
+              </Badge>
             ) : null}
-            <Badge className="border-transparent bg-primary text-primary-foreground">
+            <Badge className="hidden border-transparent bg-primary text-primary-foreground sm:inline-flex">
               {remainingLabel}
             </Badge>
             {attachmentCount > 0 ? (
@@ -78,15 +85,24 @@ export function WorkItemListCard({
               </Badge>
             ) : null}
           </div>
-          <CardTitle className="text-base leading-snug sm:text-lg">{title}</CardTitle>
-          <CardDescription>
+          <CardTitle className="line-clamp-2 text-base leading-snug md:text-lg">
+            {title}
+          </CardTitle>
+          <CardDescription className="flex flex-wrap gap-x-2">
             {assignee}
-            {changed ? ` · Updated ${changed}` : ''}
+            <span className="sm:hidden">· {remainingLabel}</span>
+            {changed ? (
+              <span className="hidden sm:inline">· Updated {changed}</span>
+            ) : null}
           </CardDescription>
         </div>
+        <ChevronRight
+          className="size-5 shrink-0 text-muted-foreground md:hidden"
+          aria-hidden
+        />
       </CardHeader>
       {tags ? (
-        <CardContent className="px-4 pt-0">
+        <CardContent className="hidden px-4 pt-0 md:block">
           <p className="text-xs text-muted-foreground">Tags: {tags}</p>
         </CardContent>
       ) : null}

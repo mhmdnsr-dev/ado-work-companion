@@ -97,12 +97,7 @@ export function WorkItemLinkFields({
       const items = await api.getWorkItems({
         ids,
         project,
-        fields: [
-          'System.Id',
-          'System.Title',
-          'System.WorkItemType',
-          'System.State',
-        ],
+        fields: ['System.Id', 'System.Title', 'System.WorkItemType', 'System.State'],
         signal,
       });
       return items.data;
@@ -130,7 +125,11 @@ export function WorkItemLinkFields({
 
   const selectedDetailsQuery = useQuery({
     queryKey: [
-      ...adoQueryKeys.workItems.meta.linkCandidates(organization, project, '__selected__'),
+      ...adoQueryKeys.workItems.meta.linkCandidates(
+        organization,
+        project,
+        '__selected__',
+      ),
       linkedIds.join(','),
     ],
     enabled: Boolean(api && organization && project && linkedIds.length > 0),
@@ -144,12 +143,7 @@ export function WorkItemLinkFields({
       const items = await api.getWorkItems({
         ids,
         project,
-        fields: [
-          'System.Id',
-          'System.Title',
-          'System.WorkItemType',
-          'System.State',
-        ],
+        fields: ['System.Id', 'System.Title', 'System.WorkItemType', 'System.State'],
         signal,
       });
       return items.data;
@@ -165,9 +159,7 @@ export function WorkItemLinkFields({
       const option = toWorkItemOption(item);
       if (option) map.set(option.value, option);
     }
-    return linkedIds.map(
-      (id) => map.get(id) ?? ({ value: id, label: `#${id}` }),
-    );
+    return linkedIds.map((id) => map.get(id) ?? { value: id, label: `#${id}` });
   }, [
     linkedIds,
     seedSelectedOptions,
@@ -210,9 +202,7 @@ export function WorkItemLinkFields({
           clearLabel="No link"
           disabled={relationTypesQuery.isLoading}
           emptyText={
-            relationTypesQuery.isError
-              ? 'Could not load link types'
-              : 'No link types'
+            relationTypesQuery.isError ? 'Could not load link types' : 'No link types'
           }
         />
       </div>

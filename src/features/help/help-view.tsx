@@ -154,6 +154,27 @@ export function HelpView() {
         </Button>
       </header>
 
+      <nav
+        aria-label="Help sections"
+        className="-mx-4 flex scrollbar-thin gap-2 overflow-x-auto border-y border-border px-4 py-3 md:mx-0 md:flex-wrap md:border-x-0 md:px-0"
+      >
+        {[
+          ['connect-heading', 'Connect'],
+          ['workflow-heading', 'Workflow'],
+          ['install-heading', 'Install'],
+          ['about-heading', 'About'],
+          ['contact-heading', 'Contact'],
+        ].map(([id, label]) => (
+          <a
+            key={id}
+            href={`#${id}`}
+            className="touch-target inline-flex shrink-0 items-center rounded-md border border-border px-3 text-sm font-medium active:bg-muted"
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
+
       <div className="divide-y divide-border">
         <section className="space-y-4 py-8" aria-labelledby="connect-heading">
           <h2 id="connect-heading" className="text-xl font-semibold">

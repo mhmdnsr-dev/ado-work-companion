@@ -548,7 +548,7 @@ function ConfigurationFormLoaded({ mode }: { mode: 'setup' | 'settings' }) {
         </form>
       </CardContent>
 
-      <CardFooter className="flex flex-col gap-3 sm:items-stretch">
+      <CardFooter className="mobile-safe-bottom sticky bottom-0 z-10 flex flex-col gap-3 border-t border-border bg-card py-4 sm:static sm:items-stretch sm:border-t-0 sm:py-0">
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <Button
             type="submit"

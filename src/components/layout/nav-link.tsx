@@ -24,9 +24,9 @@ export function NavLink({ item, onNavigate, className }: NavLinkProps) {
       onClick={onNavigate}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'touch-target text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex w-full items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors',
+        'touch-target flex w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
         active &&
-          'bg-sidebar-accent text-sidebar-accent-foreground ring-sidebar-ring ring-1',
+          'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-ring',
         className,
       )}
     >

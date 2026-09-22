@@ -3,6 +3,7 @@ export { AppSidebar } from './app-sidebar';
 export { AppTopbar } from './app-topbar';
 export { ConnectionSummary } from './connection-summary';
 export { MobileAppBar } from './mobile-app-bar';
-export { MobileNavDrawer } from './mobile-nav-drawer';
+export { MobileBottomNav } from './mobile-bottom-nav';
+export { MobileMoreSheet } from './mobile-more-sheet';
 export { NavLink } from './nav-link';
 export { ThemeToggle } from './theme-toggle';

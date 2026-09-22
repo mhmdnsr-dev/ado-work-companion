@@ -23,18 +23,14 @@ export function SprintTypeBarChart({
   }
 
   return (
-    <div
-      className={cn('space-y-2.5', className)}
-      role="img"
-      aria-label="Items by type"
-    >
+    <div className={cn('space-y-2.5', className)} role="img" aria-label="Items by type">
       {stats.tasksByType.map((row) => (
         <div key={row.type} className="space-y-1">
           <div className="flex items-center justify-between gap-2 text-xs">
             <span className="truncate text-muted-foreground" title={row.type}>
               {row.type}
             </span>
-            <span className="shrink-0 font-medium tabular-nums text-foreground">
+            <span className="shrink-0 font-medium text-foreground tabular-nums">
               {row.count}
             </span>
           </div>

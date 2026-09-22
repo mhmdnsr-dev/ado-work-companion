@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * Authenticated app shell: sidebar / top bar / mobile drawer.
+ * Authenticated app shell: desktop sidebar / top bar and mobile bottom navigation.
  * /configure stays outside this route group.
  * Default noindex; public Help lives outside this configured app group.
  */
