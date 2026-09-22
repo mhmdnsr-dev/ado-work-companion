@@ -93,11 +93,11 @@ Controls how long **this app** keeps the encrypted `ado_pat` cookie (`Max-Age`) 
 | 90 days | 90d                                       |
 | Forever | ~400 days (practical browser upper bound) |
 
-Preference is stored in `localStorage` so the Configure / Settings dropdown restores your last choice. Saving with an empty PAT field keeps the existing token and refreshes `Max-Age` to the selected lifetime.
+Preference is stored in `localStorage` so Settings restores your last choice. Saving with an empty PAT field keeps the existing token and refreshes `Max-Age` to the selected lifetime.
 
 ### Reset
 
-**Reset** clears connection keys in `localStorage` and expires the `ado_pat` cookie (`DELETE /api/config`). You return to `/configure`.
+**Reset** clears connection keys in `localStorage` and expires the `ado_pat` cookie (`DELETE /api/config`). Settings returns to focused connection setup.
 
 ### Env
 
@@ -118,12 +118,12 @@ Same-origin Next.js does not need CORS. Client fetches use `credentials: 'includ
 
 ## Routing
 
-| Route        | Behavior                                                                           |
-| ------------ | ---------------------------------------------------------------------------------- |
-| `/`          | → `/dashboard` if org in localStorage **and** PAT cookie exists; else `/configure` |
-| `/configure` | Always available to create/update/reset                                            |
-| `/help`      | Public Help & About page (PAT setup, workflow, installation, contact)              |
-| App routes   | Require org + PAT cookie                                                           |
+| Route       | Behavior                                                                    |
+| ----------- | --------------------------------------------------------------------------- |
+| `/`         | → `/dashboard` if configured; otherwise `/settings`                         |
+| `/settings` | Connection setup before configuration; full preferences after configuration |
+| `/help`     | Public Help & About page (PAT setup, workflow, installation, contact)       |
+| App routes  | Require org + PAT cookie                                                    |
 
 ---
 

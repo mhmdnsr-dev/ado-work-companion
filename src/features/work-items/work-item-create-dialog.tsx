@@ -177,10 +177,12 @@ function CreateWorkItemForm({
           <SearchableSelect
             value={type}
             onChange={setType}
-            options={(createTypes.length > 0 ? createTypes : workItemTypes).map((name) => ({
-              value: name,
-              label: name,
-            }))}
+            options={(createTypes.length > 0 ? createTypes : workItemTypes).map(
+              (name) => ({
+                value: name,
+                label: name,
+              }),
+            )}
             placeholder="Select type"
             searchPlaceholder="Search types…"
           />
@@ -336,7 +338,7 @@ export function WorkItemCreateDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="h-[92dvh] max-h-[92dvh] overflow-y-auto sm:h-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>New work item</DialogTitle>
           <DialogDescription>

@@ -32,7 +32,7 @@ function MetricBarRows({
             <span className="truncate text-muted-foreground" title={row.label}>
               {row.label}
             </span>
-            <span className="shrink-0 font-medium tabular-nums text-foreground">
+            <span className="shrink-0 font-medium text-foreground tabular-nums">
               {row.display ?? row.value}
             </span>
           </div>

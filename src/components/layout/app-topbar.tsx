@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { KeyRound, Settings } from 'lucide-react';
+import { Settings } from 'lucide-react';
 
 import { APP_INFO, NAV_ITEMS } from '@core/constants';
 import { ConnectionSummary } from '@/components/layout/connection-summary';
@@ -32,12 +32,6 @@ export function AppTopbar() {
       <Separator orientation="vertical" className="hidden h-8 lg:block" />
 
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" className="touch-target h-11 gap-2" asChild>
-          <Link href="/configure" aria-label="Update connection">
-            <KeyRound className="size-4" aria-hidden />
-            <span className="hidden xl:inline">Connection</span>
-          </Link>
-        </Button>
         <Button variant="outline" size="icon" className="touch-target size-11" asChild>
           <Link href="/settings" aria-label="Settings">
             <Settings className="size-4" aria-hidden />

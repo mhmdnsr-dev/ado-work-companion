@@ -97,23 +97,31 @@ function ConfigurationFormSkeleton({ isSettings }: { isSettings: boolean }) {
 
 export function ConfigurationForm({
   mode = 'setup',
+  onResetComplete,
 }: {
-  /** `setup` is the /configure gate; `settings` embeds the same form in-app. */
+  /** `setup` is the first-run Settings view; `settings` embeds the form in-app. */
   mode?: 'setup' | 'settings';
+  onResetComplete?: () => void;
 }) {
   const { hydrated } = useConnection();
   const isSettings = mode === 'settings';
 
   // Mount the form only after settings hydrate so org/project/lifetime autofill
-  // from localStorage on first paint (same as a saved configure session).
+  // from localStorage on first paint (same as a saved Settings session).
   if (!hydrated) {
     return <ConfigurationFormSkeleton isSettings={isSettings} />;
   }
 
-  return <ConfigurationFormLoaded mode={mode} />;
+  return <ConfigurationFormLoaded mode={mode} onResetComplete={onResetComplete} />;
 }
 
-function ConfigurationFormLoaded({ mode }: { mode: 'setup' | 'settings' }) {
+function ConfigurationFormLoaded({
+  mode,
+  onResetComplete,
+}: {
+  mode: 'setup' | 'settings';
+  onResetComplete?: () => void;
+}) {
   const router = useRouter();
   const {
     settings,
@@ -290,9 +298,7 @@ function ConfigurationFormLoaded({ mode }: { mode: 'setup' | 'settings' }) {
       patCookieLifetime: DEFAULT_PAT_COOKIE_LIFETIME,
     });
     toast.message('Connection settings cleared');
-    if (isSettings) {
-      router.push('/configure');
-    }
+    onResetComplete?.();
   }
 
   function onContinue() {
@@ -548,7 +554,7 @@ function ConfigurationFormLoaded({ mode }: { mode: 'setup' | 'settings' }) {
         </form>
       </CardContent>
 
-      <CardFooter className="flex flex-col gap-3 sm:items-stretch">
+      <CardFooter className="mobile-safe-bottom sticky bottom-0 z-10 flex flex-col gap-3 border-t border-border bg-card py-4 sm:static sm:items-stretch sm:border-t-0 sm:py-0">
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <Button
             type="submit"
@@ -612,7 +618,7 @@ function ConfigurationFormLoaded({ mode }: { mode: 'setup' | 'settings' }) {
             onClick={onContinue}
             disabled={!isConfigured && !canCallApi}
           >
-            {isConfigured ? 'Back to Dashboard' : 'Continue to Dashboard'}
+            Continue to Dashboard
           </Button>
         ) : null}
       </CardFooter>

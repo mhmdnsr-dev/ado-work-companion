@@ -153,9 +153,7 @@ function WorkItemEditor({
     [item.relations],
   );
   const [linkType, setLinkType] = useState(existingLinks.linkType);
-  const [linkedIds, setLinkedIds] = useState(() =>
-    existingLinks.targetIds.map(String),
-  );
+  const [linkedIds, setLinkedIds] = useState(() => existingLinks.targetIds.map(String));
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -509,19 +507,21 @@ function WorkItemEditor({
             <section className="space-y-2">
               <h3 className="text-sm font-medium">Related work</h3>
               <ul className="space-y-2">
-                {nonAttachmentRelations.map((relation: WorkItemRelation, index: number) => (
-                  <li
-                    key={`${relation.rel}-${relation.url}-${index}`}
-                    className="rounded-md border border-border px-3 py-2 text-sm"
-                  >
-                    <span className="font-medium">{relationLabel(relation.rel)}</span>
-                    {relation.url ? (
-                      <p className="truncate text-xs text-muted-foreground">
-                        {relation.url.split('/').pop()}
-                      </p>
-                    ) : null}
-                  </li>
-                ))}
+                {nonAttachmentRelations.map(
+                  (relation: WorkItemRelation, index: number) => (
+                    <li
+                      key={`${relation.rel}-${relation.url}-${index}`}
+                      className="rounded-md border border-border px-3 py-2 text-sm"
+                    >
+                      <span className="font-medium">{relationLabel(relation.rel)}</span>
+                      {relation.url ? (
+                        <p className="truncate text-xs text-muted-foreground">
+                          {relation.url.split('/').pop()}
+                        </p>
+                      ) : null}
+                    </li>
+                  ),
+                )}
               </ul>
             </section>
           ) : null}
@@ -563,14 +563,14 @@ function WorkItemEditor({
         <Button
           type="button"
           variant="destructive"
-          className="touch-target h-11 gap-2"
+          className="touch-target order-last h-11 gap-2 sm:order-none"
           disabled={saving || deleting}
           onClick={() => setConfirmDelete(true)}
         >
           <Trash2 className="size-4" />
           Delete
         </Button>
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row">
           <Button
             type="button"
             variant="outline"
@@ -670,7 +670,7 @@ export function WorkItemDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex h-dvh max-h-dvh w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-xl">
+      <SheetContent className="inset-0 flex h-dvh max-h-dvh w-full flex-col gap-0 overflow-hidden border-0 p-0 md:inset-y-0 md:right-0 md:left-auto md:w-3/4 md:max-w-xl md:border-l">
         <SheetHeader className="shrink-0 border-b border-border pr-12">
           <SheetTitle>
             {item?.id ? `#${item.id}` : 'Work item'}

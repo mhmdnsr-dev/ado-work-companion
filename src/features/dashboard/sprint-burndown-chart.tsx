@@ -28,11 +28,7 @@ export function SprintBurndownChart({
 
   if (series.length === 0) {
     return (
-      <div
-        className={className}
-        role="img"
-        aria-label="No burndown data"
-      >
+      <div className={className} role="img" aria-label="No burndown data">
         <p className="text-sm text-muted-foreground">No burndown points yet.</p>
       </div>
     );
@@ -49,12 +45,11 @@ export function SprintBurndownChart({
   );
 
   const xAt = (index: number) =>
-    padding.left + (series.length === 1 ? plotW / 2 : (index / (series.length - 1)) * plotW);
+    padding.left +
+    (series.length === 1 ? plotW / 2 : (index / (series.length - 1)) * plotW);
   const yAt = (value: number) => padding.top + plotH - (value / maxY) * plotH;
 
-  function polyline(
-    values: Array<number | null>,
-  ): string {
+  function polyline(values: Array<number | null>): string {
     return values
       .map((value, index) => {
         if (value == null || !Number.isFinite(value)) return null;
@@ -69,11 +64,9 @@ export function SprintBurndownChart({
   );
   const ideal = series.map((point) => point.idealWork);
 
-  const tickIndexes = [
-    0,
-    Math.floor((series.length - 1) / 2),
-    series.length - 1,
-  ].filter((value, index, all) => all.indexOf(value) === index);
+  const tickIndexes = [0, Math.floor((series.length - 1) / 2), series.length - 1].filter(
+    (value, index, all) => all.indexOf(value) === index,
+  );
 
   return (
     <svg

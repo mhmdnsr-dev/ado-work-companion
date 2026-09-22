@@ -73,11 +73,8 @@ export function DashboardStatusCards() {
   const { settings, health, hasServerPat, testConnection } = useConnection();
   const projectLabel = settings.project?.trim() || 'Whole organization';
 
-  return (
-    <section
-      aria-label="Connection overview"
-      className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
-    >
+  const cards = (
+    <>
       <StatusCard
         title="Organization"
         description="Active Azure DevOps organization"
@@ -91,7 +88,7 @@ export function DashboardStatusCards() {
         value={projectLabel}
         action={
           <Button variant="outline" size="sm" className="touch-target h-11" asChild>
-            <Link href="/configure">Change</Link>
+            <Link href="/settings">Change</Link>
           </Button>
         }
       />
@@ -114,7 +111,7 @@ export function DashboardStatusCards() {
         }
         action={
           <Button variant="outline" size="sm" className="touch-target h-11" asChild>
-            <Link href="/configure">{hasServerPat ? 'Update' : 'Add token'}</Link>
+            <Link href="/settings">{hasServerPat ? 'Update' : 'Add token'}</Link>
           </Button>
         }
       />
@@ -135,6 +132,34 @@ export function DashboardStatusCards() {
           </Button>
         }
       />
-    </section>
+    </>
+  );
+
+  return (
+    <>
+      <details className="rounded-lg border border-border md:hidden">
+        <summary className="touch-target flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
+          <span className="min-w-0">
+            <span className="block text-sm font-medium">Connection</span>
+            <span className="block truncate text-xs text-muted-foreground">
+              {settings.organization} · {projectLabel}
+            </span>
+          </span>
+          {connectionBadge(health.status)}
+        </summary>
+        <section
+          aria-label="Connection details"
+          className="grid gap-3 border-t border-border p-3"
+        >
+          {cards}
+        </section>
+      </details>
+      <section
+        aria-label="Connection overview"
+        className="hidden gap-4 md:grid md:grid-cols-2 xl:grid-cols-3"
+      >
+        {cards}
+      </section>
+    </>
   );
 }

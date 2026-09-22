@@ -26,11 +26,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
       images: [`${site}/brand/logo-lockup.png`],
     },
-    {
-      url: `${site}/configure`,
-      lastModified,
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
   ];
 }

@@ -58,7 +58,7 @@ function useIsClient(): boolean {
   );
 }
 
-export function SettingsView() {
+export function SettingsView({ onConnectionReset }: { onConnectionReset?: () => void }) {
   const { hydrated, settings, setThemePreference } = useConnection();
   const { theme, setTheme } = useTheme();
   const { capability, isStandalone, requestInstall, openInstallInstructions } =
@@ -124,7 +124,7 @@ export function SettingsView() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <header className="space-y-1">
+      <header className="hidden space-y-1 md:block">
         <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Settings</h1>
         <p className="text-sm text-muted-foreground md:text-base">
           Manage your Azure DevOps connection and this device’s preferences
@@ -140,7 +140,7 @@ export function SettingsView() {
         </p>
       </header>
 
-      <ConfigurationForm mode="settings" />
+      <ConfigurationForm mode="settings" onResetComplete={onConnectionReset} />
 
       <Card>
         <CardHeader className="gap-1">

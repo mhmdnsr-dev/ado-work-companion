@@ -96,8 +96,8 @@ export function buildHelpPageSchema(): JsonLdObject {
           },
           {
             '@type': 'HowToStep',
-            name: 'Configure the companion',
-            text: 'Enter the organization and token, choose a project, save, and test the connection.',
+            name: 'Connect the companion',
+            text: 'Open Settings, enter the organization and token, choose a project, save, and test the connection.',
           },
           {
             '@type': 'HowToStep',
@@ -107,19 +107,5 @@ export function buildHelpPageSchema(): JsonLdObject {
         ],
       },
     ],
-  };
-}
-
-export function buildConfigurePageSchema(): JsonLdObject {
-  const site = getSiteUrl().origin;
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'WebPage',
-    '@id': `${site}/configure#webpage`,
-    url: `${site}/configure`,
-    name: `Configure ${APP_INFO.name}`,
-    description:
-      'Connect Azure DevOps so you can update tasks, hours, comments, and attachments.',
-    isPartOf: { '@id': `${site}/#website` },
   };
 }

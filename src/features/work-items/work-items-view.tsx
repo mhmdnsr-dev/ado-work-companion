@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -13,6 +14,8 @@ import {
   RotateCcw,
   Save,
   Search,
+  SlidersHorizontal,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -68,10 +71,7 @@ function sortByChangedDate(items: WorkItem[]): WorkItem[] {
   });
 }
 
-function initialFiltersFor(
-  organization: string,
-  project: string,
-): WorkItemFiltersState {
+function initialFiltersFor(organization: string, project: string): WorkItemFiltersState {
   if (typeof window === 'undefined' || !organization || !project) {
     return emptyWorkItemFilters(organization, project);
   }
@@ -116,6 +116,9 @@ function WorkItemsViewContent({
   project: string;
 }) {
   const { api } = useConnection();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const storage = useMemo(() => createLocalStorageAdapter(), []);
   const initial = useMemo(
@@ -132,8 +135,10 @@ function WorkItemsViewContent({
   const [appliedSearch, setAppliedSearch] = useState(initial.search);
   const [page, setPage] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const itemParam = searchParams.get('item');
+  const selectedId = itemParam && /^\d+$/.test(itemParam) ? Number(itemParam) : null;
+  const detailOpen = selectedId !== null;
 
   const teamsQuery = useQuery({
     queryKey: adoQueryKeys.workItems.meta.teams(organization, project),
@@ -353,8 +358,16 @@ function WorkItemsViewContent({
   }
 
   function openItem(id: number) {
-    setSelectedId(id);
-    setDetailOpen(true);
+    const next = new URLSearchParams(searchParams.toString());
+    next.set('item', String(id));
+    router.push(`${pathname}?${next.toString()}`, { scroll: false });
+  }
+
+  function closeItem() {
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete('item');
+    const query = next.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }
 
   async function invalidateList() {
@@ -427,7 +440,7 @@ function WorkItemsViewContent({
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <header className="hidden flex-col gap-3 md:flex md:flex-row md:items-end md:justify-between">
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
             Work Items
@@ -439,7 +452,7 @@ function WorkItemsViewContent({
         </div>
         <Button
           type="button"
-          className="touch-target h-11 gap-2"
+          className="touch-target hidden h-11 gap-2 md:inline-flex"
           onClick={() => setCreateOpen(true)}
         >
           <Plus className="size-4" />
@@ -447,11 +460,100 @@ function WorkItemsViewContent({
         </Button>
       </header>
 
+      <section aria-label="Search work items" className="space-y-2 md:hidden">
+        <div className="flex gap-2">
+          <div className="relative min-w-0 flex-1">
+            <Search
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden
+            />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              onKeyDown={(event) => event.key === 'Enter' && applySearch()}
+              aria-label="Search work items"
+              placeholder="Title or ID"
+              className="touch-target h-11 pl-9"
+            />
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="touch-target size-11 shrink-0"
+            onClick={() => setFilterOpen(true)}
+            aria-label="Open filters"
+          >
+            <SlidersHorizontal className="size-5" />
+          </Button>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="h-9"
+            onClick={applySearch}
+          >
+            Search
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            {
+              [
+                typeFilter !== 'all',
+                stateFilter !== 'open',
+                Boolean(teamId),
+                Boolean(sprintPath),
+                Boolean(assignedTo),
+              ].filter(Boolean).length
+            }{' '}
+            active filters
+          </p>
+        </div>
+      </section>
+
+      {filterOpen ? (
+        <button
+          type="button"
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          aria-label="Close filters"
+          onClick={() => setFilterOpen(false)}
+        />
+      ) : null}
+
+      {itemParam && selectedId === null ? (
+        <Alert variant="destructive">
+          <AlertTitle>Invalid work item link</AlertTitle>
+          <AlertDescription>The work item ID in this URL is not valid.</AlertDescription>
+        </Alert>
+      ) : null}
+
       <section
         aria-label="Work item filters"
-        className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2 xl:grid-cols-3"
+        className={cn(
+          'gap-3 border-border bg-background p-4 md:grid md:grid-cols-2 md:rounded-lg md:border xl:grid-cols-3',
+          filterOpen
+            ? 'mobile-safe-bottom fixed inset-x-0 bottom-0 z-50 grid max-h-[88dvh] overflow-y-auto rounded-t-xl border-t md:static md:max-h-none md:overflow-visible'
+            : 'hidden md:grid',
+        )}
       >
-        <div className="space-y-2 sm:col-span-2 xl:col-span-3">
+        <div className="flex items-center justify-between md:hidden">
+          <div>
+            <h2 className="font-semibold">Filters</h2>
+            <p className="text-xs text-muted-foreground">Narrow the current project</p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="touch-target size-11"
+            onClick={() => setFilterOpen(false)}
+            aria-label="Close filters"
+          >
+            <X className="size-5" />
+          </Button>
+        </div>
+        <div className="hidden space-y-2 md:col-span-2 md:block xl:col-span-3">
           <Label htmlFor="work-items-search">Search</Label>
           <div className="flex flex-col gap-2 sm:flex-row">
             <div className="relative min-w-0 flex-1">
@@ -612,6 +714,13 @@ function WorkItemsViewContent({
             </p>
           ) : null}
         </div>
+        <Button
+          type="button"
+          className="touch-target h-11 md:hidden"
+          onClick={() => setFilterOpen(false)}
+        >
+          Show work items
+        </Button>
       </section>
 
       {listQuery.isError ? (
@@ -712,13 +821,24 @@ function WorkItemsViewContent({
 
       <WorkItemDetailSheet
         open={detailOpen}
-        onOpenChange={setDetailOpen}
+        onOpenChange={(open) => {
+          if (!open) closeItem();
+        }}
         workItemId={selectedId}
         project={project}
         people={people}
         iterations={sprintOptions}
         onChanged={() => void invalidateList()}
       />
+      <Button
+        type="button"
+        size="icon"
+        className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 size-14 rounded-full shadow-lg md:hidden"
+        onClick={() => setCreateOpen(true)}
+        aria-label="New work item"
+      >
+        <Plus className="size-6" />
+      </Button>
     </div>
   );
 }
