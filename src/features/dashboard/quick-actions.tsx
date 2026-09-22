@@ -17,14 +17,12 @@ import {
 } from '@/components/ui/card';
 
 const QUICK_ACTIONS = NAV_ITEMS.filter((item) =>
-  ['work-items', 'queries', 'estimate', 'comments'].includes(item.id),
+  ['work-items', 'queries'].includes(item.id),
 );
 
 const ACTION_HINTS: Record<string, string> = {
   'work-items': 'Find and update tasks, bugs, and user stories',
   queries: 'Run saved searches across your backlog',
-  estimate: 'Open the same Estimate hub sessions as Azure DevOps',
-  comments: 'Review discussion on work items',
 };
 
 export function DashboardQuickActions() {

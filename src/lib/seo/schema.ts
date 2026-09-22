@@ -58,8 +58,8 @@ export function buildSiteGraph(): JsonLdObject {
         },
         featureList: [
           'Update Azure DevOps work item status and remaining hours',
-          'Comments and attachments',
-          'Queries and Estimate hub sessions',
+          'Comments and attachments within work items',
+          'Saved Azure DevOps queries',
           'Sprint burndown dashboard',
         ],
       },
@@ -67,46 +67,44 @@ export function buildSiteGraph(): JsonLdObject {
   };
 }
 
-export function buildAboutPageSchema(): JsonLdObject {
+export function buildHelpPageSchema(): JsonLdObject {
   const site = getSiteUrl().origin;
   return {
     '@context': 'https://schema.org',
-    '@type': 'AboutPage',
-    '@id': `${site}/about#webpage`,
-    url: `${site}/about`,
-    name: `About ${APP_INFO.name}`,
-    description: `About ${APP_INFO.name} — who it’s for, daily task work, and how to get help.`,
-    isPartOf: { '@id': `${site}/#website` },
-    about: { '@id': `${site}/#software` },
-    mainEntity: { '@id': `${site}/#software` },
-  };
-}
-
-export function buildHowToUseSchema(): JsonLdObject {
-  const site = getSiteUrl().origin;
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'HowTo',
-    '@id': `${site}/how-to-use#howto`,
-    name: `How to use ${APP_INFO.name}`,
-    description: `Connect and use ${APP_INFO.shortName} for Azure DevOps tasks—status, hours, comments, and attachments.`,
-    url: `${site}/how-to-use`,
-    inLanguage: 'en',
-    step: [
+    '@graph': [
       {
-        '@type': 'HowToStep',
-        name: 'Create a Personal Access Token',
-        text: 'In Azure DevOps, create a PAT with Work Items (and related) scopes.',
+        '@type': 'AboutPage',
+        '@id': `${site}/help#webpage`,
+        url: `${site}/help`,
+        name: `Help & About · ${APP_INFO.name}`,
+        description: `Connect ${APP_INFO.shortName}, manage daily Azure DevOps work, and contact the author.`,
+        isPartOf: { '@id': `${site}/#website` },
+        about: { '@id': `${site}/#software` },
+        mainEntity: { '@id': `${site}/help#howto` },
       },
       {
-        '@type': 'HowToStep',
-        name: 'Configure the companion',
-        text: 'Enter your organization and PAT on the Configure page. Project is optional.',
-      },
-      {
-        '@type': 'HowToStep',
-        name: 'Work on tasks',
-        text: 'Use Dashboard, Work items, Comments, Attachments, Queries, and Estimate.',
+        '@type': 'HowTo',
+        '@id': `${site}/help#howto`,
+        name: `Connect ${APP_INFO.name} to Azure DevOps`,
+        url: `${site}/help`,
+        inLanguage: 'en',
+        step: [
+          {
+            '@type': 'HowToStep',
+            name: 'Create a Personal Access Token',
+            text: 'Create an Azure DevOps PAT with Work Items read and write access.',
+          },
+          {
+            '@type': 'HowToStep',
+            name: 'Configure the companion',
+            text: 'Enter the organization and token, choose a project, save, and test the connection.',
+          },
+          {
+            '@type': 'HowToStep',
+            name: 'Manage daily work',
+            text: 'Use Dashboard, Work Items, and Queries. Comments and attachments are available inside each work item.',
+          },
+        ],
       },
     ],
   };

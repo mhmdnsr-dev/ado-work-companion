@@ -9,15 +9,12 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: '*',
-        allow: ['/', '/configure', '/how-to-use', '/about', '/llms.txt'],
+        allow: ['/', '/configure', '/help', '/llms.txt'],
         disallow: [
           '/api/',
           '/dashboard',
           '/work-items',
-          '/comments',
-          '/attachments',
           '/queries',
-          '/estimate',
           '/settings',
           '/offline',
         ],

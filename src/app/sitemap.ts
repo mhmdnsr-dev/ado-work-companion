@@ -17,22 +17,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified,
       changeFrequency: 'weekly',
       priority: 1,
-      images: [
-        `${site}/icons/icon-512.png`,
-        `${site}/brand/logo-lockup.png`,
-      ],
+      images: [`${site}/icons/icon-512.png`, `${site}/brand/logo-lockup.png`],
     },
     {
-      url: `${site}/how-to-use`,
+      url: `${site}/help`,
       lastModified,
       changeFrequency: 'monthly',
       priority: 0.9,
-    },
-    {
-      url: `${site}/about`,
-      lastModified,
-      changeFrequency: 'monthly',
-      priority: 0.8,
       images: [`${site}/brand/logo-lockup.png`],
     },
     {

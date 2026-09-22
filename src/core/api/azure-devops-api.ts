@@ -1,15 +1,4 @@
-import {
-  queryAnalytics as queryAnalyticsRequest,
-} from './resources/analytics';
-import {
-  listEstimateHubSessions as listEstimateHubSessionsRequest,
-  probeEstimateHubWriteAccess as probeEstimateHubWriteAccessRequest,
-} from './resources/estimate-hub';
-import {
-  appendEstimateChannelAction as appendEstimateChannelActionRequest,
-  getEstimatePollingDocument as getEstimatePollingDocumentRequest,
-  joinEstimatePollingSession as joinEstimatePollingSessionRequest,
-} from './resources/estimate-polling';
+import { queryAnalytics as queryAnalyticsRequest } from './resources/analytics';
 import {
   attachFileToWorkItem as attachFileToWorkItemRequest,
   detachWorkItemAttachment as detachWorkItemAttachmentRequest,
@@ -52,19 +41,11 @@ import {
   updateWorkItem as updateWorkItemRequest,
 } from './resources/work-items';
 import { AdoTransport } from './transport';
-import type {
-  AdoRequestOptions,
-  AdoRequestResult,
-  AzureDevOpsApiOptions,
-} from './types';
+import type { AdoRequestOptions, AdoRequestResult, AzureDevOpsApiOptions } from './types';
 import type { QueryExpand } from '../types/queries';
 import type { JsonPatchOperation, WorkItemExpand } from '../types/work-items';
 
-export type {
-  AdoRequestOptions,
-  AdoRequestResult,
-  AzureDevOpsApiOptions,
-} from './types';
+export type { AdoRequestOptions, AdoRequestResult, AzureDevOpsApiOptions } from './types';
 
 /**
  * Public ADO client. Each method just forwards to a resource function.
@@ -282,11 +263,7 @@ export class AzureDevOpsApi {
     return listTeamMembersRequest(this.transport, options);
   }
 
-  getTeamSettings(options: {
-    project: string;
-    team: string;
-    signal?: AbortSignal;
-  }) {
+  getTeamSettings(options: { project: string; team: string; signal?: AbortSignal }) {
     return getTeamSettingsRequest(this.transport, options);
   }
 
@@ -364,50 +341,6 @@ export class AzureDevOpsApi {
     signal?: AbortSignal;
   }): Promise<AdoRequestResult<T>> {
     return queryAnalyticsRequest<T>(this.transport, options);
-  }
-
-  // --- Estimate hub (ms-devlabs extension data) ---
-
-  listEstimateHubSessions(options: { project: string; signal?: AbortSignal }) {
-    return listEstimateHubSessionsRequest(this.transport, options);
-  }
-
-  probeEstimateHubWriteAccess(options?: { signal?: AbortSignal }) {
-    return probeEstimateHubWriteAccessRequest(this.transport, options);
-  }
-
-  getEstimatePollingDocument(sessionId: string, options?: { signal?: AbortSignal }) {
-    return getEstimatePollingDocumentRequest(this.transport, sessionId, options);
-  }
-
-  joinEstimatePollingSession(
-    sessionId: string,
-    userInfo: { tfId: string; name: string; imageUrl?: string },
-    options?: { signal?: AbortSignal },
-  ) {
-    return joinEstimatePollingSessionRequest(
-      this.transport,
-      sessionId,
-      userInfo,
-      options,
-    );
-  }
-
-  appendEstimateChannelAction(
-    sessionId: string,
-    type: 'join' | 'left' | 'estimate' | 'estimate-updated' | 'reveal' | 'switch' | 'snapshot',
-    payload: unknown,
-    senderId: string,
-    options?: { signal?: AbortSignal },
-  ) {
-    return appendEstimateChannelActionRequest(
-      this.transport,
-      sessionId,
-      type,
-      payload,
-      senderId,
-      options,
-    );
   }
 
   /** Low-level request — prefer the methods above. */

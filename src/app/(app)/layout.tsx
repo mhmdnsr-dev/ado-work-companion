@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 /**
  * Authenticated app shell: sidebar / top bar / mobile drawer.
  * /configure stays outside this route group.
- * Default noindex — public About overrides robots on its page.
+ * Default noindex; public Help lives outside this configured app group.
  */
 export default function AppGroupLayout({ children }: { children: ReactNode }) {
   return (

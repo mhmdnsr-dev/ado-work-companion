@@ -8,7 +8,7 @@ export const APP_INFO = {
   adoApiVersion: '7.2-preview',
   description:
     'A daily companion for anyone with Azure DevOps tasks—update status and remaining hours, add or read comments, and upload or view attachments without living in classic boards. Useful for developers, QA, product owners, and anyone else on the team.',
-  /** Inclusive audience line for About / How to use (not an exclusive list). */
+  /** Inclusive audience line for Help & About (not an exclusive list). */
   audience: 'Anyone with tasks in Azure DevOps',
   stack: [
     'Next.js App Router',

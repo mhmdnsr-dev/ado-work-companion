@@ -84,7 +84,6 @@ function createApi(params: {
     apiVersion: params.apiVersion,
     proxyBaseUrl: '/api/ado',
     analyticsProxyBaseUrl: '/api/analytics',
-    extensionManagementProxyBaseUrl: '/api/extmgmt',
   });
 }
 
@@ -169,7 +168,9 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
   const saveConfiguration = useCallback(
     async (input: LiveConnectionCredentials) => {
       const patCookieLifetime =
-        input.patCookieLifetime ?? settings.patCookieLifetime ?? DEFAULT_PAT_COOKIE_LIFETIME;
+        input.patCookieLifetime ??
+        settings.patCookieLifetime ??
+        DEFAULT_PAT_COOKIE_LIFETIME;
 
       const nextSettings: AdoPersistedSettings = {
         organization: input.organization.trim(),

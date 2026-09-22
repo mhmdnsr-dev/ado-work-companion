@@ -328,13 +328,13 @@ function ConfigurationFormLoaded({ mode }: { mode: 'setup' | 'settings' }) {
             ? 'Organization, project, and access token for this device. Leave the token blank to keep the one already saved.'
             : 'Enter your Azure DevOps organization and access token to get started. Project is optional. Your token stays on this device and is never placed in the address bar.'}{' '}
           <Link
-            href="/how-to-use"
+            href="/help"
             className="font-medium text-foreground underline-offset-4 hover:underline"
           >
-            How to use guide
+            Help guide
           </Link>
         </CardDescription>
-        {hasServerPat ? (
+        {hasServerPat && !isSettings ? (
           <Alert>
             <AlertTitle>Token already saved</AlertTitle>
             <AlertDescription>
@@ -488,27 +488,62 @@ function ConfigurationFormLoaded({ mode }: { mode: 'setup' | 'settings' }) {
               )}
             />
 
-            <Controller
-              name="apiVersion"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="apiVersion">API Version</FieldLabel>
-                  <Input
-                    {...field}
-                    id="apiVersion"
-                    placeholder={ADO_API.DEFAULT_VERSION}
-                    aria-invalid={fieldState.invalid}
-                    className="touch-target h-11 font-mono"
+            {isSettings ? (
+              <details className="rounded-lg border px-4 py-3">
+                <summary className="touch-target flex cursor-pointer items-center text-sm font-medium">
+                  Advanced
+                </summary>
+                <div className="pt-4">
+                  <Controller
+                    name="apiVersion"
+                    control={form.control}
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid}>
+                        <FieldLabel htmlFor="apiVersion">API Version</FieldLabel>
+                        <Input
+                          {...field}
+                          id="apiVersion"
+                          placeholder={ADO_API.DEFAULT_VERSION}
+                          aria-invalid={fieldState.invalid}
+                          className="touch-target h-11 font-mono"
+                        />
+                        <FieldDescription>
+                          Keep {ADO_API.DEFAULT_VERSION} unless an API requires another
+                          version.
+                        </FieldDescription>
+                        {fieldState.invalid ? (
+                          <FieldError errors={[fieldState.error]} />
+                        ) : null}
+                      </Field>
+                    )}
                   />
-                  <FieldDescription>
-                    Defaults to {ADO_API.DEFAULT_VERSION}. Change this only if a specific
-                    API needs a different version.
-                  </FieldDescription>
-                  {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
-                </Field>
-              )}
-            />
+                </div>
+              </details>
+            ) : (
+              <Controller
+                name="apiVersion"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor="apiVersion">API Version</FieldLabel>
+                    <Input
+                      {...field}
+                      id="apiVersion"
+                      placeholder={ADO_API.DEFAULT_VERSION}
+                      aria-invalid={fieldState.invalid}
+                      className="touch-target h-11 font-mono"
+                    />
+                    <FieldDescription>
+                      Defaults to {ADO_API.DEFAULT_VERSION}. Change this only if a
+                      specific API needs a different version.
+                    </FieldDescription>
+                    {fieldState.invalid ? (
+                      <FieldError errors={[fieldState.error]} />
+                    ) : null}
+                  </Field>
+                )}
+              />
+            )}
           </FieldGroup>
         </form>
       </CardContent>
@@ -542,24 +577,26 @@ function ConfigurationFormLoaded({ mode }: { mode: 'setup' | 'settings' }) {
             )}
             Test Connection
           </Button>
+          {!isSettings ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="touch-target h-11"
+              onClick={() => void onLoadProjects()}
+              disabled={loadingProjects || !canCallApi}
+            >
+              {loadingProjects ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <FolderSync className="size-4" />
+              )}
+              Load Projects
+            </Button>
+          ) : null}
           <Button
             type="button"
             variant="outline"
-            className="touch-target h-11"
-            onClick={() => void onLoadProjects()}
-            disabled={loadingProjects || !canCallApi}
-          >
-            {loadingProjects ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <FolderSync className="size-4" />
-            )}
-            Load Projects
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="touch-target h-11"
+            className={`touch-target h-11 ${isSettings ? 'sm:col-span-2' : ''}`}
             onClick={() => void onReset()}
           >
             <RotateCcw className="size-4" />

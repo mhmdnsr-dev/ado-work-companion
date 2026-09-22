@@ -13,13 +13,12 @@ export function GET() {
   const body = `# ${APP_INFO.name}
 > ${APP_INFO.description}
 
-${APP_INFO.shortName} is a Next.js Progressive Web App for daily Azure DevOps task work. Authentication uses a Personal Access Token stored in an encrypted HttpOnly cookie (never in the address bar). Organization and project preferences stay in browser localStorage. Work items sync via Azure DevOps REST. Estimate lists the same hub sessions as Boards → Estimate (ms-devlabs Extension Data); Join opens the ADO hub.
+${APP_INFO.shortName} is a Next.js Progressive Web App for daily Azure DevOps task work. Authentication uses a Personal Access Token stored in an encrypted HttpOnly cookie (never in the address bar). Organization and project preferences stay in browser localStorage. Work items and queries sync through the Azure DevOps REST API; comments and attachments are managed inside each work item.
 
 Public pages are for onboarding and product context. Authenticated app routes require a saved connection and are crawl-disallowed.
 
 ## Docs
-- [How to use](${site}/how-to-use): PAT setup, features, and daily workflow
-- [About](${site}/about): Audience, stack, and how to contact the author
+- [Help & About](${site}/help): PAT setup, daily workflow, installation, and contact
 - [Configure](${site}/configure): Connect organization and PAT
 - [Sitemap](${site}/sitemap.xml): Indexable public URLs (sitemaps.org protocol)
 - [Robots](${site}/robots.txt): Crawl allow/disallow for public vs authenticated surfaces
@@ -27,7 +26,6 @@ Public pages are for onboarding and product context. Authenticated app routes re
 ## Product
 - [Home](${site}/): Entry gate — configured users go to the dashboard; others to Configure
 - [Azure DevOps REST API](https://learn.microsoft.com/en-us/rest/api/azure/devops/?view=azure-devops-rest-7.2): Upstream API (default api-version ${APP_INFO.adoApiVersion})
-- [Extension Data storage](https://learn.microsoft.com/en-us/azure/devops/extend/develop/data-storage): Estimate hub session documents for ms-devlabs/estimate
 
 ## Optional
 - [llms.txt specification](https://llmstxt.org/): Format used by this file
