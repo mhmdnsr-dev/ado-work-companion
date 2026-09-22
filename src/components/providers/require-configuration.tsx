@@ -7,8 +7,7 @@ import { useConnection } from '@/components/providers';
 import { Skeleton } from '@/components/ui/skeleton';
 
 /**
- * Protects app routes: unconfigured sessions go to /configure.
- * Configured users pass through; they can still open /configure to edit.
+ * Protects daily-work routes: unconfigured sessions go to /settings.
  */
 export function RequireConfiguration({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -17,7 +16,7 @@ export function RequireConfiguration({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     if (!isConfigured) {
-      router.replace('/configure');
+      router.replace('/settings');
     }
   }, [hydrated, isConfigured, router]);
 

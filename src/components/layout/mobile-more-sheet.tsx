@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { BookOpen, Download, KeyRound, Settings, Smartphone } from 'lucide-react';
+import { BookOpen, Download, Settings, Smartphone } from 'lucide-react';
 
 import { APP_INFO } from '@core/constants';
 import { usePwaInstall } from '@/components/pwa/pwa-install-provider';
@@ -55,16 +55,6 @@ export function MobileMoreSheet({
             <Link href="/settings" onClick={close}>
               <Settings className="size-5" aria-hidden />
               Settings
-            </Link>
-          </Button>
-          <Button
-            variant="ghost"
-            className="h-14 justify-start gap-3 px-3 text-base"
-            asChild
-          >
-            <Link href="/configure" onClick={close}>
-              <KeyRound className="size-5" aria-hidden />
-              Update connection
             </Link>
           </Button>
           <Button

@@ -19,12 +19,12 @@ Public pages are for onboarding and product context. Authenticated app routes re
 
 ## Docs
 - [Help & About](${site}/help): PAT setup, daily workflow, installation, and contact
-- [Configure](${site}/configure): Connect organization and PAT
+- [Settings](${site}/settings): Connect organization and PAT, then manage device preferences
 - [Sitemap](${site}/sitemap.xml): Indexable public URLs (sitemaps.org protocol)
 - [Robots](${site}/robots.txt): Crawl allow/disallow for public vs authenticated surfaces
 
 ## Product
-- [Home](${site}/): Entry gate — configured users go to the dashboard; others to Configure
+- [Home](${site}/): Entry gate — configured users go to the dashboard; others to Settings
 - [Azure DevOps REST API](https://learn.microsoft.com/en-us/rest/api/azure/devops/?view=azure-devops-rest-7.2): Upstream API (default api-version ${APP_INFO.adoApiVersion})
 
 ## Optional

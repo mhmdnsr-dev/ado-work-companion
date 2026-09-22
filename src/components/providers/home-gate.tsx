@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 /**
  * `/` gate after hydration:
  * - configured (org + PAT in session) → `/dashboard`
- * - otherwise → `/configure`
+ * - otherwise → `/settings`
  */
 export function HomeGate() {
   const router = useRouter();
@@ -17,7 +17,7 @@ export function HomeGate() {
 
   useEffect(() => {
     if (!hydrated) return;
-    router.replace(isConfigured ? '/dashboard' : '/configure');
+    router.replace(isConfigured ? '/dashboard' : '/settings');
   }, [hydrated, isConfigured, router]);
 
   return (

@@ -1,9 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 
 test.describe('configuration gate', () => {
-  test('unconfigured visitors land on /configure', async ({ page }) => {
+  test('unconfigured visitors land on focused Settings', async ({ page }) => {
     await page.goto('/');
-    await expect(page).toHaveURL(/\/configure$/, { timeout: 30_000 });
+    await expect(page).toHaveURL(/\/settings$/, { timeout: 30_000 });
     await expect(
       page.getByText('Connect so you can work on your tasks', { exact: true }),
     ).toBeVisible();
@@ -12,10 +12,15 @@ test.describe('configuration gate', () => {
 
   test('dashboard requires configuration and redirects', async ({ page }) => {
     await page.goto('/dashboard');
-    await expect(page).toHaveURL(/\/configure$/, { timeout: 30_000 });
+    await expect(page).toHaveURL(/\/settings$/, { timeout: 30_000 });
     await expect(
       page.getByText('Connect so you can work on your tasks', { exact: true }),
     ).toBeVisible();
+  });
+
+  test('removed configure route returns not found', async ({ request }) => {
+    const response = await request.get('/configure', { maxRedirects: 0 });
+    expect(response.status()).toBe(404);
   });
 
   test('offline shell is reachable without a PAT session', async ({ page }) => {
@@ -32,6 +37,7 @@ test.describe('focused product routes', () => {
     await page.goto('/help');
     await expect(page.getByRole('heading', { name: 'Help & About' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Daily workflow' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/');
     await expect(page.getByRole('form', { name: 'Contact the author' })).toBeVisible();
     await expect(
       page.getByRole('region', { name: 'About' }).getByRole('link', { name: 'GitHub' }),
@@ -61,6 +67,43 @@ test.describe('focused product routes', () => {
     await expect(page.getByRole('textbox', { name: 'API Version' })).toBeHidden();
     await page.getByText('Advanced', { exact: true }).click();
     await expect(page.getByRole('textbox', { name: 'API Version' })).toBeVisible();
+  });
+
+  test('keeps first-run setup focused until Continue', async ({ page }) => {
+    await page.route('**/api/ado/**', async (route) => {
+      await route.fulfill({ status: 200, json: { count: 0, value: [] } });
+    });
+    await page.goto('/settings');
+    await page.getByRole('textbox', { name: /^Organization$/i }).fill('contoso');
+    await page.getByPlaceholder('Personal Access Token').fill('test-first-run-pat');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+
+    await expect(page.getByText('Connection settings saved')).toBeVisible();
+    await expect(page).toHaveURL(/\/settings$/);
+    await expect(page.getByRole('navigation', { name: 'Primary' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Continue to Dashboard' }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+  });
+
+  test('reset returns full Settings to focused setup', async ({ page }) => {
+    await page.goto('/help');
+    await page.evaluate(() => {
+      localStorage.setItem('ado.organization', 'contoso');
+      localStorage.setItem('ado.apiVersion', '7.2-preview');
+    });
+    const response = await page.request.post('/api/config', {
+      data: { pat: 'test-reset-pat', cookieLifetime: '14d' },
+    });
+    expect(response.ok()).toBe(true);
+
+    await page.goto('/settings');
+    await expect(page.getByRole('complementary', { name: 'Primary' })).toBeVisible();
+    await page.getByRole('button', { name: 'Reset', exact: true }).click();
+    await expect(page).toHaveURL(/\/settings$/);
+    await expect(
+      page.getByText('Connect so you can work on your tasks', { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole('complementary', { name: 'Primary' })).toHaveCount(0);
   });
 });
 
@@ -149,7 +192,7 @@ test.describe('PWA installation guidance', () => {
     });
     const page = await context.newPage();
 
-    await page.goto('/configure');
+    await page.goto('/settings');
     await expect(page.getByRole('region', { name: 'Install app' })).toBeVisible();
     await page.getByRole('button', { name: 'How to install' }).click();
     await expect(
@@ -183,7 +226,7 @@ test.describe('PWA installation guidance', () => {
     });
     const page = await context.newPage();
 
-    await page.goto('/configure');
+    await page.goto('/settings');
     await page.getByRole('button', { name: 'How to install' }).click();
     await expect(page.getByText('First, open this page in Safari')).toBeVisible();
     await page.getByRole('button', { name: 'Copy link' }).click();
@@ -197,7 +240,7 @@ test.describe('PWA installation guidance', () => {
   });
 
   test('uses the browser-native install prompt when available', async ({ page }) => {
-    await page.goto('/configure');
+    await page.goto('/settings');
     await page.evaluate(() => {
       const event = new Event('beforeinstallprompt');
       Object.assign(event, {
@@ -223,7 +266,7 @@ test.describe('PWA installation guidance', () => {
     });
     const page = await context.newPage();
 
-    await page.goto('/configure');
+    await page.goto('/settings');
     await page.getByRole('button', { name: 'Not now' }).click();
     await page.reload();
     await expect(page.getByRole('region', { name: 'Install app' })).toHaveCount(0);
@@ -251,7 +294,7 @@ test.describe('PWA installation guidance', () => {
       };
     });
 
-    await page.goto('/configure');
+    await page.goto('/settings');
     await expect(page.getByRole('region', { name: 'Install app' })).toHaveCount(0);
   });
 });

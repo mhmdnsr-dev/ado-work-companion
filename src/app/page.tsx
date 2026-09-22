@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * Entry: configured users → dashboard; otherwise → configure.
+ * Entry: configured users → dashboard; otherwise → settings setup.
  * Org prefs live in localStorage; PAT lives in an HttpOnly cookie.
  */
 export default function HomePage() {

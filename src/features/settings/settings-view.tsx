@@ -58,7 +58,7 @@ function useIsClient(): boolean {
   );
 }
 
-export function SettingsView() {
+export function SettingsView({ onConnectionReset }: { onConnectionReset?: () => void }) {
   const { hydrated, settings, setThemePreference } = useConnection();
   const { theme, setTheme } = useTheme();
   const { capability, isStandalone, requestInstall, openInstallInstructions } =
@@ -140,7 +140,7 @@ export function SettingsView() {
         </p>
       </header>
 
-      <ConfigurationForm mode="settings" />
+      <ConfigurationForm mode="settings" onResetComplete={onConnectionReset} />
 
       <Card>
         <CardHeader className="gap-1">

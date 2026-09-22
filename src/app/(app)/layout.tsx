@@ -10,8 +10,7 @@ export const metadata: Metadata = {
 
 /**
  * Authenticated app shell: desktop sidebar / top bar and mobile bottom navigation.
- * /configure stays outside this route group.
- * Default noindex; public Help lives outside this configured app group.
+ * Settings and public Help live outside this configured app group.
  */
 export default function AppGroupLayout({ children }: { children: ReactNode }) {
   return (

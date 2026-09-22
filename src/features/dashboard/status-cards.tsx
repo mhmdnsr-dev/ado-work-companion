@@ -88,7 +88,7 @@ export function DashboardStatusCards() {
         value={projectLabel}
         action={
           <Button variant="outline" size="sm" className="touch-target h-11" asChild>
-            <Link href="/configure">Change</Link>
+            <Link href="/settings">Change</Link>
           </Button>
         }
       />
@@ -111,7 +111,7 @@ export function DashboardStatusCards() {
         }
         action={
           <Button variant="outline" size="sm" className="touch-target h-11" asChild>
-            <Link href="/configure">{hasServerPat ? 'Update' : 'Add token'}</Link>
+            <Link href="/settings">{hasServerPat ? 'Update' : 'Add token'}</Link>
           </Button>
         }
       />

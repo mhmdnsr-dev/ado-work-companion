@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ExternalLink, KeyRound, Loader2, Mail, Send } from 'lucide-react';
+import { ExternalLink, House, KeyRound, Loader2, Mail, Send } from 'lucide-react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -146,12 +146,20 @@ export function HelpView() {
           Connect Azure DevOps, find your work, and update it without living in classic
           boards.
         </p>
-        <Button asChild className="touch-target h-11 w-fit gap-2">
-          <Link href="/configure">
-            <KeyRound className="size-4" aria-hidden />
-            Configure connection
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" className="touch-target h-11 gap-2">
+            <Link href="/">
+              <House className="size-4" aria-hidden />
+              Home
+            </Link>
+          </Button>
+          <Button asChild className="touch-target h-11 gap-2">
+            <Link href="/settings">
+              <KeyRound className="size-4" aria-hidden />
+              Open Settings
+            </Link>
+          </Button>
+        </div>
       </header>
 
       <nav
@@ -182,7 +190,7 @@ export function HelpView() {
           </h2>
           <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
             <li>Create a Personal Access Token in Azure DevOps.</li>
-            <li>Open Configure and enter your organization and token.</li>
+            <li>Open Settings and enter your organization and token.</li>
             <li>Choose a project, save, and test the connection.</li>
           </ol>
           <div className="space-y-2 text-sm">
