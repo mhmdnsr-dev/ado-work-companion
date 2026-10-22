@@ -12,6 +12,8 @@ export const workItemFiltersSchema = z.object({
   sprintPath: z.string().default(''),
   assignedTo: z.string().default('@Me'),
   search: z.string().default(''),
+  displayMode: z.enum(['list', 'hierarchy']).default('list'),
+  includeChildren: z.boolean().default(true),
 });
 
 export type WorkItemFiltersState = z.infer<typeof workItemFiltersSchema>;
@@ -29,6 +31,8 @@ export function emptyWorkItemFilters(
     sprintPath: '',
     assignedTo: '@Me',
     search: '',
+    displayMode: 'list',
+    includeChildren: true,
   };
 }
 

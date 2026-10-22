@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
@@ -140,6 +140,8 @@ function ConfigurationFormLoaded({
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingProjects, setLoadingProjects] = useState(false);
+  const [projectTouched, setProjectTouched] = useState(false);
+  const autoLoadedProjects = useRef(false);
   const formId = mode === 'settings' ? 'ado-settings-config-form' : 'ado-config-form';
   const isSettings = mode === 'settings';
 
@@ -171,6 +173,39 @@ function ConfigurationFormLoaded({
     settings.patCookieLifetime,
   ]);
 
+  // Settings already has a saved token, so load the project list once when no
+  // project is set. This enables the first-project default below.
+  useEffect(() => {
+    if (!isSettings || autoLoadedProjects.current) return;
+    if (!hasServerPat || !settings.organization.trim()) return;
+    if (projects.length > 0 || projectsLoading || loadingProjects) return;
+    if (form.getValues('project')?.trim()) return;
+
+    autoLoadedProjects.current = true;
+    void loadProjects().catch(() => undefined);
+  }, [
+    form,
+    hasServerPat,
+    isSettings,
+    loadProjects,
+    loadingProjects,
+    projects.length,
+    projectsLoading,
+    settings.organization,
+  ]);
+
+  // Default to the first project when the user has not chosen one.
+  useEffect(() => {
+    if (projectTouched) return;
+    if (form.getValues('project')?.trim()) return;
+    const firstProject = projects[0]?.name;
+    if (!firstProject) return;
+    form.setValue('project', firstProject, {
+      shouldDirty: false,
+      shouldValidate: true,
+    });
+  }, [form, projectTouched, projects]);
+
   const organization = form.watch('organization');
   const patValue = form.watch('pat');
   const patCookieLifetime = form.watch('patCookieLifetime');
@@ -197,18 +232,35 @@ function ConfigurationFormLoaded({
   }
 
   async function onSave(values: AdoConnectionFormValues) {
-    if (!(await ensurePatPresent(values))) return;
+    const valuesToSave: AdoConnectionFormValues = {
+      ...values,
+      project:
+        values.project.trim() || (!projectTouched ? (projects[0]?.name ?? '') : ''),
+    };
+    if (!(await ensurePatPresent(valuesToSave))) return;
 
     setSaving(true);
     try {
-      await saveConfiguration(toLiveCredentials(values));
+      await saveConfiguration(toLiveCredentials(valuesToSave));
       form.setValue('pat', '');
       toast.success('Connection settings saved');
 
-      if (values.organization) {
+      if (valuesToSave.organization) {
         try {
           setLoadingProjects(true);
-          await loadProjects(toLiveCredentials({ ...values, pat: values.pat }));
+          const list = await loadProjects(
+            toLiveCredentials({ ...valuesToSave, pat: valuesToSave.pat }),
+          );
+          const firstProject = !projectTouched ? list[0]?.name : undefined;
+          if (!valuesToSave.project.trim() && firstProject) {
+            form.setValue('project', firstProject, {
+              shouldDirty: false,
+              shouldValidate: true,
+            });
+            await saveConfiguration(
+              toLiveCredentials({ ...valuesToSave, project: firstProject }),
+            );
+          }
         } catch {
           // Manual project entry remains available.
         } finally {
@@ -290,6 +342,8 @@ function ConfigurationFormLoaded({
 
   async function onReset() {
     await resetConfiguration();
+    autoLoadedProjects.current = false;
+    setProjectTouched(false);
     form.reset({
       organization: '',
       project: '',
@@ -478,7 +532,10 @@ function ConfigurationFormLoaded({
                   <ProjectCombobox
                     id="project-combobox"
                     value={field.value}
-                    onChange={field.onChange}
+                    onChange={(value) => {
+                      setProjectTouched(true);
+                      field.onChange(value);
+                    }}
                     projects={projects}
                     loading={projectsLoading || loadingProjects}
                     error={projectsError}

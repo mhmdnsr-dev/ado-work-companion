@@ -45,6 +45,7 @@ export function SearchableSelect({
   const [query, setQuery] = useState('');
 
   const selected = options.find((option) => option.value === value);
+  const displayLabel = selected?.label ?? (allowClear ? clearLabel : placeholder);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return options;
@@ -72,12 +73,12 @@ export function SearchableSelect({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          aria-label={selected?.label ?? placeholder}
+          aria-label={selected?.label ?? (allowClear ? clearLabel : placeholder)}
           disabled={disabled}
           className="touch-target h-11 w-full justify-between font-normal"
         >
           <span className={cn('truncate', !selected && 'text-muted-foreground')}>
-            {selected?.label ?? placeholder}
+            {displayLabel}
           </span>
           <ChevronsUpDown className="size-4 shrink-0 opacity-60" aria-hidden />
         </Button>

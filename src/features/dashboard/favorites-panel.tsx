@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Star } from 'lucide-react';
+import { ChevronDown, Star } from 'lucide-react';
 import { createElement, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -87,15 +87,19 @@ export function DashboardFavorites() {
               </ul>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No favorites yet. Star sections below to pin them.
+                No favorites yet. Open Manage favorites to pin a section.
               </p>
             )}
 
-            <div>
-              <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                All sections
-              </p>
-              <ul className="flex flex-col gap-1">
+            <details className="group rounded-lg border border-border">
+              <summary className="touch-target flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-sm font-medium">
+                Manage favorites
+                <ChevronDown
+                  className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+                  aria-hidden
+                />
+              </summary>
+              <ul className="flex flex-col gap-1 border-t border-border p-2">
                 {NAV_ITEMS.map((item) => {
                   const starred = favorites.includes(item.id);
                   return (
@@ -134,7 +138,7 @@ export function DashboardFavorites() {
                   );
                 })}
               </ul>
-            </div>
+            </details>
           </>
         )}
       </CardContent>
