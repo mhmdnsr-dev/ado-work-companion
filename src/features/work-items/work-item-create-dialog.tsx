@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -8,6 +8,7 @@ import type { IdentityRef, JsonPatchOperation, WorkItem } from '@core/types';
 import { WORK_ITEM_CREATE_TYPES } from '@core/types';
 import { buildWorkItemLinkPatches, identityUniqueName } from '@core/domain';
 import { useConnection } from '@/components/providers';
+import { useCurrentUser } from '@/hooks';
 import {
   SearchableSelect,
   type SearchableSelectOption,
@@ -44,6 +45,7 @@ function CreateWorkItemForm({
   people,
   iterations,
   workItemTypes,
+  defaultIterationPath = '',
   onCancel,
   onCreated,
 }: {
@@ -51,16 +53,24 @@ function CreateWorkItemForm({
   people: IdentityRef[];
   iterations: SearchableSelectOption[];
   workItemTypes: string[];
+  defaultIterationPath?: string;
   onCancel: () => void;
   onCreated: (item: WorkItem) => void;
 }) {
   const { api, settings } = useConnection();
+  const { currentUserId, currentUserName } = useCurrentUser();
+  const me = useMemo(
+    () => people.find((person) => person.id === currentUserId) ?? null,
+    [currentUserId, people],
+  );
+  const defaultAssignee = me ? identityUniqueName(me) : currentUserName;
   const createTypes = preferredCreateTypes(workItemTypes);
-  const defaultSprint = iterations.at(-1)?.value ?? '';
+  const defaultSprint = defaultIterationPath || iterations.at(-1)?.value || '';
   const [type, setType] = useState(createTypes[0] ?? 'Task');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [assignee, setAssignee] = useState('');
+  const [assigneeOverride, setAssigneeOverride] = useState<string | null>(null);
+  const assignee = assigneeOverride ?? defaultAssignee;
   const [priority, setPriority] = useState('2');
   const [iteration, setIteration] = useState(defaultSprint);
   const [sprintTouched, setSprintTouched] = useState(Boolean(defaultSprint));
@@ -72,11 +82,21 @@ function CreateWorkItemForm({
 
   const sprintValue = sprintTouched ? iteration : defaultSprint;
 
-  const peopleOptions = people.map((person) => ({
-    value: identityUniqueName(person),
-    label: person.displayName || person.uniqueName || 'User',
-    description: person.uniqueName,
-  }));
+  const peopleOptions = useMemo(() => {
+    const options = people.map((person) => ({
+      value: identityUniqueName(person),
+      label: person.displayName || person.uniqueName || 'User',
+      description: person.uniqueName,
+    }));
+    if (defaultAssignee && !options.some((option) => option.value === defaultAssignee)) {
+      options.unshift({
+        value: defaultAssignee,
+        label: currentUserName ? `Me (${currentUserName})` : 'Assigned to me',
+        description: currentUserName,
+      });
+    }
+    return options;
+  }, [currentUserName, defaultAssignee, people]);
 
   async function onSubmit() {
     if (!api) {
@@ -216,7 +236,9 @@ function CreateWorkItemForm({
             <Label>Assigned to</Label>
             <SearchableSelect
               value={assignee}
-              onChange={setAssignee}
+              onChange={(value) => {
+                setAssigneeOverride(value);
+              }}
               options={peopleOptions}
               placeholder="Unassigned"
               searchPlaceholder="Search people…"
@@ -326,6 +348,7 @@ export function WorkItemCreateDialog({
   people,
   iterations,
   workItemTypes,
+  defaultIterationPath,
   onCreated,
 }: {
   open: boolean;
@@ -334,6 +357,7 @@ export function WorkItemCreateDialog({
   people: IdentityRef[];
   iterations: SearchableSelectOption[];
   workItemTypes: string[];
+  defaultIterationPath?: string;
   onCreated: (item: WorkItem) => void;
 }) {
   return (
@@ -353,6 +377,7 @@ export function WorkItemCreateDialog({
             people={people}
             iterations={iterations}
             workItemTypes={workItemTypes}
+            defaultIterationPath={defaultIterationPath}
             onCancel={() => onOpenChange(false)}
             onCreated={(item) => {
               onOpenChange(false);

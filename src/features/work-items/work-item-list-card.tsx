@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { ChevronRight, Paperclip } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 function formatDate(iso: string): string {
   if (!iso) return '';
@@ -32,9 +33,15 @@ function formatDate(iso: string): string {
 export function WorkItemListCard({
   item,
   onOpen,
+  compact = false,
+  childCount,
 }: {
   item: WorkItem;
   onOpen: () => void;
+  /** Denser presentation used for nested hierarchy children. */
+  compact?: boolean;
+  /** Shows a child count badge on expandable parent cards. */
+  childCount?: number;
 }) {
   const id = item.id;
   const title = fieldString(item, 'System.Title') || 'Untitled';
@@ -55,7 +62,10 @@ export function WorkItemListCard({
       role="button"
       tabIndex={0}
       aria-label={`Open work item ${id}: ${title}`}
-      className="cursor-pointer gap-2 rounded-md py-3 transition-colors hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:bg-muted/60 md:gap-3 md:py-4"
+      className={cn(
+        'cursor-pointer gap-2 rounded-md transition-colors hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:bg-muted/60',
+        compact ? 'py-2.5' : 'py-3 md:gap-3 md:py-4',
+      )}
       onClick={onOpen}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -64,34 +74,48 @@ export function WorkItemListCard({
         }
       }}
     >
-      <CardHeader className="flex-row items-center gap-3 px-3 md:px-4">
+      <CardHeader
+        className={cn('flex-row items-center gap-3', compact ? 'px-3' : 'px-3 md:px-4')}
+      >
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">#{id}</Badge>
             <Badge variant="secondary">{type}</Badge>
             <Badge>{state}</Badge>
-            {priority != null ? (
+            {priority != null && !compact ? (
               <Badge variant="outline" className="hidden md:inline-flex">
                 Priority {priority}
               </Badge>
             ) : null}
-            <Badge className="hidden border-transparent bg-primary text-primary-foreground sm:inline-flex">
-              {remainingLabel}
-            </Badge>
-            {attachmentCount > 0 ? (
+            {childCount != null && childCount > 0 ? (
+              <Badge variant="outline">
+                {childCount} child{childCount === 1 ? '' : 'ren'}
+              </Badge>
+            ) : null}
+            {!compact ? (
+              <Badge className="hidden border-transparent bg-primary text-primary-foreground sm:inline-flex">
+                {remainingLabel}
+              </Badge>
+            ) : null}
+            {attachmentCount > 0 && !compact ? (
               <Badge variant="outline" className="gap-1">
                 <Paperclip className="size-3" aria-hidden />
                 {attachmentCount}
               </Badge>
             ) : null}
           </div>
-          <CardTitle className="line-clamp-2 text-base leading-snug md:text-lg">
+          <CardTitle
+            className={cn(
+              'line-clamp-2 leading-snug',
+              compact ? 'text-sm md:text-base' : 'text-base md:text-lg',
+            )}
+          >
             {title}
           </CardTitle>
           <CardDescription className="flex flex-wrap gap-x-2">
             {assignee}
-            <span className="sm:hidden">· {remainingLabel}</span>
-            {changed ? (
+            {compact ? null : <span className="sm:hidden">· {remainingLabel}</span>}
+            {changed && !compact ? (
               <span className="hidden sm:inline">· Updated {changed}</span>
             ) : null}
           </CardDescription>
@@ -101,7 +125,7 @@ export function WorkItemListCard({
           aria-hidden
         />
       </CardHeader>
-      {tags ? (
+      {tags && !compact ? (
         <CardContent className="hidden px-4 pt-0 md:block">
           <p className="text-xs text-muted-foreground">Tags: {tags}</p>
         </CardContent>

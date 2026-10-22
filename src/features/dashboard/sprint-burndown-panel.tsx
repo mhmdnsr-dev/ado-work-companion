@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { FolderKanban, RefreshCw } from 'lucide-react';
 
@@ -22,6 +22,7 @@ import { AdoClientError } from '@core/types';
 import type { AzureDevOpsApi } from '@core/api/azure-devops-api';
 import type { IdentityRef, WorkItem } from '@core/types';
 import { useConnection } from '@/components/providers';
+import { useCurrentUser } from '@/hooks';
 import { SearchableSelect } from '@/components/shared/searchable-select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -182,29 +183,22 @@ export function SprintBurndownPanel() {
     },
   });
 
-  const teams = teamsQuery.data?.data ?? [];
+  const teams = useMemo(() => teamsQuery.data?.data ?? [], [teamsQuery.data?.data]);
   const preferredTeam = teamName || storedTeam;
-  const resolvedTeam =
+  const validPreferredTeam =
     preferredTeam && teams.some((team) => team.name === preferredTeam)
       ? preferredTeam
       : '';
+  // Default to the first team once teams load so sprint charts appear without
+  // an extra manual step.
+  const resolvedTeam = validPreferredTeam || teams[0]?.name || '';
 
   const storedMember = useMemo(
     () => (resolvedTeam ? readStoredMember(organization, project, resolvedTeam) : null),
     [organization, project, resolvedTeam],
   );
 
-  const currentUserQuery = useQuery({
-    queryKey: adoQueryKeys.dashboard.currentUser(organization),
-    enabled: Boolean(api && organization),
-    queryFn: async ({ signal }) => {
-      if (!api) throw new Error('Connection is not ready.');
-      return api.getAuthenticatedUser({ signal });
-    },
-    staleTime: 300_000,
-  });
-
-  const currentUserId = currentUserQuery.data?.data?.id ?? null;
+  const { currentUserId } = useCurrentUser();
 
   const membersQuery = useQuery({
     queryKey: adoQueryKeys.dashboard.members(organization, project, resolvedTeam),
@@ -245,6 +239,18 @@ export function SprintBurndownPanel() {
       ? null
       : (members.find((member) => member.id === effectiveMemberKey) ?? null);
   const isMemberView = Boolean(selectedMember?.id);
+
+  // Remember the automatic first-team default for the next visit.
+  useEffect(() => {
+    if (!hydrated || !project || !resolvedTeam) return;
+    writeStoredTeam(organization, project, resolvedTeam);
+  }, [hydrated, organization, project, resolvedTeam]);
+
+  // Persist the automatic "Me" (or manually picked member) selection.
+  useEffect(() => {
+    if (!resolvedTeam || effectiveMemberKey === TEAM_OVERVIEW) return;
+    writeStoredMember(organization, project, resolvedTeam, effectiveMemberKey);
+  }, [effectiveMemberKey, organization, project, resolvedTeam]);
 
   const sprintQuery = useQuery({
     queryKey: adoQueryKeys.dashboard.currentSprint(organization, project, resolvedTeam),

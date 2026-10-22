@@ -8,6 +8,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronsDownUp,
+  ChevronsUpDown,
   FolderKanban,
   Plus,
   RefreshCw,
@@ -21,17 +23,22 @@ import { toast } from 'sonner';
 
 import { adoQueryKeys, STORAGE_KEYS } from '@core/constants';
 import {
+  buildWorkItemHierarchy,
   buildWorkItemsListWiql,
   clearWorkItemFilters,
   emptyWorkItemFilters,
   fieldString,
   flattenClassificationPaths,
+  getWorkItemChildIds,
+  getWorkItemParentId,
   identityUniqueName,
+  isClosedWorkItemState,
   parseWorkItemFilters,
   saveWorkItemFilters,
   type WorkItemFiltersState,
 } from '@core/domain';
 import type { IdentityRef, WorkItem } from '@core/types';
+import type { AzureDevOpsApi } from '@core/api/azure-devops-api';
 import { useConnection } from '@/components/providers';
 import { SearchableSelect } from '@/components/shared/searchable-select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -46,8 +53,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
 import { createLocalStorageAdapter } from '@/lib/adapters';
 import { WorkItemCreateDialog } from '@/features/work-items/work-item-create-dialog';
+import {
+  WorkItemHierarchyList,
+  collectHierarchyParentIds,
+} from '@/features/work-items/work-item-hierarchy';
 import { WorkItemListCard } from '@/features/work-items/work-item-list-card';
 import { cn } from '@/lib/utils';
 
@@ -60,14 +72,141 @@ const WorkItemDetailSheet = dynamic(
 );
 
 const PAGE_SIZE = 12;
+const HIERARCHY_PAGE_SIZE = 8;
+const MAX_HIERARCHY_ITEMS = 300;
 
 type StateFilter = 'open' | 'all' | 'closed';
+type DisplayMode = WorkItemFiltersState['displayMode'];
 
 function sortByChangedDate(items: WorkItem[]): WorkItem[] {
   return [...items].sort((a, b) => {
     const aDate = fieldString(a, 'System.ChangedDate');
     const bDate = fieldString(b, 'System.ChangedDate');
     return bDate.localeCompare(aDate);
+  });
+}
+
+async function fetchWorkItemsByIds(
+  api: AzureDevOpsApi,
+  project: string,
+  ids: number[],
+  signal?: AbortSignal,
+): Promise<WorkItem[]> {
+  const unique = [...new Set(ids.filter((id) => Number.isInteger(id) && id > 0))];
+  const items: WorkItem[] = [];
+  for (let index = 0; index < unique.length; index += 200) {
+    const batch = await api.getWorkItems({
+      ids: unique.slice(index, index + 200),
+      project,
+      signal,
+      expand: 'Relations',
+    });
+    items.push(...batch.data);
+  }
+  return items;
+}
+
+/**
+ * Adds the parent stories and child tasks/bugs needed to render an Azure-like
+ * hierarchy, even when the current filters only matched one side of the link.
+ * Ancestor-only items (for example a Feature above a matched User Story) are
+ * loaded for grouping but are not expanded, so unrelated siblings stay hidden.
+ */
+async function enrichHierarchyItems(params: {
+  api: AzureDevOpsApi;
+  project: string;
+  baseItems: WorkItem[];
+  includeChildren: boolean;
+  stateScope: StateFilter;
+  signal?: AbortSignal;
+}): Promise<WorkItem[]> {
+  const { api, project, baseItems, includeChildren, stateScope, signal } = params;
+  const byId = new Map<number, WorkItem>();
+  for (const item of baseItems) {
+    if (item.id != null && !byId.has(item.id)) byId.set(item.id, item);
+  }
+  const baseIds = new Set(byId.keys());
+
+  const addItems = (items: WorkItem[]) => {
+    const before = byId.size;
+    for (const item of items) {
+      if (item.id == null || byId.has(item.id)) continue;
+      if (byId.size >= MAX_HIERARCHY_ITEMS) break;
+      byId.set(item.id, item);
+    }
+    return byId.size !== before;
+  };
+
+  const missingParentIds = new Set<number>();
+  for (const item of baseItems) {
+    const parentId = getWorkItemParentId(item);
+    if (parentId != null && !byId.has(parentId)) missingParentIds.add(parentId);
+  }
+  const parentIdsToFetch = [...missingParentIds].slice(
+    0,
+    Math.max(0, MAX_HIERARCHY_ITEMS - byId.size),
+  );
+  const directParents =
+    parentIdsToFetch.length > 0
+      ? await fetchWorkItemsByIds(api, project, parentIdsToFetch, signal)
+      : [];
+  addItems(directParents);
+
+  if (includeChildren) {
+    const expandable = new Map<number, WorkItem>();
+    for (const item of baseItems) {
+      if (item.id != null) expandable.set(item.id, item);
+    }
+    for (const parent of directParents) {
+      if (parent.id == null) continue;
+      const hasMatchedTaskOrBug = baseItems.some((base) => {
+        if (getWorkItemParentId(base) !== parent.id) return false;
+        const type = fieldString(base, 'System.WorkItemType').toLowerCase();
+        return type === 'task' || type === 'bug';
+      });
+      if (hasMatchedTaskOrBug) expandable.set(parent.id, parent);
+    }
+
+    const missingChildIds = new Set<number>();
+    for (const item of expandable.values()) {
+      for (const childId of getWorkItemChildIds(item)) {
+        if (!byId.has(childId)) missingChildIds.add(childId);
+      }
+    }
+    const childIdsToFetch = [...missingChildIds].slice(
+      0,
+      Math.max(0, MAX_HIERARCHY_ITEMS - byId.size),
+    );
+    if (childIdsToFetch.length > 0) {
+      const children = await fetchWorkItemsByIds(api, project, childIdsToFetch, signal);
+      addItems(children);
+    }
+
+    // A fetched child can introduce a parent that was not loaded yet. Fetch it
+    // once so the child nests correctly, without expanding it any further.
+    const childParentIds = new Set<number>();
+    for (const item of byId.values()) {
+      const parentId = getWorkItemParentId(item);
+      if (parentId != null && !byId.has(parentId)) childParentIds.add(parentId);
+    }
+    const childParentIdsToFetch = [...childParentIds].slice(
+      0,
+      Math.max(0, MAX_HIERARCHY_ITEMS - byId.size),
+    );
+    if (childParentIdsToFetch.length > 0) {
+      const parents = await fetchWorkItemsByIds(
+        api,
+        project,
+        childParentIdsToFetch,
+        signal,
+      );
+      addItems(parents);
+    }
+  }
+
+  return [...byId.values()].filter((item) => {
+    if (item.id == null || baseIds.has(item.id) || stateScope !== 'open') return true;
+    return !isClosedWorkItemState(item);
   });
 }
 
@@ -133,6 +272,9 @@ function WorkItemsViewContent({
   const [assignedTo, setAssignedTo] = useState(initial.assignedTo);
   const [search, setSearch] = useState(initial.search);
   const [appliedSearch, setAppliedSearch] = useState(initial.search);
+  const [displayMode, setDisplayMode] = useState<DisplayMode>(initial.displayMode);
+  const [includeChildren, setIncludeChildren] = useState(initial.includeChildren);
+  const [collapsedIds, setCollapsedIds] = useState<Set<number>>(() => new Set());
   const [page, setPage] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -242,6 +384,8 @@ function WorkItemsViewContent({
     team: teamName,
     sprint: sprintPath,
     assignedTo,
+    display: displayMode,
+    includeChildren: includeChildren ? 'true' : 'false',
   };
 
   const listQuery = useQuery({
@@ -260,7 +404,21 @@ function WorkItemsViewContent({
             signal,
             expand: 'Relations',
           });
-          return { items: [single.data], asOf: new Date().toISOString() };
+          const singleItems =
+            displayMode === 'hierarchy'
+              ? await enrichHierarchyItems({
+                  api,
+                  project,
+                  baseItems: [single.data],
+                  includeChildren,
+                  stateScope: stateFilter,
+                  signal,
+                })
+              : [single.data];
+          return {
+            items: sortByChangedDate(singleItems),
+            asOf: new Date().toISOString(),
+          };
         } catch {
           return { items: [] as WorkItem[], asOf: new Date().toISOString() };
         }
@@ -303,26 +461,38 @@ function WorkItemsViewContent({
         return { items: [] as WorkItem[], asOf: queried.data.asOf };
       }
 
-      const batches: WorkItem[] = [];
-      for (let i = 0; i < ids.length; i += 200) {
-        const slice = ids.slice(i, i + 200);
-        const batch = await api.getWorkItems({
-          ids: slice,
-          project,
-          signal,
-          expand: 'Relations',
-        });
-        batches.push(...batch.data);
-      }
+      const batches = await fetchWorkItemsByIds(api, project, ids, signal);
+      const enriched =
+        displayMode === 'hierarchy'
+          ? await enrichHierarchyItems({
+              api,
+              project,
+              baseItems: batches,
+              includeChildren,
+              stateScope: stateFilter,
+              signal,
+            })
+          : batches;
 
-      return { items: sortByChangedDate(batches), asOf: queried.data.asOf };
+      return { items: sortByChangedDate(enriched), asOf: queried.data.asOf };
     },
   });
 
   const items = useMemo(() => listQuery.data?.items ?? [], [listQuery.data?.items]);
-  const pageCount = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const hierarchy = useMemo(() => buildWorkItemHierarchy(items), [items]);
+  const pageSize = displayMode === 'hierarchy' ? HIERARCHY_PAGE_SIZE : PAGE_SIZE;
+  const pageCount = Math.max(
+    1,
+    Math.ceil(
+      (displayMode === 'hierarchy' ? hierarchy.roots.length : items.length) / pageSize,
+    ),
+  );
   const safePage = Math.min(page, pageCount - 1);
-  const pageItems = items.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+  const pageItems = items.slice(safePage * pageSize, safePage * pageSize + pageSize);
+  const pageRoots = hierarchy.roots.slice(
+    safePage * pageSize,
+    safePage * pageSize + pageSize,
+  );
 
   const teamOptions = teams.map((team) => ({
     value: team.id,
@@ -341,6 +511,12 @@ function WorkItemsViewContent({
     label: iteration.name,
     description: iteration.path,
   }));
+
+  const currentSprintPath =
+    (iterationsQuery.data?.data ?? []).find(
+      (iteration) =>
+        'attributes' in iteration && iteration.attributes?.timeFrame === 'current',
+    )?.path ?? '';
 
   const assigneeOptions = [
     { value: '@Me', label: 'Assigned to me' },
@@ -385,6 +561,8 @@ function WorkItemsViewContent({
         sprintPath,
         assignedTo,
         search: appliedSearch || search.trim(),
+        displayMode,
+        includeChildren,
       });
       toast.success('Filters saved for this project');
     } catch {
@@ -401,6 +579,9 @@ function WorkItemsViewContent({
     setAssignedTo(empty.assignedTo);
     setSearch(empty.search);
     setAppliedSearch(empty.search);
+    setDisplayMode(empty.displayMode);
+    setIncludeChildren(empty.includeChildren);
+    setCollapsedIds(new Set());
     setPage(0);
     try {
       await clearWorkItemFilters(storage);
@@ -408,6 +589,23 @@ function WorkItemsViewContent({
     } catch {
       toast.error('Could not clear saved filters');
     }
+  }
+
+  function toggleCollapsed(id: number) {
+    setCollapsedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function expandAllGroups() {
+    setCollapsedIds(new Set());
+  }
+
+  function collapseAllGroups() {
+    setCollapsedIds(new Set(collectHierarchyParentIds(hierarchy.roots)));
   }
 
   if (!project) {
@@ -504,7 +702,8 @@ function WorkItemsViewContent({
                 stateFilter !== 'open',
                 Boolean(teamId),
                 Boolean(sprintPath),
-                Boolean(assignedTo),
+                assignedTo !== '@Me',
+                displayMode !== 'list',
               ].filter(Boolean).length
             }{' '}
             active filters
@@ -659,13 +858,52 @@ function WorkItemsViewContent({
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="work-items-display">Display</Label>
+          <Select
+            value={displayMode}
+            onValueChange={(value) => {
+              setDisplayMode(value as DisplayMode);
+              setCollapsedIds(new Set());
+              setPage(0);
+            }}
+          >
+            <SelectTrigger id="work-items-display" className="touch-target h-11 w-full">
+              <SelectValue placeholder="Flat list" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="list">Flat list</SelectItem>
+              <SelectItem value="hierarchy">Grouped by parent</SelectItem>
+            </SelectContent>
+          </Select>
+          {displayMode === 'hierarchy' ? (
+            <div className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
+              <Label
+                htmlFor="work-items-include-children"
+                className="text-xs font-normal text-muted-foreground"
+              >
+                Include child tasks/bugs
+              </Label>
+              <Switch
+                id="work-items-include-children"
+                checked={includeChildren}
+                onCheckedChange={(checked) => {
+                  setIncludeChildren(checked);
+                  setCollapsedIds(new Set());
+                  setPage(0);
+                }}
+              />
+            </div>
+          ) : null}
+        </div>
+
+        <div className="space-y-2">
           <Label>Team</Label>
           <SearchableSelect
             value={teamId}
             onChange={(value) => {
               setTeamId(value);
               setSprintPath('');
-              setAssignedTo('');
+              setAssignedTo('@Me');
               setPage(0);
             }}
             options={teamOptions}
@@ -745,11 +983,41 @@ function WorkItemsViewContent({
         </Alert>
       ) : null}
 
-      <p className="text-sm text-muted-foreground">
-        {listQuery.isLoading
-          ? 'Loading work items…'
-          : `${items.length} work item${items.length === 1 ? '' : 's'}`}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">
+          {listQuery.isLoading
+            ? 'Loading work items…'
+            : displayMode === 'hierarchy'
+              ? `${items.length} work item${items.length === 1 ? '' : 's'} in ${
+                  hierarchy.roots.length
+                } group${hierarchy.roots.length === 1 ? '' : 's'}`
+              : `${items.length} work item${items.length === 1 ? '' : 's'}`}
+        </p>
+        {displayMode === 'hierarchy' && hierarchy.roots.length > 0 ? (
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="touch-target gap-1.5"
+              onClick={expandAllGroups}
+            >
+              <ChevronsUpDown className="size-4" />
+              Expand all
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="touch-target gap-1.5"
+              onClick={collapseAllGroups}
+            >
+              <ChevronsDownUp className="size-4" />
+              Collapse all
+            </Button>
+          </div>
+        ) : null}
+      </div>
 
       {listQuery.isLoading ? (
         <div className="grid gap-3">
@@ -757,6 +1025,19 @@ function WorkItemsViewContent({
             <Skeleton key={index} className="h-24 w-full rounded-xl" />
           ))}
         </div>
+      ) : displayMode === 'hierarchy' ? (
+        pageRoots.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border px-4 py-12 text-center text-sm text-muted-foreground">
+            No work items match these filters. Create one or broaden your search.
+          </div>
+        ) : (
+          <WorkItemHierarchyList
+            roots={pageRoots}
+            collapsedIds={collapsedIds}
+            onToggle={toggleCollapsed}
+            onOpen={openItem}
+          />
+        )
       ) : pageItems.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border px-4 py-12 text-center text-sm text-muted-foreground">
           No work items match these filters. Create one or broaden your search.
@@ -771,7 +1052,7 @@ function WorkItemsViewContent({
         </ul>
       )}
 
-      {items.length > PAGE_SIZE ? (
+      {pageCount > 1 ? (
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
             Page {safePage + 1} of {pageCount}
@@ -810,6 +1091,7 @@ function WorkItemsViewContent({
         people={people}
         iterations={sprintOptions}
         workItemTypes={workItemTypes.map((type) => type.name)}
+        defaultIterationPath={currentSprintPath}
         onCreated={(item) => {
           void invalidateList();
           if (item.id) {

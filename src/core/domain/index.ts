@@ -32,6 +32,15 @@ export {
   type WorkItemAttachment,
 } from './work-items';
 export {
+  HIERARCHY_CHILD_REL,
+  HIERARCHY_PARENT_REL,
+  buildWorkItemHierarchy,
+  getWorkItemChildIds,
+  getWorkItemParentId,
+  isClosedWorkItemState,
+  type WorkItemHierarchyNode,
+} from './work-item-hierarchy';
+export {
   clearWorkItemFilters,
   emptyWorkItemFilters,
   loadWorkItemFilters,

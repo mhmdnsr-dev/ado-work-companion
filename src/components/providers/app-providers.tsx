@@ -37,7 +37,18 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <ConnectionProvider>
             <PwaInstallProvider>
               {children}
-              <Toaster richColors closeButton position="bottom-right" />
+              <Toaster
+                richColors
+                closeButton
+                position="top-center"
+                offset={{ top: '4rem', bottom: '2rem', left: '1rem', right: '1rem' }}
+                mobileOffset={{
+                  top: 'calc(4rem + env(safe-area-inset-top))',
+                  bottom: 'calc(5rem + env(safe-area-inset-bottom))',
+                  left: '0.75rem',
+                  right: '0.75rem',
+                }}
+              />
             </PwaInstallProvider>
           </ConnectionProvider>
         </TooltipProvider>

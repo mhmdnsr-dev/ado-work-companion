@@ -395,7 +395,7 @@ function WorkItemEditor({
                 value={area}
                 onChange={setArea}
                 options={areaOptions}
-                placeholder="Select area"
+                placeholder="Not set"
                 searchPlaceholder="Search areas…"
               />
             </div>
@@ -405,7 +405,7 @@ function WorkItemEditor({
                 value={iteration}
                 onChange={setIteration}
                 options={iterations}
-                placeholder="Select sprint"
+                placeholder="Not set"
                 searchPlaceholder="Search sprints…"
               />
             </div>
