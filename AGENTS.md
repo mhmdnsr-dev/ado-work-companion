@@ -46,12 +46,12 @@ Read `DESIGN.md` before any UI work. It is the design north star (direction, tok
 
 ## Feature notes (`.agents/features/<feature>.md`)
 
-For any multi-session feature, keep a working note on its branch at `.agents/features/<feature-name>.md`:
+For any multi-session feature, keep a working note at `.agents/features/<feature-name>.md`. It is committed with the feature and **merges to `development` and `main` like code**, so the history of why something was built stays next to it.
 
 ```md
 # <feature-name>
 
-Branch: feat/<feature-name> · Started: YYYY-MM-DD
+Branch: feat/<feature-name> · Started: YYYY-MM-DD · Status: in progress
 
 ## Goal
 
@@ -64,7 +64,9 @@ Branch: feat/<feature-name> · Started: YYYY-MM-DD
 ## Verification evidence (commands run, scores, screenshots)
 ```
 
-Update it at the end of each session so the next agent can resume. **Keep it on the branch for the whole PR** so reviewers can read it, and **delete it in a final commit once the user says the PR is ready to merge**. It stays in the branch history but never reaches `development` (releases to `main` can follow a merge immediately). CI (`.github/workflows/no-feature-notes.yml`) fails PRs into `main`that still contain feature notes;`main`should also require that check in branch protection. Durable decisions belong in`DESIGN.md` or this file before the note is deleted.
+- Update it at the end of each session so the next agent can resume.
+- When its PR merges, set `Status: shipped (YYYY-MM-DD)`.
+- **Periodic cleanup**, not per PR: once a feature has been stable in production for a while (no follow-up fixes), move anything durable into `DESIGN.md` or this file, then delete its note in a `chore: prune feature notes` PR.
 
 ## Quality gates (user-facing changes)
 

@@ -10,13 +10,15 @@
 :root {
   --radius: 0.5rem;
 
+  /* Primary L 0.54 (#1d6ec6): 4.9:1 under button text, 5.1:1 as text on white (AA). */
+
   --background: oklch(1 0 0);
   --foreground: oklch(0.196 0.014 253);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.196 0.014 253);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.196 0.014 253);
-  --primary: oklch(0.563 0.156 254.3);
+  --primary: oklch(0.54 0.156 254.3);
   --primary-foreground: oklch(0.985 0.002 253);
   --secondary: oklch(0.968 0.006 253);
   --secondary-foreground: oklch(0.278 0.018 253);
@@ -32,9 +34,9 @@
   --warning-foreground: oklch(0.245 0.055 74);
   --border: oklch(0.916 0.008 253);
   --input: oklch(0.916 0.008 253);
-  --ring: oklch(0.563 0.156 254.3);
+  --ring: oklch(0.54 0.156 254.3);
 
-  --chart-1: oklch(0.563 0.156 254.3);
+  --chart-1: oklch(0.54 0.156 254.3);
   --chart-2: oklch(0.596 0.128 156.1);
   --chart-3: oklch(0.734 0.153 74.5);
   --chart-4: oklch(0.577 0.212 27.3);
@@ -42,12 +44,12 @@
 
   --sidebar: oklch(0.985 0.003 253);
   --sidebar-foreground: oklch(0.196 0.014 253);
-  --sidebar-primary: oklch(0.563 0.156 254.3);
+  --sidebar-primary: oklch(0.54 0.156 254.3);
   --sidebar-primary-foreground: oklch(0.985 0.002 253);
   --sidebar-accent: oklch(0.955 0.021 253);
   --sidebar-accent-foreground: oklch(0.31 0.055 254);
   --sidebar-border: oklch(0.916 0.008 253);
-  --sidebar-ring: oklch(0.563 0.156 254.3);
+  --sidebar-ring: oklch(0.54 0.156 254.3);
 
   /* Work item type glyphs and state dots (DESIGN.md: Boards+ light). */
   --wit-epic: oklch(0.593 0.152 52);

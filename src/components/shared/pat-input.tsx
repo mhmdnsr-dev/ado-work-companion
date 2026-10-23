@@ -40,8 +40,11 @@ export function PatInput({
     }
   }
 
+  // Actions sit inside the field so the token gets the full width on phones;
+  // copy and clear only appear once there is something to copy or clear.
+  const actionButton = 'size-9 shrink-0 text-muted-foreground hover:text-foreground';
   return (
-    <div className={cn('flex gap-2', className)}>
+    <div className={cn('relative', className)}>
       <Input
         id={id}
         type={visible ? 'text' : 'password'}
@@ -53,42 +56,51 @@ export function PatInput({
         aria-invalid={ariaInvalid}
         aria-describedby={`${id}-hint`}
         placeholder="Personal Access Token"
-        className="touch-target h-11 font-mono text-sm"
+        className={cn(
+          'touch-target h-11 font-mono text-sm',
+          value ? 'pe-[7.5rem]' : 'pe-12',
+        )}
       />
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        className="touch-target size-11 shrink-0"
-        onClick={() => setVisible((current) => !current)}
-        disabled={disabled}
-        aria-label={visible ? 'Hide PAT' : 'Show PAT'}
-        aria-pressed={visible}
-      >
-        {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-      </Button>
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        className="touch-target size-11 shrink-0"
-        onClick={() => void handleCopy()}
-        disabled={disabled || !value}
-        aria-label="Copy PAT"
-      >
-        {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-      </Button>
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        className="touch-target size-11 shrink-0"
-        onClick={() => onChange('')}
-        disabled={disabled || !value}
-        aria-label="Clear PAT"
-      >
-        <X className="size-4" />
-      </Button>
+      <div className="absolute inset-y-0 right-1 flex items-center">
+        {value ? (
+          <>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className={actionButton}
+              onClick={() => onChange('')}
+              disabled={disabled}
+              aria-label="Clear PAT"
+            >
+              <X className="size-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className={actionButton}
+              onClick={() => void handleCopy()}
+              disabled={disabled}
+              aria-label="Copy PAT"
+            >
+              {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+            </Button>
+          </>
+        ) : null}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={actionButton}
+          onClick={() => setVisible((current) => !current)}
+          disabled={disabled}
+          aria-label={visible ? 'Hide PAT' : 'Show PAT'}
+          aria-pressed={visible}
+        >
+          {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+        </Button>
+      </div>
     </div>
   );
 }
