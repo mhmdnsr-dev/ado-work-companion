@@ -19,12 +19,18 @@ export const contactMessageSchema = z.object({
     .string()
     .trim()
     .min(1, 'Subject is required')
-    .max(CONTACT_SUBJECT_MAX, `Subject must be at most ${CONTACT_SUBJECT_MAX} characters`),
+    .max(
+      CONTACT_SUBJECT_MAX,
+      `Subject must be at most ${CONTACT_SUBJECT_MAX} characters`,
+    ),
   message: z
     .string()
     .trim()
     .min(1, 'Message is required')
-    .max(CONTACT_MESSAGE_MAX, `Message must be at most ${CONTACT_MESSAGE_MAX} characters`),
+    .max(
+      CONTACT_MESSAGE_MAX,
+      `Message must be at most ${CONTACT_MESSAGE_MAX} characters`,
+    ),
   /** Honeypot — leave blank. */
   company: z.string().max(200).optional(),
   /** Optional client idempotency key for Resend. */

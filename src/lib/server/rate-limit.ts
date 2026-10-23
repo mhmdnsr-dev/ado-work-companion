@@ -16,10 +16,7 @@ export function clientIpFromRequest(request: NextRequest): string {
   return request.headers.get('x-real-ip')?.trim() || 'unknown';
 }
 
-export function createRateLimiter(options: {
-  max: number;
-  windowMs: number;
-}): {
+export function createRateLimiter(options: { max: number; windowMs: number }): {
   isLimited: (key: string) => boolean;
 } {
   const buckets = new Map<string, RateBucket>();

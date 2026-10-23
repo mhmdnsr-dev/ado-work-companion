@@ -31,7 +31,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { WorkItemListCard } from '@/features/work-items/work-item-list-card';
+import { WorkItemTree, toFlatNodes } from '@/features/work-items/work-item-tree';
 import { cn } from '@/lib/utils';
 
 const WorkItemDetailSheet = dynamic(
@@ -573,19 +573,13 @@ function QueriesViewContent({
                   No work items matched this query.
                 </p>
               ) : (
-                <ul className="space-y-3">
-                  {pageItems.map((item) => (
-                    <li key={item.id}>
-                      <WorkItemListCard
-                        item={item}
-                        onOpen={() => {
-                          if (item.id == null) return;
-                          openWorkItem(item.id);
-                        }}
-                      />
-                    </li>
-                  ))}
-                </ul>
+                <WorkItemTree
+                  label="Query results"
+                  roots={toFlatNodes(pageItems)}
+                  onOpen={openWorkItem}
+                  selectedId={detailId}
+                  className="mx-0 rounded-lg border"
+                />
               )}
             </div>
           ) : null}

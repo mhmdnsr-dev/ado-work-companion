@@ -3,10 +3,7 @@
  * Org/project/apiVersion are stored in localStorage by the client.
  */
 
-import {
-  DEFAULT_PAT_COOKIE_LIFETIME,
-  type PatCookieLifetime,
-} from '@core/constants';
+import { DEFAULT_PAT_COOKIE_LIFETIME, type PatCookieLifetime } from '@core/constants';
 import { adoPatStatusSchema, type AdoPatStatus } from '@core/schemas';
 
 async function parsePatStatus(response: Response): Promise<AdoPatStatus> {

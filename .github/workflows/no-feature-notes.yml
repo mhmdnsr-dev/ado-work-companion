@@ -1,0 +1,18 @@
+name: No feature notes on main
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if .agents/features contains notes
+        run: |
+          if [ -d .agents/features ] && [ -n "$(find .agents/features -type f -name '*.md')" ]; then
+            echo "::error::Delete .agents/features/*.md before merging to main:"
+            find .agents/features -type f -name '*.md'
+            exit 1
+          fi

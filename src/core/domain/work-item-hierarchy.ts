@@ -1,3 +1,4 @@
+import type { WorkItemType } from '../types/metadata';
 import type { WorkItem } from '../types/work-items';
 import { fieldNumber, fieldString, parseWorkItemIdFromRelationUrl } from './work-items';
 
@@ -116,4 +117,204 @@ export function buildWorkItemHierarchy(items: WorkItem[]): {
 export function isClosedWorkItemState(item: WorkItem): boolean {
   const state = fieldString(item, 'System.State').toLowerCase();
   return state === 'closed' || state === 'done' || state === 'removed';
+}
+
+/** Azure DevOps state categories, used for the state dot colour. */
+export type WorkItemStateCategory =
+  'proposed' | 'inProgress' | 'resolved' | 'completed' | 'removed';
+
+/**
+ * Default states of the Agile, Scrum, Basic, and CMMI processes. Custom states
+ * fall back to "proposed" so an unknown state never looks finished.
+ */
+const STATE_CATEGORIES: Record<string, WorkItemStateCategory> = {
+  new: 'proposed',
+  proposed: 'proposed',
+  'to do': 'proposed',
+  approved: 'proposed',
+  active: 'inProgress',
+  committed: 'inProgress',
+  'in progress': 'inProgress',
+  doing: 'inProgress',
+  resolved: 'resolved',
+  closed: 'completed',
+  done: 'completed',
+  removed: 'removed',
+};
+
+const ADO_STATE_CATEGORIES: Record<string, WorkItemStateCategory> = {
+  proposed: 'proposed',
+  inprogress: 'inProgress',
+  resolved: 'resolved',
+  completed: 'completed',
+  removed: 'removed',
+};
+
+export interface WorkItemStateInfo {
+  category: WorkItemStateCategory;
+  /** The process's configured colour as `#rrggbb`, when ADO provides one. */
+  color?: string;
+}
+
+/** Process states keyed by `type::state`, both lower-cased. */
+export type WorkItemStateLookup = ReadonlyMap<string, WorkItemStateInfo>;
+
+function stateKey(type: string, state: string): string {
+  return `${type.trim().toLowerCase()}::${state.trim().toLowerCase()}`;
+}
+
+/**
+ * Indexes the states returned with each work item type, so custom process
+ * states ("Ready for UAT", "Blocked", …) get their real category and colour.
+ */
+export function buildWorkItemStateLookup(types: WorkItemType[]): WorkItemStateLookup {
+  const lookup = new Map<string, WorkItemStateInfo>();
+  for (const type of types) {
+    for (const state of type.states ?? []) {
+      if (!state.name) continue;
+      const category = ADO_STATE_CATEGORIES[(state.category ?? '').toLowerCase()];
+      if (!category) continue;
+      const color = /^[0-9a-f]{6}$/i.test(state.color ?? '')
+        ? `#${state.color!.toLowerCase()}`
+        : undefined;
+      lookup.set(stateKey(type.name, state.name), { category, color });
+    }
+  }
+  return lookup;
+}
+
+export interface WorkItemTypeInfo {
+  /** The process colour as `#rrggbb`. */
+  color?: string;
+  /** ADO icon id, e.g. `icon_headphone`. */
+  iconId?: string;
+}
+
+/** Work item types keyed by lower-cased name, for custom type glyphs. */
+export type WorkItemTypeLookup = ReadonlyMap<string, WorkItemTypeInfo>;
+
+export function buildWorkItemTypeLookup(types: WorkItemType[]): WorkItemTypeLookup {
+  const lookup = new Map<string, WorkItemTypeInfo>();
+  for (const type of types) {
+    if (!type.name) continue;
+    lookup.set(type.name.trim().toLowerCase(), {
+      color: /^[0-9a-f]{6}$/i.test(type.color ?? '')
+        ? `#${type.color!.toLowerCase()}`
+        : undefined,
+      iconId: type.icon?.id || undefined,
+    });
+  }
+  return lookup;
+}
+
+export function workItemStateInfo(
+  item: WorkItem,
+  lookup?: WorkItemStateLookup,
+): WorkItemStateInfo {
+  const state = fieldString(item, 'System.State');
+  const known = lookup?.get(stateKey(fieldString(item, 'System.WorkItemType'), state));
+  if (known) return known;
+  return { category: STATE_CATEGORIES[state.trim().toLowerCase()] ?? 'proposed' };
+}
+
+export function workItemStateCategory(
+  item: WorkItem,
+  lookup?: WorkItemStateLookup,
+): WorkItemStateCategory {
+  return workItemStateInfo(item, lookup).category;
+}
+
+export interface WorkItemHierarchySummary {
+  /** Loaded leaf descendants (tasks, bugs, …) under the node. */
+  total: number;
+  /** Leaves in a resolved or completed state. */
+  completed: number;
+  /** Sum of Remaining Work across the leaves. */
+  remainingHours: number;
+}
+
+/** Rolls up progress for a parent row from its loaded leaf descendants. */
+export function summarizeHierarchyNode(
+  node: WorkItemHierarchyNode,
+  lookup?: WorkItemStateLookup,
+): WorkItemHierarchySummary {
+  const summary: WorkItemHierarchySummary = { total: 0, completed: 0, remainingHours: 0 };
+  const visit = (current: WorkItemHierarchyNode) => {
+    for (const child of current.children) {
+      if (child.children.length > 0) {
+        visit(child);
+        continue;
+      }
+      summary.total += 1;
+      const category = workItemStateCategory(child.item, lookup);
+      if (category === 'completed' || category === 'resolved') summary.completed += 1;
+      summary.remainingHours +=
+        fieldNumber(child.item, 'Microsoft.VSTS.Scheduling.RemainingWork') ?? 0;
+    }
+  };
+  visit(node);
+  return summary;
+}
+
+export interface VisibleHierarchyRow {
+  node: WorkItemHierarchyNode;
+  id: number | null;
+  /** 0 for roots. */
+  depth: number;
+  parentId: number | null;
+  hasChildren: boolean;
+  expanded: boolean;
+  /** 1-based position among siblings, for aria-posinset. */
+  posInSet: number;
+  setSize: number;
+  isLast: boolean;
+  /** `ancestorIsLast[d]` is true when the ancestor at depth `d` is a last sibling. */
+  ancestorIsLast: boolean[];
+}
+
+/** Flattens the tree into the rows currently visible given the collapsed ids. */
+export function flattenVisibleHierarchy(
+  roots: WorkItemHierarchyNode[],
+  collapsedIds: ReadonlySet<number>,
+): VisibleHierarchyRow[] {
+  const rows: VisibleHierarchyRow[] = [];
+  const visit = (
+    nodes: WorkItemHierarchyNode[],
+    depth: number,
+    parentId: number | null,
+    ancestorIsLast: boolean[],
+  ) => {
+    nodes.forEach((node, index) => {
+      const id = node.item.id ?? null;
+      const hasChildren = node.children.length > 0;
+      const expanded = hasChildren && (id == null || !collapsedIds.has(id));
+      const isLast = index === nodes.length - 1;
+      rows.push({
+        node,
+        id,
+        depth,
+        parentId,
+        hasChildren,
+        expanded,
+        posInSet: index + 1,
+        setSize: nodes.length,
+        isLast,
+        ancestorIsLast,
+      });
+      if (expanded) visit(node.children, depth + 1, id, [...ancestorIsLast, isLast]);
+    });
+  };
+  visit(roots, 0, null, []);
+  return rows;
+}
+
+/** Ids of every node that has children, for "collapse all". */
+export function collectHierarchyParentIds(nodes: WorkItemHierarchyNode[]): number[] {
+  const ids: number[] = [];
+  const visit = (node: WorkItemHierarchyNode) => {
+    if (node.children.length > 0 && node.item.id != null) ids.push(node.item.id);
+    node.children.forEach(visit);
+  };
+  nodes.forEach(visit);
+  return ids;
 }

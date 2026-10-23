@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google';
 import type { ReactNode } from 'react';
 
 import { APP_INFO, AUTHOR } from '@core/constants';
@@ -10,15 +10,17 @@ import { getSiteUrl } from '@/lib/site-url';
 
 import './globals.css';
 
-const geistSans = Geist({
+const plexSans = IBM_Plex_Sans({
   subsets: ['latin'],
-  variable: '--font-geist-sans',
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-plex-sans',
   display: 'swap',
 });
 
-const geistMono = Geist_Mono({
+const plexMono = IBM_Plex_Mono({
   subsets: ['latin'],
-  variable: '--font-geist-mono',
+  weight: ['400', '500'],
+  variable: '--font-plex-mono',
   display: 'swap',
 });
 
@@ -103,7 +105,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable}`}
+      className={`${plexSans.variable} ${plexMono.variable}`}
     >
       <body className="min-h-dvh font-sans">
         <JsonLd data={buildSiteGraph()} />

@@ -13,6 +13,7 @@ export const STORAGE_KEYS = {
   FAVORITES: 'ado.favorites',
   CONNECTION_STATUS: 'ado.connectionStatus',
   WORK_ITEM_FILTERS: 'ado.workItemFilters',
+  WORK_ITEM_TREE_COLLAPSED: 'ado.workItemTreeCollapsed',
   DASHBOARD_TEAM: 'ado.dashboardTeam',
   DASHBOARD_MEMBER: 'ado.dashboardMember',
 } as const;
