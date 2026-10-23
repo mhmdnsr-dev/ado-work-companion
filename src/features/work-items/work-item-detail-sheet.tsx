@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Loader2, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { adoQueryKeys } from '@core/constants';
@@ -27,7 +27,6 @@ import {
   type SearchableSelectOption,
 } from '@/components/shared/searchable-select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -48,6 +47,7 @@ import {
 } from '@/components/ui/select';
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetFooter,
@@ -58,6 +58,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { WorkItemAttachmentsPanel } from '@/features/attachments';
 import { WorkItemCommentsPanel } from '@/features/work-items/work-item-comments-panel';
+import { WorkItemQuickUpdate } from '@/features/work-items/work-item-quick-update';
 import { WorkItemLinkFields } from '@/features/work-items/work-item-link-fields';
 
 function formatDate(iso: string): string {
@@ -298,6 +299,19 @@ function WorkItemEditor({
     }
   }
 
+  async function refreshAfterQuickUpdate() {
+    if (item.id == null) return;
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: adoQueryKeys.workItems.detail(organization, item.id),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: adoQueryKeys.workItems.revisions(organization, item.id),
+      }),
+    ]);
+    onChanged();
+  }
+
   async function onDelete() {
     if (!api || !item.id) return;
     setDeleting(true);
@@ -318,10 +332,12 @@ function WorkItemEditor({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4">
         <div className="space-y-5 py-4">
-          <div className="flex flex-wrap gap-2">
-            <Badge>{fieldString(item, 'System.State') || '—'}</Badge>
-            <Badge variant="secondary">{workItemType || 'Work item'}</Badge>
-          </div>
+          <WorkItemQuickUpdate
+            item={item}
+            project={project}
+            states={statesQuery.data?.data ?? []}
+            onUpdated={refreshAfterQuickUpdate}
+          />
 
           <div className="space-y-2">
             <Label htmlFor="wi-title">Title</Label>
@@ -559,29 +575,32 @@ function WorkItemEditor({
         </div>
       </div>
 
-      <SheetFooter className="shrink-0 border-t border-border sm:flex-row sm:justify-between">
+      {/* One row on phones: the footer is always on screen, so keep it short. */}
+      <SheetFooter className="mobile-safe-bottom shrink-0 flex-row items-center gap-2 border-t border-border px-4 py-3">
         <Button
           type="button"
-          variant="destructive"
-          className="touch-target order-last h-11 gap-2 sm:order-none"
+          variant="outline"
+          size="icon"
+          className="touch-target size-11 shrink-0 text-destructive hover:text-destructive md:w-auto md:gap-2 md:px-4"
+          aria-label="Delete work item"
           disabled={saving || deleting}
           onClick={() => setConfirmDelete(true)}
         >
           <Trash2 className="size-4" />
-          Delete
+          <span className="hidden md:inline">Delete</span>
         </Button>
-        <div className="flex flex-col-reverse gap-2 sm:flex-row">
+        <div className="ms-auto flex min-w-0 flex-1 gap-2 md:flex-none">
           <Button
             type="button"
             variant="outline"
-            className="touch-target h-11"
+            className="touch-target h-11 flex-1 md:flex-none"
             onClick={onClose}
           >
             Close
           </Button>
           <Button
             type="button"
-            className="touch-target h-11 gap-2"
+            className="touch-target h-11 flex-[2] gap-2 md:flex-none"
             disabled={saving}
             onClick={() => void onSave()}
           >
@@ -670,17 +689,38 @@ export function WorkItemDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="inset-0 flex h-dvh max-h-dvh w-full flex-col gap-0 overflow-hidden border-0 p-0 md:inset-y-0 md:right-0 md:left-auto md:w-3/4 md:max-w-xl md:border-l">
-        <SheetHeader className="shrink-0 border-b border-border pr-12">
-          <SheetTitle>
-            {item?.id ? `#${item.id}` : 'Work item'}
-            {item && fieldString(item, 'System.WorkItemType')
-              ? ` · ${fieldString(item, 'System.WorkItemType')}`
-              : ''}
-          </SheetTitle>
-          <SheetDescription>
-            Update planning fields, estimates, and comments for this work item.
-          </SheetDescription>
+      <SheetContent
+        showCloseButton={false}
+        className="safe-top inset-0 flex h-dvh max-h-dvh w-full flex-col gap-0 overflow-hidden border-0 p-0 md:inset-y-0 md:right-0 md:left-auto md:w-3/4 md:max-w-xl md:border-l"
+      >
+        <SheetHeader className="shrink-0 flex-row items-start gap-2 border-b border-border px-4 py-3">
+          <div className="min-w-0 flex-1 space-y-0.5">
+            <p className="text-xs text-muted-foreground">
+              {item && fieldString(item, 'System.WorkItemType')
+                ? `${fieldString(item, 'System.WorkItemType')} `
+                : 'Work item '}
+              <span className="font-mono tabular-nums">
+                {item?.id ? `#${item.id}` : ''}
+              </span>
+            </p>
+            <SheetTitle className="line-clamp-2 text-base leading-snug break-words">
+              {item ? fieldString(item, 'System.Title') || 'Untitled' : 'Loading…'}
+            </SheetTitle>
+            <SheetDescription className="sr-only">
+              Update state, hours, planning fields, and comments for this work item.
+            </SheetDescription>
+          </div>
+          <SheetClose asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="touch-target -me-2 -mt-1 shrink-0"
+              aria-label="Close work item"
+            >
+              <X className="size-5" />
+            </Button>
+          </SheetClose>
         </SheetHeader>
 
         <div className="flex min-h-0 flex-1 flex-col">

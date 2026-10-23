@@ -9,6 +9,8 @@ export {
 export { loadFavorites, saveFavorites, toggleFavorite } from './favorites';
 export {
   buildIdentityMentionHtml,
+  buildLogWorkPatches,
+  buildRemainingWorkPatch,
   buildWorkItemLinkCandidatesWiql,
   buildWorkItemLinkPatches,
   buildWorkItemLinkRemovePatches,
