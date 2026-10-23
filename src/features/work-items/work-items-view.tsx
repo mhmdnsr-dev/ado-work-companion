@@ -28,6 +28,7 @@ import {
   clearWorkItemFilters,
   emptyWorkItemFilters,
   fieldString,
+  findCurrentIterationPath,
   flattenClassificationPaths,
   getWorkItemChildIds,
   getWorkItemParentId,
@@ -35,6 +36,7 @@ import {
   isClosedWorkItemState,
   parseWorkItemFilters,
   saveWorkItemFilters,
+  type IterationCandidate,
   type WorkItemFiltersState,
 } from '@core/domain';
 import type { IdentityRef, WorkItem } from '@core/types';
@@ -359,6 +361,7 @@ function WorkItemsViewContent({
           id: item.path,
           name: item.name.split('\\').pop() ?? item.name,
           path: item.path,
+          attributes: item.attributes,
         })),
         inspection: tree.inspection,
       };
@@ -506,17 +509,41 @@ function WorkItemsViewContent({
     description: type.description,
   }));
 
-  const sprintOptions = (iterationsQuery.data?.data ?? []).map((iteration) => ({
+  const iterationCandidates: IterationCandidate[] = (
+    iterationsQuery.data?.data ?? []
+  ).map((iteration) => {
+    const rawAttributes: Record<string, unknown> | undefined =
+      'attributes' in iteration && iteration.attributes
+        ? (iteration.attributes as Record<string, unknown>)
+        : undefined;
+    const attributes = rawAttributes
+      ? {
+          startDate:
+            typeof rawAttributes.startDate === 'string' ? rawAttributes.startDate : null,
+          finishDate:
+            typeof rawAttributes.finishDate === 'string'
+              ? rawAttributes.finishDate
+              : null,
+          timeFrame:
+            typeof rawAttributes.timeFrame === 'string'
+              ? rawAttributes.timeFrame
+              : undefined,
+        }
+      : undefined;
+    return {
+      name: iteration.name,
+      path: iteration.path || iteration.name,
+      attributes,
+    };
+  });
+
+  const sprintOptions = iterationCandidates.map((iteration) => ({
     value: iteration.path || iteration.name,
     label: iteration.name,
     description: iteration.path,
   }));
 
-  const currentSprintPath =
-    (iterationsQuery.data?.data ?? []).find(
-      (iteration) =>
-        'attributes' in iteration && iteration.attributes?.timeFrame === 'current',
-    )?.path ?? '';
+  const currentSprintPath = findCurrentIterationPath(iterationCandidates);
 
   const assigneeOptions = [
     { value: '@Me', label: 'Assigned to me' },

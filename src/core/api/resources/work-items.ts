@@ -78,7 +78,11 @@ export async function getWorkItems(
     retry: true,
   });
 
-  return { data: result.data.value ?? [], inspection: result.inspection };
+  const values = (result.data.value ?? []).filter(
+    (item): item is WorkItem => item != null,
+  );
+
+  return { data: values, inspection: result.inspection };
 }
 
 /**

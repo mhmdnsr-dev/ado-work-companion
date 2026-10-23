@@ -20,6 +20,7 @@ export {
   fieldNumber,
   fieldString,
   fieldValue,
+  findCurrentIterationPath,
   flattenClassificationPaths,
   identityDisplayName,
   identityUniqueName,
@@ -29,6 +30,7 @@ export {
   parseWorkItemIdFromRelationUrl,
   workItemLinkTypes,
   type ExistingWorkItemLinkGroup,
+  type IterationCandidate,
   type WorkItemAttachment,
 } from './work-items';
 export {

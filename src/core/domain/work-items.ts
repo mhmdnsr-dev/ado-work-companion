@@ -58,18 +58,70 @@ export function buildIdentityMentionHtml(identity: IdentityRef): string {
   return `<a href="#" data-vss-mention="version:2.0,${id}">@${name}</a>`;
 }
 
-/** Flatten classification tree into selectable path options. */
+export interface IterationCandidate {
+  name: string;
+  path?: string;
+  attributes?: {
+    startDate?: string | null;
+    finishDate?: string | null;
+    timeFrame?: string;
+  };
+}
+
+/**
+ * Flatten a classification tree into selectable path options.
+ * Attributes are preserved so callers can still identify a current sprint:
+ * classification nodes expose start/finish dates but not `timeFrame`.
+ */
 export function flattenClassificationPaths(
   node: WorkItemClassificationNode | null | undefined,
   parentPath = '',
-): Array<{ path: string; name: string }> {
+): Array<{ path: string; name: string; attributes?: Record<string, unknown> }> {
   if (!node?.name) return [];
   const path = parentPath ? `${parentPath}\\${node.name}` : node.name;
-  const self = [{ path, name: path }];
+  const self = node.attributes
+    ? [{ path, name: path, attributes: node.attributes }]
+    : [{ path, name: path }];
   const children = (node.children ?? []).flatMap((child) =>
     flattenClassificationPaths(child, path),
   );
   return [...self, ...children];
+}
+
+/**
+ * Returns the most recent iteration marked current, or one whose dates contain
+ * `now`. Iteration lists are chronological, so scan backwards to prefer the
+ * latest current sprint when several windows overlap.
+ */
+export function findCurrentIterationPath(
+  iterations: ReadonlyArray<IterationCandidate>,
+  now: Date = new Date(),
+): string {
+  const nowMs = now.getTime();
+  for (let index = iterations.length - 1; index >= 0; index -= 1) {
+    const iteration = iterations[index];
+    if (!iteration) continue;
+    const attributes = iteration.attributes;
+    if (!attributes) continue;
+    if (attributes.timeFrame === 'current') {
+      return iteration.path || iteration.name;
+    }
+    // Trust explicit past/future team-iteration flags over dates.
+    if (attributes.timeFrame === 'past' || attributes.timeFrame === 'future') {
+      continue;
+    }
+    const start = attributes.startDate ? Date.parse(attributes.startDate) : NaN;
+    const finish = attributes.finishDate ? Date.parse(attributes.finishDate) : NaN;
+    if (
+      Number.isFinite(start) &&
+      Number.isFinite(finish) &&
+      start <= nowMs &&
+      nowMs <= finish
+    ) {
+      return iteration.path || iteration.name;
+    }
+  }
+  return '';
 }
 
 /**
