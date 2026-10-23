@@ -117,3 +117,125 @@ export function isClosedWorkItemState(item: WorkItem): boolean {
   const state = fieldString(item, 'System.State').toLowerCase();
   return state === 'closed' || state === 'done' || state === 'removed';
 }
+
+/** Azure DevOps state categories, used for the state dot colour. */
+export type WorkItemStateCategory =
+  'proposed' | 'inProgress' | 'resolved' | 'completed' | 'removed';
+
+/**
+ * Default states of the Agile, Scrum, Basic, and CMMI processes. Custom states
+ * fall back to "proposed" so an unknown state never looks finished.
+ */
+const STATE_CATEGORIES: Record<string, WorkItemStateCategory> = {
+  new: 'proposed',
+  proposed: 'proposed',
+  'to do': 'proposed',
+  approved: 'proposed',
+  active: 'inProgress',
+  committed: 'inProgress',
+  'in progress': 'inProgress',
+  doing: 'inProgress',
+  resolved: 'resolved',
+  closed: 'completed',
+  done: 'completed',
+  removed: 'removed',
+};
+
+export function workItemStateCategory(item: WorkItem): WorkItemStateCategory {
+  const state = fieldString(item, 'System.State').trim().toLowerCase();
+  return STATE_CATEGORIES[state] ?? 'proposed';
+}
+
+export interface WorkItemHierarchySummary {
+  /** Loaded leaf descendants (tasks, bugs, …) under the node. */
+  total: number;
+  /** Leaves in a resolved or completed state. */
+  completed: number;
+  /** Sum of Remaining Work across the leaves. */
+  remainingHours: number;
+}
+
+/** Rolls up progress for a parent row from its loaded leaf descendants. */
+export function summarizeHierarchyNode(
+  node: WorkItemHierarchyNode,
+): WorkItemHierarchySummary {
+  const summary: WorkItemHierarchySummary = { total: 0, completed: 0, remainingHours: 0 };
+  const visit = (current: WorkItemHierarchyNode) => {
+    for (const child of current.children) {
+      if (child.children.length > 0) {
+        visit(child);
+        continue;
+      }
+      summary.total += 1;
+      const category = workItemStateCategory(child.item);
+      if (category === 'completed' || category === 'resolved') summary.completed += 1;
+      summary.remainingHours +=
+        fieldNumber(child.item, 'Microsoft.VSTS.Scheduling.RemainingWork') ?? 0;
+    }
+  };
+  visit(node);
+  return summary;
+}
+
+export interface VisibleHierarchyRow {
+  node: WorkItemHierarchyNode;
+  id: number | null;
+  /** 0 for roots. */
+  depth: number;
+  parentId: number | null;
+  hasChildren: boolean;
+  expanded: boolean;
+  /** 1-based position among siblings, for aria-posinset. */
+  posInSet: number;
+  setSize: number;
+  isLast: boolean;
+  /** `ancestorIsLast[d]` is true when the ancestor at depth `d` is a last sibling. */
+  ancestorIsLast: boolean[];
+}
+
+/** Flattens the tree into the rows currently visible given the collapsed ids. */
+export function flattenVisibleHierarchy(
+  roots: WorkItemHierarchyNode[],
+  collapsedIds: ReadonlySet<number>,
+): VisibleHierarchyRow[] {
+  const rows: VisibleHierarchyRow[] = [];
+  const visit = (
+    nodes: WorkItemHierarchyNode[],
+    depth: number,
+    parentId: number | null,
+    ancestorIsLast: boolean[],
+  ) => {
+    nodes.forEach((node, index) => {
+      const id = node.item.id ?? null;
+      const hasChildren = node.children.length > 0;
+      const expanded = hasChildren && (id == null || !collapsedIds.has(id));
+      const isLast = index === nodes.length - 1;
+      rows.push({
+        node,
+        id,
+        depth,
+        parentId,
+        hasChildren,
+        expanded,
+        posInSet: index + 1,
+        setSize: nodes.length,
+        isLast,
+        ancestorIsLast,
+      });
+      if (expanded) visit(node.children, depth + 1, id, [...ancestorIsLast, isLast]);
+    });
+  };
+  visit(roots, 0, null, []);
+  return rows;
+}
+
+/** Ids of every node that has children, for "collapse all". */
+export function collectHierarchyParentIds(nodes: WorkItemHierarchyNode[]): number[] {
+  const ids: number[] = [];
+  const visit = (node: WorkItemHierarchyNode) => {
+    if (node.children.length > 0 && node.item.id != null) ids.push(node.item.id);
+    node.children.forEach(visit);
+  };
+  nodes.forEach(visit);
+  return ids;
+}

@@ -77,3 +77,51 @@ export async function saveWorkItemFilters(
 export async function clearWorkItemFilters(storage: StorageAdapter): Promise<void> {
   await storage.removeItem(STORAGE_KEYS.WORK_ITEM_FILTERS);
 }
+
+const collapsedTreeSchema = z.object({
+  organization: z.string(),
+  project: z.string(),
+  ids: z.array(z.number().int().positive()),
+});
+
+/** Reads the collapsed tree rows saved for this organization and project. */
+export function parseCollapsedTreeIds(
+  raw: string | null,
+  organization: string,
+  project: string,
+): number[] {
+  if (!raw) return [];
+  try {
+    const parsed = collapsedTreeSchema.safeParse(JSON.parse(raw));
+    if (!parsed.success) return [];
+    if (
+      parsed.data.organization !== organization.trim() ||
+      parsed.data.project !== project.trim()
+    ) {
+      return [];
+    }
+    return parsed.data.ids;
+  } catch {
+    return [];
+  }
+}
+
+export async function saveCollapsedTreeIds(
+  storage: StorageAdapter,
+  organization: string,
+  project: string,
+  ids: Iterable<number>,
+): Promise<void> {
+  await storage.setItem(
+    STORAGE_KEYS.WORK_ITEM_TREE_COLLAPSED,
+    JSON.stringify({
+      organization: organization.trim(),
+      project: project.trim(),
+      ids: [...ids],
+    }),
+  );
+}
+
+export async function clearCollapsedTreeIds(storage: StorageAdapter): Promise<void> {
+  await storage.removeItem(STORAGE_KEYS.WORK_ITEM_TREE_COLLAPSED);
+}

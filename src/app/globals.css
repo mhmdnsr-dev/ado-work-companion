@@ -48,6 +48,19 @@
   --sidebar-accent-foreground: oklch(0.31 0.055 254);
   --sidebar-border: oklch(0.916 0.008 253);
   --sidebar-ring: oklch(0.563 0.156 254.3);
+
+  /* Work item type glyphs and state dots (DESIGN.md: Boards+ light). */
+  --wit-epic: oklch(0.593 0.152 52);
+  --wit-feature: oklch(0.468 0.147 313.6);
+  --wit-story: oklch(0.541 0.115 235.3);
+  --wit-task: oklch(0.593 0.121 90.3);
+  --wit-bug: oklch(0.553 0.197 20.7);
+  --wit-other: oklch(0.507 0.023 257.5);
+  --state-proposed: oklch(0.654 0.017 257.2);
+  --state-in-progress: oklch(0.567 0.155 248.5);
+  --state-resolved: oklch(0.669 0.149 66.1);
+  --state-completed: oklch(0.574 0.16 143.1);
+  --state-removed: oklch(0.723 0.013 255.5);
 }
 
 .dark {
@@ -89,6 +102,19 @@
   --sidebar-accent-foreground: oklch(0.94 0.014 253);
   --sidebar-border: oklch(1 0 0 / 12%);
   --sidebar-ring: oklch(0.704 0.132 250.9);
+
+  /* Work item type glyphs and state dots (DESIGN.md: Ledger dark). */
+  --wit-epic: oklch(0.781 0.13 58.9);
+  --wit-feature: oklch(0.771 0.122 302.8);
+  --wit-story: oklch(0.781 0.104 230.8);
+  --wit-task: oklch(0.834 0.117 87.4);
+  --wit-bug: oklch(0.737 0.133 17.4);
+  --wit-other: oklch(0.708 0.021 263);
+  --state-proposed: oklch(0.661 0.023 261.7);
+  --state-in-progress: oklch(0.696 0.137 263);
+  --state-resolved: oklch(0.804 0.124 80.7);
+  --state-completed: oklch(0.773 0.138 155.1);
+  --state-removed: oklch(0.498 0.022 262.9);
 }
 
 @theme inline {
@@ -135,6 +161,18 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-wit-epic: var(--wit-epic);
+  --color-wit-feature: var(--wit-feature);
+  --color-wit-story: var(--wit-story);
+  --color-wit-task: var(--wit-task);
+  --color-wit-bug: var(--wit-bug);
+  --color-wit-other: var(--wit-other);
+  --color-state-proposed: var(--state-proposed);
+  --color-state-in-progress: var(--state-in-progress);
+  --color-state-resolved: var(--state-resolved);
+  --color-state-completed: var(--state-completed);
+  --color-state-removed: var(--state-removed);
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
