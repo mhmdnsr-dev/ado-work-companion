@@ -26,6 +26,12 @@ import { cn } from '@/lib/utils';
 const LOG_WORK_STEPS = [0.5, 1, 2, 4];
 const STEP = 0.5;
 
+/** Parses a typed hours value ("2.5", "2,5"); anything invalid counts as 0. */
+function parseHours(value: string): number {
+  const parsed = Number(value.trim().replace(',', '.'));
+  return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed * 100) / 100 : 0;
+}
+
 function hasHourFields(item: WorkItem, type: string): boolean {
   const lower = type.toLowerCase();
   return (
@@ -59,14 +65,19 @@ export function WorkItemQuickUpdate({
   const currentState = fieldString(item, 'System.State');
   const remaining = fieldNumber(item, 'Microsoft.VSTS.Scheduling.RemainingWork') ?? 0;
   const completed = fieldNumber(item, 'Microsoft.VSTS.Scheduling.CompletedWork') ?? 0;
+  // Log work is composed locally (chips and the stepper only change the amount)
+  // and saved once, so 2.5h is one request, not three.
+  const [amountDraft, setAmountDraft] = useState('');
+  const [adjustOpen, setAdjustOpen] = useState(false);
   const [remainingDraft, setRemainingDraft] = useState(formatHours(remaining));
   const [pending, setPending] = useState<string | null>(null);
   const lookup = buildWorkItemStateLookup([{ name: type, states }]);
-  const draftNumber = Number(remainingDraft);
-  const remainingDirty =
-    remainingDraft.trim() !== '' &&
-    Number.isFinite(draftNumber) &&
-    draftNumber !== remaining;
+  const amount = parseHours(amountDraft);
+  const preview = amount > 0 ? buildLogWorkPatches(item, amount) : null;
+  const remainingTarget = parseHours(remainingDraft);
+  // Only a real number may set Remaining: "abc" must not silently become 0.
+  const remainingValid = /^\d+([.,]\d+)?$/.test(remainingDraft.trim());
+  const remainingDirty = remainingValid && remainingTarget !== remaining;
 
   async function patch(key: string, operations: JsonPatchOperation[]) {
     if (!api || id == null) return false;
@@ -101,24 +112,27 @@ export function WorkItemQuickUpdate({
     });
   }
 
-  async function logWork(hours: number) {
-    const result = buildLogWorkPatches(item, hours);
-    const ok = await patch(`log:${hours}`, result.operations);
+  async function logWork() {
+    if (!preview) return;
+    const ok = await patch('log', preview.operations);
     if (ok) {
+      setAmountDraft('');
       toast.success(
-        `Logged ${formatHours(hours)}h on #${id} · ${formatHours(result.remaining)}h remaining`,
+        `Logged ${formatHours(amount)}h on #${id} · ${formatHours(preview.remaining)}h remaining`,
       );
     }
   }
 
-  async function saveRemaining() {
-    const ok = await patch('remaining', buildRemainingWorkPatch(draftNumber));
-    if (ok) toast.success(`Remaining set to ${formatHours(Math.max(0, draftNumber))}h`);
+  function addToAmount(delta: number) {
+    setAmountDraft(formatHours(Math.max(0, amount + delta)));
   }
 
-  function stepRemaining(delta: number) {
-    const base = Number.isFinite(draftNumber) ? draftNumber : remaining;
-    setRemainingDraft(formatHours(Math.max(0, base + delta)));
+  async function saveRemaining() {
+    const ok = await patch('remaining', buildRemainingWorkPatch(remainingTarget));
+    if (ok) {
+      setAdjustOpen(false);
+      toast.success(`Remaining set to ${formatHours(Math.max(0, remainingTarget))}h`);
+    }
   }
 
   // "Removed" takes an item off every board, so it stays in the full form only.
@@ -190,95 +204,152 @@ export function WorkItemQuickUpdate({
 
       {hasHourFields(item, type) ? (
         <div className="space-y-3">
-          <div className="flex items-end justify-between gap-3">
-            <div className="space-y-1">
-              <label
-                htmlFor="quick-remaining"
-                className="block text-xs text-muted-foreground"
-              >
-                Remaining (h)
-              </label>
-              <div className="flex items-center gap-1">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="touch-target size-11"
-                  aria-label={`Decrease remaining by ${STEP} hours`}
-                  disabled={pending != null}
-                  onClick={() => stepRemaining(-STEP)}
-                >
-                  <Minus className="size-4" />
-                </Button>
-                <Input
-                  id="quick-remaining"
-                  inputMode="decimal"
-                  value={remainingDraft}
-                  onChange={(event) => setRemainingDraft(event.target.value)}
-                  className="h-11 w-16 text-center font-mono tabular-nums"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="touch-target size-11"
-                  aria-label={`Increase remaining by ${STEP} hours`}
-                  disabled={pending != null}
-                  onClick={() => stepRemaining(STEP)}
-                >
-                  <Plus className="size-4" />
-                </Button>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground">Completed (h)</p>
-              <p className="font-mono text-lg leading-[44px] tabular-nums">
-                {formatHours(completed)}
-              </p>
-            </div>
+          <div className="flex items-baseline justify-between gap-3">
+            <p id="log-work-label" className="text-sm font-medium">
+              Log work
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Remaining{' '}
+              <span className="font-mono text-foreground tabular-nums">
+                {formatHours(remaining)}h
+              </span>{' '}
+              · Completed{' '}
+              <span className="font-mono text-foreground tabular-nums">
+                {formatHours(completed)}h
+              </span>
+            </p>
           </div>
 
-          {remainingDirty ? (
-            <Button
-              type="button"
-              className="touch-target h-11 w-full gap-2"
-              disabled={pending != null}
-              onClick={() => void saveRemaining()}
-            >
-              {pending === 'remaining' ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : null}
-              Save remaining
-            </Button>
-          ) : null}
-
-          <div className="space-y-1.5">
-            <p id="log-work-label" className="text-xs text-muted-foreground">
-              Log work (moves hours from Remaining to Completed)
-            </p>
-            <div
-              role="group"
-              aria-labelledby="log-work-label"
-              className="grid grid-cols-4 gap-2"
-            >
+          <div role="group" aria-labelledby="log-work-label" className="space-y-2">
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="touch-target size-11"
+                aria-label={`Log ${STEP} hours less`}
+                disabled={pending != null || amount <= 0}
+                onClick={() => addToAmount(-STEP)}
+              >
+                <Minus className="size-4" />
+              </Button>
+              <div className="relative min-w-0 flex-1">
+                <Input
+                  inputMode="decimal"
+                  aria-label="Hours to log"
+                  placeholder="0"
+                  value={amountDraft}
+                  onChange={(event) => setAmountDraft(event.target.value)}
+                  className="h-11 pe-7 text-center font-mono text-base tabular-nums"
+                />
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground"
+                >
+                  h
+                </span>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="touch-target size-11"
+                aria-label={`Log ${STEP} hours more`}
+                disabled={pending != null}
+                onClick={() => addToAmount(STEP)}
+              >
+                <Plus className="size-4" />
+              </Button>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
               {LOG_WORK_STEPS.map((hours) => (
                 <Button
                   key={hours}
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                   className="touch-target h-11 px-0 font-mono tabular-nums"
-                  aria-label={`Log ${formatHours(hours)} hours`}
+                  aria-label={`Add ${formatHours(hours)} hours`}
                   disabled={pending != null}
-                  onClick={() => void logWork(hours)}
+                  onClick={() => addToAmount(hours)}
                 >
-                  {pending === `log:${hours}` ? (
-                    <Loader2 className="size-4 animate-spin" aria-hidden />
-                  ) : (
-                    `+${formatHours(hours)}h`
-                  )}
+                  +{formatHours(hours)}h
                 </Button>
               ))}
             </div>
+          </div>
+
+          {/* Shows both fields before saving, so nothing changes by surprise. */}
+          <p aria-live="polite" className="min-h-4 text-xs text-muted-foreground">
+            {preview ? (
+              <>
+                Remaining {formatHours(remaining)} →{' '}
+                <span className="font-semibold text-foreground">
+                  {formatHours(preview.remaining)}h
+                </span>{' '}
+                · Completed {formatHours(completed)} →{' '}
+                <span className="font-semibold text-foreground">
+                  {formatHours(preview.completed)}h
+                </span>
+              </>
+            ) : (
+              'Tap the chips or type hours, then log them in one go.'
+            )}
+          </p>
+
+          <Button
+            type="button"
+            className="touch-target h-11 w-full gap-2"
+            disabled={!preview || pending != null}
+            onClick={() => void logWork()}
+          >
+            {pending === 'log' ? <Loader2 className="size-4 animate-spin" /> : null}
+            {preview ? `Log ${formatHours(amount)}h` : 'Log work'}
+          </Button>
+
+          <div className="border-t border-border pt-2">
+            <Button
+              type="button"
+              variant="link"
+              className="h-11 px-0 text-sm"
+              aria-expanded={adjustOpen}
+              aria-controls="adjust-remaining"
+              onClick={() => setAdjustOpen((open) => !open)}
+            >
+              Adjust remaining only
+            </Button>
+            {adjustOpen ? (
+              <div id="adjust-remaining" className="space-y-2">
+                <div className="flex items-end gap-2">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <label htmlFor="quick-remaining" className="block text-xs">
+                      Set remaining to (h)
+                    </label>
+                    <Input
+                      id="quick-remaining"
+                      inputMode="decimal"
+                      value={remainingDraft}
+                      onChange={(event) => setRemainingDraft(event.target.value)}
+                      className="h-11 font-mono tabular-nums"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="touch-target h-11 gap-2"
+                    disabled={!remainingDirty || pending != null}
+                    onClick={() => void saveRemaining()}
+                  >
+                    {pending === 'remaining' ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : null}
+                    Save
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  For re-estimates. Completed hours don’t change.
+                </p>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}

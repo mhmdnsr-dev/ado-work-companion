@@ -68,8 +68,8 @@ Type: IBM Plex Sans (UI) and IBM Plex Mono (IDs, hours, counts) via `next/font`,
 - **Header**: the type and mono `#id` on a small line, then the work item title (2-line clamp) as the sheet title, and a 44px close button.
 - **Quick update card** (first thing in the sheet). These are the daily actions, one tap each:
   - **State chips**: the type's process states with ADO colours. A tap saves the state immediately, and the toast offers **Undo**. "Removed" is never a chip.
-  - **Log work**: +0.5h / +1h / +2h / +4h moves hours from Remaining to Completed in one PATCH (`buildLogWorkPatches`; Remaining never goes below 0).
-  - **Remaining stepper**: −/+ in 0.5h steps or typed; "Save remaining" appears only when the value changed.
+  - **Log work composer**: the +0.5h / +1h / +2h / +4h chips and the −/+ stepper only **build an amount** (or type one, e.g. 2.5). A live preview shows both effects ("Remaining 4 → 1.5h · Completed 0 → 2.5h"), and one **Log 2.5h** button saves it in a single PATCH (`buildLogWorkPatches`; Remaining never goes below 0).
+  - **Adjust remaining only**: a disclosure for re-estimates ("Set remaining to …h"), labelled so it's clear Completed doesn't change. Save is enabled only for a valid, changed number.
 - **Full form** below, unchanged. **Footer**: one row on phones (delete icon, Close, Save changes) with safe-area padding.
 - **Toasts over modals**: `[data-sonner-toaster]` keeps pointer events, and Sheet/Dialog ignore outside-interactions on toasts, so toast actions work while a sheet is open.
 
