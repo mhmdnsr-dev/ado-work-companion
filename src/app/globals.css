@@ -63,45 +63,46 @@
   --state-removed: oklch(0.723 0.013 255.5);
 }
 
+/* Ledger dark (DESIGN.md): deep blue-black ground, quiet borders, calm text. */
 .dark {
-  --background: oklch(0.171 0.012 253);
-  --foreground: oklch(0.973 0.004 253);
-  --card: oklch(0.214 0.014 253);
-  --card-foreground: oklch(0.973 0.004 253);
-  --popover: oklch(0.214 0.014 253);
-  --popover-foreground: oklch(0.973 0.004 253);
-  --primary: oklch(0.704 0.132 250.9);
-  --primary-foreground: oklch(0.171 0.012 253);
-  --secondary: oklch(0.267 0.015 253);
-  --secondary-foreground: oklch(0.973 0.004 253);
-  --muted: oklch(0.267 0.015 253);
-  --muted-foreground: oklch(0.7 0.018 253);
-  --accent: oklch(0.305 0.028 253);
-  --accent-foreground: oklch(0.94 0.014 253);
+  --background: oklch(0.173 0.009 264.3);
+  --foreground: oklch(0.934 0.007 268.5);
+  --card: oklch(0.204 0.013 264.2);
+  --card-foreground: oklch(0.934 0.007 268.5);
+  --popover: oklch(0.218 0.015 266.9);
+  --popover-foreground: oklch(0.934 0.007 268.5);
+  --primary: oklch(0.655 0.156 262.5);
+  --primary-foreground: oklch(0.159 0.009 264.3);
+  --secondary: oklch(0.244 0.018 266.2);
+  --secondary-foreground: oklch(0.934 0.007 268.5);
+  --muted: oklch(0.244 0.018 266.2);
+  --muted-foreground: oklch(0.708 0.021 263);
+  --accent: oklch(0.278 0.025 268.3);
+  --accent-foreground: oklch(0.934 0.007 268.5);
   --destructive: oklch(0.674 0.183 24.5);
-  --destructive-foreground: oklch(0.171 0.012 253);
-  --success: oklch(0.723 0.145 156.1);
-  --success-foreground: oklch(0.171 0.012 156);
-  --warning: oklch(0.815 0.145 78.5);
+  --destructive-foreground: oklch(0.159 0.009 264.3);
+  --success: oklch(0.773 0.138 155.1);
+  --success-foreground: oklch(0.159 0.009 264.3);
+  --warning: oklch(0.804 0.124 80.7);
   --warning-foreground: oklch(0.209 0.045 78);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 16%);
-  --ring: oklch(0.704 0.132 250.9);
+  --border: oklch(0.277 0.022 265.8);
+  --input: oklch(0.308 0.022 262.5);
+  --ring: oklch(0.655 0.156 262.5);
 
-  --chart-1: oklch(0.704 0.132 250.9);
-  --chart-2: oklch(0.723 0.145 156.1);
-  --chart-3: oklch(0.815 0.145 78.5);
+  --chart-1: oklch(0.655 0.156 262.5);
+  --chart-2: oklch(0.773 0.138 155.1);
+  --chart-3: oklch(0.804 0.124 80.7);
   --chart-4: oklch(0.674 0.183 24.5);
-  --chart-5: oklch(0.685 0.165 296.5);
+  --chart-5: oklch(0.771 0.122 302.8);
 
-  --sidebar: oklch(0.214 0.014 253);
-  --sidebar-foreground: oklch(0.973 0.004 253);
-  --sidebar-primary: oklch(0.704 0.132 250.9);
-  --sidebar-primary-foreground: oklch(0.171 0.012 253);
-  --sidebar-accent: oklch(0.305 0.028 253);
-  --sidebar-accent-foreground: oklch(0.94 0.014 253);
-  --sidebar-border: oklch(1 0 0 / 12%);
-  --sidebar-ring: oklch(0.704 0.132 250.9);
+  --sidebar: oklch(0.159 0.009 264.3);
+  --sidebar-foreground: oklch(0.934 0.007 268.5);
+  --sidebar-primary: oklch(0.655 0.156 262.5);
+  --sidebar-primary-foreground: oklch(0.159 0.009 264.3);
+  --sidebar-accent: oklch(0.244 0.018 266.2);
+  --sidebar-accent-foreground: oklch(0.934 0.007 268.5);
+  --sidebar-border: oklch(0.244 0.018 266.2);
+  --sidebar-ring: oklch(0.655 0.156 262.5);
 
   /* Work item type glyphs and state dots (DESIGN.md: Ledger dark). */
   --wit-epic: oklch(0.781 0.13 58.9);
@@ -173,6 +174,12 @@
   --color-state-resolved: var(--state-resolved);
   --color-state-completed: var(--state-completed);
   --color-state-removed: var(--state-removed);
+
+  /* Motion: state changes only (DESIGN.md principle 5). */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-quick: 150ms;
+  --duration-moderate: 220ms;
 
   --font-sans: var(--font-plex-sans), 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
