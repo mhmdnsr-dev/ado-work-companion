@@ -117,5 +117,5 @@ One PR per slice, ordered by phone impact (see AGENTS.md › Mobile-first). Tick
 - [x] 2. Work Items phone header and filters: one-row search, filter chip bar, a proper `Sheet` bottom sheet, ADO-style quick views (Assigned to me / Following / Recently updated)
 - [x] 3. Work item detail sheet: quick updates (one-tap state, remaining-hours stepper) above the full form
 - [x] 4. App-wide shell: adopt the Ledger dark ground, phone app bar and bottom nav, page `<h1>`, motion tokens
-- [ ] 5. Dashboard (status cards, sprint charts; use the `dataviz` skill)
-- [ ] 6. Queries, Settings, Help; empty, loading, and error states
+- [x] 5. Dashboard: daily start screen with validated charts (#25, #26)
+- [x] 6. Queries, Settings, Help; empty, loading, and error states (#28)

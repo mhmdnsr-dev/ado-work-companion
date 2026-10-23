@@ -34,6 +34,16 @@ export function ProjectCombobox({
 }: ProjectComboboxProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [typing, setTyping] = useState(false);
+  // The text box only appears when the list can't help: loading failed, the
+  // loaded list doesn't contain the saved name, or the user asks to type one.
+  // An unloaded list isn't a reason: the picker already shows the saved name.
+  const valueListed = projects.some((project) => project.name === value);
+  const showManualEntry =
+    allowManualEntry &&
+    (typing ||
+      Boolean(error) ||
+      (value.trim() !== '' && projects.length > 0 && !valueListed));
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -183,15 +193,24 @@ export function ProjectCombobox({
         ) : null}
       </div>
 
-      {allowManualEntry ? (
+      {showManualEntry ? (
         <Input
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          placeholder="Or type a project name manually"
+          placeholder="Type a project name"
           aria-label="Project name manual entry"
           disabled={disabled}
           className="touch-target h-11"
         />
+      ) : allowManualEntry ? (
+        <button
+          type="button"
+          className="touch-target flex w-fit items-center text-sm font-medium text-primary hover:underline disabled:opacity-50"
+          disabled={disabled}
+          onClick={() => setTyping(true)}
+        >
+          Type a name instead
+        </button>
       ) : null}
 
       {error ? (

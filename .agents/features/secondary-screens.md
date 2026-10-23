@@ -1,6 +1,6 @@
 # secondary-screens
 
-Branch: feat/secondary-screens · Started: 2026-10-23 · Status: in progress
+Branch: feat/secondary-screens · Started: 2026-10-23 · Status: shipped (2026-10-23, #28 → main via #29)
 
 ## Goal
 
