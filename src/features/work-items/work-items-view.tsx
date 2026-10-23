@@ -27,6 +27,7 @@ import { adoQueryKeys, STORAGE_KEYS } from '@core/constants';
 import {
   buildWorkItemHierarchy,
   buildWorkItemStateLookup,
+  buildWorkItemTypeLookup,
   buildWorkItemsListWiql,
   clearCollapsedTreeIds,
   clearWorkItemFilters,
@@ -79,6 +80,8 @@ const WorkItemDetailSheet = dynamic(
 const PAGE_SIZE = 12;
 const HIERARCHY_PAGE_SIZE = 8;
 const MAX_HIERARCHY_ITEMS = 300;
+/** Ancestor levels fetched above the matches (Story → Feature → Epic → …). */
+const MAX_ANCESTOR_ROUNDS = 4;
 
 type StateFilter = 'open' | 'all' | 'closed';
 type DisplayMode = WorkItemFiltersState['displayMode'];
@@ -201,36 +204,43 @@ async function enrichHierarchyItems(params: {
       const children = await fetchWorkItemsByIds(api, project, childIdsToFetch, signal);
       addItems(children);
     }
+  }
 
-    // A fetched child can introduce a parent that was not loaded yet. Fetch it
-    // once so the child nests correctly, without expanding it any further.
-    const childParentIds = new Set<number>();
+  // Walk up the hierarchy (Story → Feature → Epic, plus custom levels) so
+  // matches sit under their full ancestry. Ancestors are context only: they
+  // group the matches but their other children are never loaded.
+  for (let round = 0; round < MAX_ANCESTOR_ROUNDS; round += 1) {
+    const missingAncestorIds = new Set<number>();
     for (const item of byId.values()) {
       const parentId = getWorkItemParentId(item);
-      if (parentId != null && !byId.has(parentId)) childParentIds.add(parentId);
+      if (parentId != null && !byId.has(parentId)) missingAncestorIds.add(parentId);
     }
-    const childParentIdsToFetch = [...childParentIds].slice(
+    const ancestorIdsToFetch = [...missingAncestorIds].slice(
       0,
       Math.max(0, MAX_HIERARCHY_ITEMS - byId.size),
     );
-    if (childParentIdsToFetch.length > 0) {
-      const parents = await fetchWorkItemsByIds(
-        api,
-        project,
-        childParentIdsToFetch,
-        signal,
-      );
-      addItems(parents);
-      for (const parent of parents) {
-        if (parent.id != null) contextIds.add(parent.id);
-      }
+    if (ancestorIdsToFetch.length === 0) break;
+    const ancestors = await fetchWorkItemsByIds(api, project, ancestorIdsToFetch, signal);
+    addItems(ancestors);
+    for (const ancestor of ancestors) {
+      if (ancestor.id != null) contextIds.add(ancestor.id);
     }
   }
 
-  const items = [...byId.values()].filter((item) => {
+  let items = [...byId.values()].filter((item) => {
     if (item.id == null || baseIds.has(item.id) || stateScope !== 'open') return true;
     return !isClosedWorkItemState(item);
   });
+  // Hiding a closed ancestor can leave the levels above it with nothing to
+  // group, so drop context rows that no longer have a loaded child.
+  for (;;) {
+    const parentIds = new Set(items.map(getWorkItemParentId));
+    const kept = items.filter(
+      (item) => item.id == null || !contextIds.has(item.id) || parentIds.has(item.id),
+    );
+    if (kept.length === items.length) break;
+    items = kept;
+  }
   return { items, contextIds: [...contextIds].filter((id) => byId.has(id)) };
 }
 
@@ -344,6 +354,10 @@ function WorkItemsViewContent({
   );
   const stateLookup = useMemo(
     () => buildWorkItemStateLookup(workItemTypes),
+    [workItemTypes],
+  );
+  const typeLookup = useMemo(
+    () => buildWorkItemTypeLookup(workItemTypes),
     [workItemTypes],
   );
   const selectedTeam = teams.find((team) => team.id === teamId || team.name === teamId);
@@ -1163,6 +1177,7 @@ function WorkItemsViewContent({
           selectedId={selectedId}
           contextIds={contextIds}
           stateLookup={stateLookup}
+          typeLookup={typeLookup}
         />
       ) : (
         <WorkItemTree
@@ -1171,6 +1186,7 @@ function WorkItemsViewContent({
           onOpen={openItem}
           selectedId={selectedId}
           stateLookup={stateLookup}
+          typeLookup={typeLookup}
         />
       )}
 

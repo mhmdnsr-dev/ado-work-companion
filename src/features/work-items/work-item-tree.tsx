@@ -14,6 +14,7 @@ import {
   type VisibleHierarchyRow,
   type WorkItemHierarchyNode,
   type WorkItemStateLookup,
+  type WorkItemTypeLookup,
 } from '@core/domain';
 import type { WorkItem } from '@core/types';
 import {
@@ -77,6 +78,7 @@ export function WorkItemTree({
   selectedId = null,
   contextIds = NO_COLLAPSED,
   stateLookup,
+  typeLookup,
   className,
 }: {
   roots: WorkItemHierarchyNode[];
@@ -91,6 +93,8 @@ export function WorkItemTree({
   contextIds?: ReadonlySet<number>;
   /** Process state categories and colours from the project's work item types. */
   stateLookup?: WorkItemStateLookup;
+  /** Process type colours and icons, used for custom types. */
+  typeLookup?: WorkItemTypeLookup;
   /** Overrides the frame, e.g. to drop the phone full-bleed inside a panel. */
   className?: string;
 }) {
@@ -174,6 +178,7 @@ export function WorkItemTree({
             row={row}
             isContext={row.id != null && contextIds.has(row.id)}
             stateLookup={stateLookup}
+            typeLookup={typeLookup}
             selected={row.id != null && row.id === selectedId}
             tabbable={row.id === tabbableId}
             registerRef={(element) => {
@@ -196,6 +201,7 @@ function WorkItemTreeRow({
   row,
   isContext,
   stateLookup,
+  typeLookup,
   selected,
   tabbable,
   registerRef,
@@ -207,6 +213,7 @@ function WorkItemTreeRow({
   row: VisibleHierarchyRow;
   isContext: boolean;
   stateLookup?: WorkItemStateLookup;
+  typeLookup?: WorkItemTypeLookup;
   selected: boolean;
   tabbable: boolean;
   registerRef: (element: HTMLLIElement | null) => void;
@@ -224,7 +231,7 @@ function WorkItemTreeRow({
     identityDisplayName(item.fields?.['System.AssignedTo']) || 'Unassigned';
   const ownRemaining = fieldNumber(item, 'Microsoft.VSTS.Scheduling.RemainingWork');
   const attachmentCount = listWorkItemAttachments(item.relations).length;
-  const visual = workItemTypeVisual(type);
+  const visual = workItemTypeVisual(type, typeLookup?.get(type.trim().toLowerCase()));
   const TypeIcon = visual.icon;
   const isParent = row.hasChildren;
   const summary =
@@ -312,6 +319,11 @@ function WorkItemTreeRow({
             visual.className,
             isContext && 'opacity-60',
           )}
+          style={
+            visual.customColor
+              ? ({ '--wit-custom': visual.customColor } as CSSProperties)
+              : undefined
+          }
           strokeWidth={2.2}
         />
 

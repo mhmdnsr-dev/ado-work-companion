@@ -219,6 +219,20 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 
+  /*
+   * Custom work item types carry their ADO colour in --wit-custom. Clamping
+   * its lightness per theme keeps pale (#cccccc) and deep (#004b50) process
+   * colours legible; browsers without relative colours use it unchanged.
+   */
+  .wit-custom-glyph {
+    color: var(--wit-custom);
+    color: oklch(from var(--wit-custom) clamp(0.42, l, 0.58) c h);
+  }
+
+  .dark .wit-custom-glyph {
+    color: oklch(from var(--wit-custom) clamp(0.72, l, 0.86) c h);
+  }
+
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;

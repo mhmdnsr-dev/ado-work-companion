@@ -183,6 +183,30 @@ export function buildWorkItemStateLookup(types: WorkItemType[]): WorkItemStateLo
   return lookup;
 }
 
+export interface WorkItemTypeInfo {
+  /** The process colour as `#rrggbb`. */
+  color?: string;
+  /** ADO icon id, e.g. `icon_headphone`. */
+  iconId?: string;
+}
+
+/** Work item types keyed by lower-cased name, for custom type glyphs. */
+export type WorkItemTypeLookup = ReadonlyMap<string, WorkItemTypeInfo>;
+
+export function buildWorkItemTypeLookup(types: WorkItemType[]): WorkItemTypeLookup {
+  const lookup = new Map<string, WorkItemTypeInfo>();
+  for (const type of types) {
+    if (!type.name) continue;
+    lookup.set(type.name.trim().toLowerCase(), {
+      color: /^[0-9a-f]{6}$/i.test(type.color ?? '')
+        ? `#${type.color!.toLowerCase()}`
+        : undefined,
+      iconId: type.icon?.id || undefined,
+    });
+  }
+  return lookup;
+}
+
 export function workItemStateInfo(
   item: WorkItem,
   lookup?: WorkItemStateLookup,

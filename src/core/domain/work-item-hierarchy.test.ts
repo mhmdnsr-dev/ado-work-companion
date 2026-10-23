@@ -4,6 +4,7 @@ import type { WorkItem } from '../types/work-items';
 import {
   buildWorkItemHierarchy,
   buildWorkItemStateLookup,
+  buildWorkItemTypeLookup,
   collectHierarchyParentIds,
   flattenVisibleHierarchy,
   getWorkItemChildIds,
@@ -213,5 +214,17 @@ describe('work item hierarchy helpers', () => {
     ]);
     expect(summarizeHierarchyNode(tree.nodes.get(10)!, lookup).completed).toBe(1);
     expect(summarizeHierarchyNode(tree.nodes.get(10)!).completed).toBe(2);
+  });
+
+  it('indexes process type colours and icons by lower-cased name', () => {
+    const lookup = buildWorkItemTypeLookup([
+      { name: 'Meetings', color: 'CCCCCC', icon: { id: 'icon_headphone' } },
+      { name: 'Release', color: 'not-a-colour' },
+    ]);
+    expect(lookup.get('meetings')).toEqual({
+      color: '#cccccc',
+      iconId: 'icon_headphone',
+    });
+    expect(lookup.get('release')).toEqual({ color: undefined, iconId: undefined });
   });
 });

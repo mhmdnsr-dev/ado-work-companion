@@ -47,6 +47,8 @@ Type: IBM Plex Sans (UI) and IBM Plex Mono (IDs, hours, counts) via `next/font`,
 - **Parent row**: `bg-muted/50` band, semibold title, rotating chevron (the whole 44px gutter is the hit area), a rollup bar plus "done/total" in the meta line, and summed remaining hours in Rem. A collapsed parent shows a child-count pill.
 - **Child row**: plain background, the assignee in the meta line, its own hours.
 - **Context row**: an ancestor loaded only for grouping (it didn't match the filters). Its glyph is muted, its title is in muted colour, and its meta says "Parent of matches". It has no rollup.
+- **Ancestry**: the full parent chain above the matches is loaded (up to 4 levels: Story → Feature → Epic → …) as context rows. Their other children are never loaded. Ancestors the token can't read are skipped, and closed ancestors are hidden in the Open view.
+- **Custom types**: standard types use the `--wit-*` tokens. Custom process types (for example "Meetings") use their ADO icon (mapped to a matching Lucide icon) and their ADO colour, with lightness clamped per theme (`.wit-custom-glyph`) so pale or deep process colours stay legible.
 - **Rails**: a 1px `--border` line per ancestor level, with an elbow into each child.
 - **Selected (open) row**: `bg-primary/10` plus a 3px inset primary bar on the leading edge.
 - **Columns**: Title (flex), Assigned to (md+), State (dot + label), Rem. (mono, right-aligned). The column header is decorative (`aria-hidden`).

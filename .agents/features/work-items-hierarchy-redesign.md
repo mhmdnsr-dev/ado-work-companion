@@ -17,11 +17,13 @@ Roadmap slice 1 (DESIGN.md): replace the stacked work item cards with a tree-tab
 
 ## Open questions
 
-- Only Story → Task depth appeared live: `enrichHierarchyItems` doesn't fetch the parents of stories (Features), so no context rows show on real data. Decide whether to load one more ancestor level.
-- Custom work item types (e.g. "Meetings") get the generic grey glyph; we could use the type colour from `workitemtypes` instead.
+- NDC Portal: the parents of 3 stories (62038, 62386) come back `null` from ADO (no access, or another project), so those stories stay roots. That is expected behaviour, not a bug.
+
 - Phone Work Items has no visible `<h1>` (axe `page-has-heading-one`, moderate). The header is `hidden` below `md`, which predates this slice; fix it with the shell in slice 2.
 
 ## Progress log
+
+- 2026-10-23: Full ancestry (up to 4 levels) loaded as context rows, and context rows left without children are pruned after the Open filter. Custom process types use their ADO icon and colour. Mocks gained Epic 501 → Feature 401 → Story 202 and a "Meetings" item. Verified live: the Meetings headphones glyph shows, and the inaccessible parents are skipped without errors.
 
 - 2026-10-23: DESIGN.md written; branch created.
 - 2026-10-23: Tree is the default view; IBM Plex app-wide.
