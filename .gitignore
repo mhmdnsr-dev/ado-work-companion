@@ -67,3 +67,6 @@ playwright/.cache/
 
 # large local API reference dump (not part of the app)
 Azure DevOps REST API v7.2-Preview.postman_collection.json
+
+# personal agent notes (never committed)
+CLAUDE.local.md

@@ -8,15 +8,17 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ChevronLeft,
   ChevronRight,
-  ChevronsDownUp,
-  ChevronsUpDown,
   FolderKanban,
+  List,
+  ListTree,
   Plus,
   RefreshCw,
   RotateCcw,
   Save,
   Search,
   SlidersHorizontal,
+  SquareMinus,
+  SquarePlus,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -24,8 +26,12 @@ import { toast } from 'sonner';
 import { adoQueryKeys, STORAGE_KEYS } from '@core/constants';
 import {
   buildWorkItemHierarchy,
+  buildWorkItemStateLookup,
+  buildWorkItemTypeLookup,
   buildWorkItemsListWiql,
+  clearCollapsedTreeIds,
   clearWorkItemFilters,
+  collectHierarchyParentIds,
   emptyWorkItemFilters,
   fieldString,
   findCurrentIterationPath,
@@ -34,7 +40,9 @@ import {
   getWorkItemParentId,
   identityUniqueName,
   isClosedWorkItemState,
+  parseCollapsedTreeIds,
   parseWorkItemFilters,
+  saveCollapsedTreeIds,
   saveWorkItemFilters,
   type IterationCandidate,
   type WorkItemFiltersState,
@@ -58,11 +66,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { createLocalStorageAdapter } from '@/lib/adapters';
 import { WorkItemCreateDialog } from '@/features/work-items/work-item-create-dialog';
-import {
-  WorkItemHierarchyList,
-  collectHierarchyParentIds,
-} from '@/features/work-items/work-item-hierarchy';
-import { WorkItemListCard } from '@/features/work-items/work-item-list-card';
+import { WorkItemTree, toFlatNodes } from '@/features/work-items/work-item-tree';
 import { cn } from '@/lib/utils';
 
 const WorkItemDetailSheet = dynamic(
@@ -76,6 +80,8 @@ const WorkItemDetailSheet = dynamic(
 const PAGE_SIZE = 12;
 const HIERARCHY_PAGE_SIZE = 8;
 const MAX_HIERARCHY_ITEMS = 300;
+/** Ancestor levels fetched above the matches (Story → Feature → Epic → …). */
+const MAX_ANCESTOR_ROUNDS = 4;
 
 type StateFilter = 'open' | 'all' | 'closed';
 type DisplayMode = WorkItemFiltersState['displayMode'];
@@ -108,11 +114,19 @@ async function fetchWorkItemsByIds(
   return items;
 }
 
+interface WorkItemsListResult {
+  items: WorkItem[];
+  /** Ancestors loaded only to group matches; the tree renders them muted. */
+  contextIds: number[];
+  asOf?: string;
+}
+
 /**
  * Adds the parent stories and child tasks/bugs needed to render an Azure-like
  * hierarchy, even when the current filters only matched one side of the link.
  * Ancestor-only items (for example a Feature above a matched User Story) are
  * loaded for grouping but are not expanded, so unrelated siblings stay hidden.
+ * Those ancestors are reported as `contextIds`.
  */
 async function enrichHierarchyItems(params: {
   api: AzureDevOpsApi;
@@ -121,7 +135,7 @@ async function enrichHierarchyItems(params: {
   includeChildren: boolean;
   stateScope: StateFilter;
   signal?: AbortSignal;
-}): Promise<WorkItem[]> {
+}): Promise<{ items: WorkItem[]; contextIds: number[] }> {
   const { api, project, baseItems, includeChildren, stateScope, signal } = params;
   const byId = new Map<number, WorkItem>();
   for (const item of baseItems) {
@@ -153,6 +167,10 @@ async function enrichHierarchyItems(params: {
       ? await fetchWorkItemsByIds(api, project, parentIdsToFetch, signal)
       : [];
   addItems(directParents);
+  const contextIds = new Set<number>();
+  for (const parent of directParents) {
+    if (parent.id != null) contextIds.add(parent.id);
+  }
 
   if (includeChildren) {
     const expandable = new Map<number, WorkItem>();
@@ -166,7 +184,10 @@ async function enrichHierarchyItems(params: {
         const type = fieldString(base, 'System.WorkItemType').toLowerCase();
         return type === 'task' || type === 'bug';
       });
-      if (hasMatchedTaskOrBug) expandable.set(parent.id, parent);
+      if (hasMatchedTaskOrBug) {
+        expandable.set(parent.id, parent);
+        contextIds.delete(parent.id);
+      }
     }
 
     const missingChildIds = new Set<number>();
@@ -183,33 +204,55 @@ async function enrichHierarchyItems(params: {
       const children = await fetchWorkItemsByIds(api, project, childIdsToFetch, signal);
       addItems(children);
     }
+  }
 
-    // A fetched child can introduce a parent that was not loaded yet. Fetch it
-    // once so the child nests correctly, without expanding it any further.
-    const childParentIds = new Set<number>();
+  // Walk up the hierarchy (Story → Feature → Epic, plus custom levels) so
+  // matches sit under their full ancestry. Ancestors are context only: they
+  // group the matches but their other children are never loaded.
+  for (let round = 0; round < MAX_ANCESTOR_ROUNDS; round += 1) {
+    const missingAncestorIds = new Set<number>();
     for (const item of byId.values()) {
       const parentId = getWorkItemParentId(item);
-      if (parentId != null && !byId.has(parentId)) childParentIds.add(parentId);
+      if (parentId != null && !byId.has(parentId)) missingAncestorIds.add(parentId);
     }
-    const childParentIdsToFetch = [...childParentIds].slice(
+    const ancestorIdsToFetch = [...missingAncestorIds].slice(
       0,
       Math.max(0, MAX_HIERARCHY_ITEMS - byId.size),
     );
-    if (childParentIdsToFetch.length > 0) {
-      const parents = await fetchWorkItemsByIds(
-        api,
-        project,
-        childParentIdsToFetch,
-        signal,
-      );
-      addItems(parents);
+    if (ancestorIdsToFetch.length === 0) break;
+    const ancestors = await fetchWorkItemsByIds(api, project, ancestorIdsToFetch, signal);
+    addItems(ancestors);
+    for (const ancestor of ancestors) {
+      if (ancestor.id != null) contextIds.add(ancestor.id);
     }
   }
 
-  return [...byId.values()].filter((item) => {
+  let items = [...byId.values()].filter((item) => {
     if (item.id == null || baseIds.has(item.id) || stateScope !== 'open') return true;
     return !isClosedWorkItemState(item);
   });
+  // Hiding a closed ancestor can leave the levels above it with nothing to
+  // group, so drop context rows that no longer have a loaded child.
+  for (;;) {
+    const parentIds = new Set(items.map(getWorkItemParentId));
+    const kept = items.filter(
+      (item) => item.id == null || !contextIds.has(item.id) || parentIds.has(item.id),
+    );
+    if (kept.length === items.length) break;
+    items = kept;
+  }
+  return { items, contextIds: [...contextIds].filter((id) => byId.has(id)) };
+}
+
+function initialCollapsedIds(organization: string, project: string): Set<number> {
+  if (typeof window === 'undefined' || !organization || !project) return new Set();
+  return new Set(
+    parseCollapsedTreeIds(
+      window.localStorage.getItem(STORAGE_KEYS.WORK_ITEM_TREE_COLLAPSED),
+      organization,
+      project,
+    ),
+  );
 }
 
 function initialFiltersFor(organization: string, project: string): WorkItemFiltersState {
@@ -276,7 +319,9 @@ function WorkItemsViewContent({
   const [appliedSearch, setAppliedSearch] = useState(initial.search);
   const [displayMode, setDisplayMode] = useState<DisplayMode>(initial.displayMode);
   const [includeChildren, setIncludeChildren] = useState(initial.includeChildren);
-  const [collapsedIds, setCollapsedIds] = useState<Set<number>>(() => new Set());
+  const [collapsedIds, setCollapsedIds] = useState<Set<number>>(() =>
+    initialCollapsedIds(organization, project),
+  );
   const [page, setPage] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -303,7 +348,18 @@ function WorkItemsViewContent({
   });
 
   const teams = teamsQuery.data?.data ?? [];
-  const workItemTypes = typesQuery.data?.data ?? [];
+  const workItemTypes = useMemo(
+    () => typesQuery.data?.data ?? [],
+    [typesQuery.data?.data],
+  );
+  const stateLookup = useMemo(
+    () => buildWorkItemStateLookup(workItemTypes),
+    [workItemTypes],
+  );
+  const typeLookup = useMemo(
+    () => buildWorkItemTypeLookup(workItemTypes),
+    [workItemTypes],
+  );
   const selectedTeam = teams.find((team) => team.id === teamId || team.name === teamId);
   const teamName = selectedTeam?.name ?? '';
 
@@ -394,7 +450,7 @@ function WorkItemsViewContent({
   const listQuery = useQuery({
     queryKey: adoQueryKeys.workItems.list(organization, project, filterKey),
     enabled: Boolean(api && project),
-    queryFn: async ({ signal }) => {
+    queryFn: async ({ signal }): Promise<WorkItemsListResult> => {
       if (!api) throw new Error('Connection is not ready.');
 
       const trimmed = appliedSearch.trim();
@@ -407,7 +463,7 @@ function WorkItemsViewContent({
             signal,
             expand: 'Relations',
           });
-          const singleItems =
+          const enrichedSingle =
             displayMode === 'hierarchy'
               ? await enrichHierarchyItems({
                   api,
@@ -417,13 +473,14 @@ function WorkItemsViewContent({
                   stateScope: stateFilter,
                   signal,
                 })
-              : [single.data];
+              : { items: [single.data], contextIds: [] };
           return {
-            items: sortByChangedDate(singleItems),
+            items: sortByChangedDate(enrichedSingle.items),
+            contextIds: enrichedSingle.contextIds,
             asOf: new Date().toISOString(),
           };
         } catch {
-          return { items: [] as WorkItem[], asOf: new Date().toISOString() };
+          return { items: [], contextIds: [], asOf: new Date().toISOString() };
         }
       }
 
@@ -461,7 +518,7 @@ function WorkItemsViewContent({
 
       const ids = (queried.data.workItems ?? []).map((item) => item.id);
       if (ids.length === 0) {
-        return { items: [] as WorkItem[], asOf: queried.data.asOf };
+        return { items: [], contextIds: [], asOf: queried.data.asOf };
       }
 
       const batches = await fetchWorkItemsByIds(api, project, ids, signal);
@@ -475,14 +532,26 @@ function WorkItemsViewContent({
               stateScope: stateFilter,
               signal,
             })
-          : batches;
+          : { items: batches, contextIds: [] };
 
-      return { items: sortByChangedDate(enriched), asOf: queried.data.asOf };
+      return {
+        items: sortByChangedDate(enriched.items),
+        contextIds: enriched.contextIds,
+        asOf: queried.data.asOf,
+      };
     },
   });
 
   const items = useMemo(() => listQuery.data?.items ?? [], [listQuery.data?.items]);
   const hierarchy = useMemo(() => buildWorkItemHierarchy(items), [items]);
+  const contextIds = useMemo(
+    () => new Set(listQuery.data?.contextIds ?? []),
+    [listQuery.data?.contextIds],
+  );
+  const flatNodes = useMemo(() => toFlatNodes(items), [items]);
+  const matchedCount = items.filter(
+    (item) => item.id == null || !contextIds.has(item.id),
+  ).length;
   const pageSize = displayMode === 'hierarchy' ? HIERARCHY_PAGE_SIZE : PAGE_SIZE;
   const pageCount = Math.max(
     1,
@@ -491,7 +560,7 @@ function WorkItemsViewContent({
     ),
   );
   const safePage = Math.min(page, pageCount - 1);
-  const pageItems = items.slice(safePage * pageSize, safePage * pageSize + pageSize);
+  const pageItems = flatNodes.slice(safePage * pageSize, safePage * pageSize + pageSize);
   const pageRoots = hierarchy.roots.slice(
     safePage * pageSize,
     safePage * pageSize + pageSize,
@@ -611,28 +680,38 @@ function WorkItemsViewContent({
     setCollapsedIds(new Set());
     setPage(0);
     try {
-      await clearWorkItemFilters(storage);
+      await Promise.all([clearWorkItemFilters(storage), clearCollapsedTreeIds(storage)]);
       toast.success('Filters reset');
     } catch {
       toast.error('Could not clear saved filters');
     }
   }
 
-  function toggleCollapsed(id: number) {
-    setCollapsedIds((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
+  function updateCollapsed(next: Set<number>) {
+    setCollapsedIds(next);
+    void saveCollapsedTreeIds(storage, organization, project, next).catch(() => {
+      // Remembering the tree shape is a convenience; never block on it.
     });
   }
 
+  function toggleCollapsed(id: number) {
+    const next = new Set(collapsedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    updateCollapsed(next);
+  }
+
   function expandAllGroups() {
-    setCollapsedIds(new Set());
+    updateCollapsed(new Set());
   }
 
   function collapseAllGroups() {
-    setCollapsedIds(new Set(collectHierarchyParentIds(hierarchy.roots)));
+    updateCollapsed(new Set(collectHierarchyParentIds(hierarchy.roots)));
+  }
+
+  function changeDisplayMode(mode: DisplayMode) {
+    setDisplayMode(mode);
+    setPage(0);
   }
 
   if (!project) {
@@ -730,7 +809,6 @@ function WorkItemsViewContent({
                 Boolean(teamId),
                 Boolean(sprintPath),
                 assignedTo !== '@Me',
-                displayMode !== 'list',
               ].filter(Boolean).length
             }{' '}
             active filters
@@ -884,29 +962,13 @@ function WorkItemsViewContent({
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="work-items-display">Display</Label>
-          <Select
-            value={displayMode}
-            onValueChange={(value) => {
-              setDisplayMode(value as DisplayMode);
-              setCollapsedIds(new Set());
-              setPage(0);
-            }}
-          >
-            <SelectTrigger id="work-items-display" className="touch-target h-11 w-full">
-              <SelectValue placeholder="Flat list" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="list">Flat list</SelectItem>
-              <SelectItem value="hierarchy">Grouped by parent</SelectItem>
-            </SelectContent>
-          </Select>
-          {displayMode === 'hierarchy' ? (
-            <div className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
+        {displayMode === 'hierarchy' ? (
+          <div className="space-y-2">
+            <Label htmlFor="work-items-include-children">Tree</Label>
+            <div className="flex h-11 items-center justify-between gap-3 rounded-md border border-border px-3">
               <Label
                 htmlFor="work-items-include-children"
-                className="text-xs font-normal text-muted-foreground"
+                className="text-sm font-normal text-muted-foreground"
               >
                 Include child tasks/bugs
               </Label>
@@ -915,13 +977,12 @@ function WorkItemsViewContent({
                 checked={includeChildren}
                 onCheckedChange={(checked) => {
                   setIncludeChildren(checked);
-                  setCollapsedIds(new Set());
                   setPage(0);
                 }}
               />
             </div>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
 
         <div className="space-y-2">
           <Label>Team</Label>
@@ -1011,72 +1072,122 @@ function WorkItemsViewContent({
       ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground" aria-live="polite">
           {listQuery.isLoading
             ? 'Loading work items…'
             : displayMode === 'hierarchy'
-              ? `${items.length} work item${items.length === 1 ? '' : 's'} in ${
+              ? `${matchedCount} work item${matchedCount === 1 ? '' : 's'} in ${
                   hierarchy.roots.length
                 } group${hierarchy.roots.length === 1 ? '' : 's'}`
               : `${items.length} work item${items.length === 1 ? '' : 's'}`}
         </p>
-        {displayMode === 'hierarchy' && hierarchy.roots.length > 0 ? (
-          <div className="flex gap-2">
+        <div className="flex items-center gap-1">
+          <div
+            role="group"
+            aria-label="Display"
+            className="flex rounded-md border border-border bg-muted/40 p-0.5"
+          >
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="touch-target gap-1.5"
-              onClick={expandAllGroups}
+              aria-pressed={displayMode === 'list'}
+              className={cn(
+                'h-9 gap-1.5 px-2.5 text-muted-foreground',
+                displayMode === 'list' &&
+                  'bg-background text-foreground shadow-xs hover:bg-background',
+              )}
+              onClick={() => changeDisplayMode('list')}
             >
-              <ChevronsUpDown className="size-4" />
-              Expand all
+              <List className="size-4" aria-hidden />
+              List
             </Button>
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="touch-target gap-1.5"
-              onClick={collapseAllGroups}
+              aria-pressed={displayMode === 'hierarchy'}
+              className={cn(
+                'h-9 gap-1.5 px-2.5 text-muted-foreground',
+                displayMode === 'hierarchy' &&
+                  'bg-background text-foreground shadow-xs hover:bg-background',
+              )}
+              onClick={() => changeDisplayMode('hierarchy')}
             >
-              <ChevronsDownUp className="size-4" />
-              Collapse all
+              <ListTree className="size-4" aria-hidden />
+              Tree
             </Button>
           </div>
-        ) : null}
+          {displayMode === 'hierarchy' && hierarchy.roots.length > 0 ? (
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="touch-target text-muted-foreground"
+                aria-label="Expand all"
+                title="Expand all"
+                onClick={expandAllGroups}
+              >
+                <SquarePlus className="size-[18px]" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="touch-target text-muted-foreground"
+                aria-label="Collapse all"
+                title="Collapse all"
+                onClick={collapseAllGroups}
+              >
+                <SquareMinus className="size-[18px]" />
+              </Button>
+            </>
+          ) : null}
+        </div>
       </div>
 
       {listQuery.isLoading ? (
-        <div className="grid gap-3">
-          {Array.from({ length: 5 }).map((_, index) => (
-            <Skeleton key={index} className="h-24 w-full rounded-xl" />
+        <div className="-mx-4 overflow-hidden border-y border-border md:mx-0 md:rounded-lg md:border">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div
+              key={index}
+              className="flex items-center gap-3 border-b border-border/70 px-4 py-3 last:border-b-0"
+            >
+              <Skeleton className="size-4 rounded-sm" />
+              <div className="flex flex-1 flex-col gap-1.5">
+                <Skeleton className="h-4 w-3/5" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+              <Skeleton className="h-4 w-16" />
+            </div>
           ))}
         </div>
-      ) : displayMode === 'hierarchy' ? (
-        pageRoots.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border px-4 py-12 text-center text-sm text-muted-foreground">
-            No work items match these filters. Create one or broaden your search.
-          </div>
-        ) : (
-          <WorkItemHierarchyList
-            roots={pageRoots}
-            collapsedIds={collapsedIds}
-            onToggle={toggleCollapsed}
-            onOpen={openItem}
-          />
-        )
-      ) : pageItems.length === 0 ? (
+      ) : (displayMode === 'hierarchy' ? pageRoots : pageItems).length === 0 ? (
         <div className="rounded-xl border border-dashed border-border px-4 py-12 text-center text-sm text-muted-foreground">
           No work items match these filters. Create one or broaden your search.
         </div>
+      ) : displayMode === 'hierarchy' ? (
+        <WorkItemTree
+          label="Work items"
+          roots={pageRoots}
+          collapsedIds={collapsedIds}
+          onToggle={toggleCollapsed}
+          onOpen={openItem}
+          selectedId={selectedId}
+          contextIds={contextIds}
+          stateLookup={stateLookup}
+          typeLookup={typeLookup}
+        />
       ) : (
-        <ul className="flex flex-col gap-3">
-          {pageItems.map((item) => (
-            <li key={item.id}>
-              <WorkItemListCard item={item} onOpen={() => item.id && openItem(item.id)} />
-            </li>
-          ))}
-        </ul>
+        <WorkItemTree
+          label="Work items"
+          roots={pageItems}
+          onOpen={openItem}
+          selectedId={selectedId}
+          stateLookup={stateLookup}
+          typeLookup={typeLookup}
+        />
       )}
 
       {pageCount > 1 ? (

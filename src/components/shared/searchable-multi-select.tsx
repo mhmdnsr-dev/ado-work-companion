@@ -115,9 +115,7 @@ export function SearchableMultiSelect({
             <span
               className={cn('truncate', selected.length === 0 && 'text-muted-foreground')}
             >
-              {selected.length === 0
-                ? placeholder
-                : `${selected.length} selected`}
+              {selected.length === 0 ? placeholder : `${selected.length} selected`}
             </span>
             <ChevronsUpDown className="size-4 shrink-0 opacity-60" />
           </Button>

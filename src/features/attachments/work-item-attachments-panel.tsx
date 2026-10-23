@@ -6,10 +6,7 @@ import { Download, Loader2, Paperclip, Trash2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { ADO_MAX_SIMPLE_ATTACHMENT_BYTES, adoQueryKeys } from '@core/constants';
-import {
-  listWorkItemAttachments,
-  type WorkItemAttachment,
-} from '@core/domain';
+import { listWorkItemAttachments, type WorkItemAttachment } from '@core/domain';
 import type { WorkItemRelation } from '@core/types';
 import { useConnection } from '@/components/providers';
 import { Button } from '@/components/ui/button';
@@ -76,10 +73,7 @@ export function WorkItemAttachmentsPanel({
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [removingIndex, setRemovingIndex] = useState<number | null>(null);
 
-  const attachments = useMemo(
-    () => listWorkItemAttachments(relations),
-    [relations],
-  );
+  const attachments = useMemo(() => listWorkItemAttachments(relations), [relations]);
 
   async function invalidate() {
     await queryClient.invalidateQueries({
@@ -250,7 +244,9 @@ export function WorkItemAttachmentsPanel({
                         .join(' · ')}
                     </p>
                     {attachment.comment ? (
-                      <p className="text-sm text-muted-foreground">{attachment.comment}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {attachment.comment}
+                      </p>
                     ) : null}
                   </div>
                   <div className="flex flex-wrap gap-2">

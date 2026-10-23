@@ -94,8 +94,7 @@ function startOfUtcDay(isoDate: string): Date {
 }
 
 function daysBetween(startIso: string, endIso: string): number {
-  const ms =
-    startOfUtcDay(endIso).getTime() - startOfUtcDay(startIso).getTime();
+  const ms = startOfUtcDay(endIso).getTime() - startOfUtcDay(startIso).getTime();
   return Math.max(0, Math.round(ms / 86_400_000));
 }
 
@@ -151,7 +150,8 @@ export function parseBurndownRows(
     if (!row.DateValue) continue;
     const date = toDateOnlyIso(row.DateValue);
     const remaining =
-      typeof row.TotalRemainingWork === 'number' && Number.isFinite(row.TotalRemainingWork)
+      typeof row.TotalRemainingWork === 'number' &&
+      Number.isFinite(row.TotalRemainingWork)
         ? row.TotalRemainingWork
         : 0;
     byDate.set(date, (byDate.get(date) ?? 0) + remaining);
@@ -197,7 +197,9 @@ export function buildSprintBurndownModel(params: {
 
   // Fill calendar days from sprint start through today (or sprint end) so the chart is continuous.
   const spanToToday = daysBetween(start, effectiveEnd);
-  const remainingByDate = new Map(parsed.map((point) => [point.date, point.remainingWork]));
+  const remainingByDate = new Map(
+    parsed.map((point) => [point.date, point.remainingWork]),
+  );
   let lastKnown = startingWork;
   const series: BurndownPoint[] = [];
   for (let i = 0; i <= spanToToday; i++) {
@@ -425,8 +427,7 @@ export function buildMemberSprintStats(items: WorkItem[]): MemberSprintStatsMode
       state: fieldString(item, 'System.State') || 'Unknown',
       remainingHours: fieldNumber(item, 'Microsoft.VSTS.Scheduling.RemainingWork') ?? 0,
       completedHours: fieldNumber(item, 'Microsoft.VSTS.Scheduling.CompletedWork') ?? 0,
-      originalEstimate:
-        fieldNumber(item, 'Microsoft.VSTS.Scheduling.OriginalEstimate'),
+      originalEstimate: fieldNumber(item, 'Microsoft.VSTS.Scheduling.OriginalEstimate'),
     });
   }
 

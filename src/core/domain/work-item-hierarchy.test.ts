@@ -3,9 +3,16 @@ import { describe, expect, it } from 'vitest';
 import type { WorkItem } from '../types/work-items';
 import {
   buildWorkItemHierarchy,
+  buildWorkItemStateLookup,
+  buildWorkItemTypeLookup,
+  collectHierarchyParentIds,
+  flattenVisibleHierarchy,
   getWorkItemChildIds,
   getWorkItemParentId,
   isClosedWorkItemState,
+  summarizeHierarchyNode,
+  workItemStateCategory,
+  workItemStateInfo,
 } from './work-item-hierarchy';
 
 function item(
@@ -15,6 +22,8 @@ function item(
     children?: number[];
     state?: string;
     changed?: string;
+    remaining?: number;
+    type?: string;
   } = {},
 ): WorkItem {
   const relations = [];
@@ -34,7 +43,11 @@ function item(
     id,
     fields: {
       'System.State': options.state ?? 'New',
+      'System.WorkItemType': options.type ?? 'Task',
       'System.ChangedDate': options.changed ?? '2026-01-01T00:00:00Z',
+      ...(options.remaining != null
+        ? { 'Microsoft.VSTS.Scheduling.RemainingWork': options.remaining }
+        : {}),
     },
     relations,
   };
@@ -99,5 +112,119 @@ describe('work item hierarchy helpers', () => {
     expect(isClosedWorkItemState(item(2, { state: 'Done' }))).toBe(true);
     expect(isClosedWorkItemState(item(3, { state: 'Removed' }))).toBe(true);
     expect(isClosedWorkItemState(item(4, { state: 'Active' }))).toBe(false);
+  });
+
+  it('maps process states to categories and treats custom states as proposed', () => {
+    expect(workItemStateCategory(item(1, { state: 'To Do' }))).toBe('proposed');
+    expect(workItemStateCategory(item(2, { state: 'In Progress' }))).toBe('inProgress');
+    expect(workItemStateCategory(item(3, { state: 'Resolved' }))).toBe('resolved');
+    expect(workItemStateCategory(item(4, { state: 'Closed' }))).toBe('completed');
+    expect(workItemStateCategory(item(5, { state: 'Removed' }))).toBe('removed');
+    expect(workItemStateCategory(item(6, { state: 'Waiting on vendor' }))).toBe(
+      'proposed',
+    );
+  });
+
+  it('rolls up leaf progress and remaining hours across nested levels', () => {
+    const tree = buildWorkItemHierarchy([
+      item(1),
+      item(2, { parent: 1 }),
+      item(3, { parent: 2, state: 'Done', remaining: 0 }),
+      item(4, { parent: 2, state: 'Active', remaining: 4 }),
+      item(5, { parent: 1, state: 'Resolved', remaining: 1.5 }),
+    ]);
+
+    expect(summarizeHierarchyNode(tree.nodes.get(1)!)).toEqual({
+      total: 3,
+      completed: 2,
+      remainingHours: 5.5,
+    });
+    expect(summarizeHierarchyNode(tree.nodes.get(4)!)).toEqual({
+      total: 0,
+      completed: 0,
+      remainingHours: 0,
+    });
+  });
+
+  it('flattens only visible rows with tree positions', () => {
+    const tree = buildWorkItemHierarchy([
+      item(1, { changed: '2026-01-05T00:00:00Z' }),
+      item(2, { parent: 1, changed: '2026-01-04T00:00:00Z' }),
+      item(3, { parent: 2 }),
+      item(4, { parent: 1, changed: '2026-01-03T00:00:00Z' }),
+      item(5, { changed: '2026-01-02T00:00:00Z' }),
+    ]);
+
+    const expanded = flattenVisibleHierarchy(tree.roots, new Set());
+    expect(expanded.map((row) => [row.id, row.depth])).toEqual([
+      [1, 0],
+      [2, 1],
+      [3, 2],
+      [4, 1],
+      [5, 0],
+    ]);
+    const nested = expanded[2]!;
+    expect(nested.parentId).toBe(2);
+    expect(nested.ancestorIsLast).toEqual([false, false]);
+    expect(expanded[3]).toMatchObject({ posInSet: 2, setSize: 2, isLast: true });
+
+    const collapsed = flattenVisibleHierarchy(tree.roots, new Set([2]));
+    expect(collapsed.map((row) => row.id)).toEqual([1, 2, 4, 5]);
+    expect(collapsed[1]).toMatchObject({ hasChildren: true, expanded: false });
+  });
+
+  it('collects every parent id for collapse all', () => {
+    const tree = buildWorkItemHierarchy([
+      item(1),
+      item(2, { parent: 1 }),
+      item(3, { parent: 2 }),
+      item(4),
+    ]);
+    expect(collectHierarchyParentIds(tree.roots).sort()).toEqual([1, 2]);
+  });
+
+  it('prefers the process state category and colour from work item types', () => {
+    const lookup = buildWorkItemStateLookup([
+      {
+        name: 'Task',
+        states: [
+          { name: 'Resolved', category: 'InProgress', color: 'fbbc3d' },
+          { name: 'Blocked', category: 'InProgress', color: 'b20b1e' },
+          { name: 'Closed', category: 'Completed', color: '339933' },
+          { name: 'Odd', category: 'Unknown', color: 'zzz' },
+        ],
+      },
+    ]);
+
+    expect(workItemStateInfo(item(1, { state: 'blocked' }), lookup)).toEqual({
+      category: 'inProgress',
+      color: '#b20b1e',
+    });
+    // Without a lookup entry the built-in defaults still apply.
+    expect(
+      workItemStateInfo(item(2, { state: 'Resolved', type: 'Bug' }), lookup),
+    ).toEqual({ category: 'resolved' });
+    expect(workItemStateCategory(item(3, { state: 'Odd' }), lookup)).toBe('proposed');
+
+    // In this process a resolved Task is still in progress, so it is not "done".
+    const tree = buildWorkItemHierarchy([
+      item(10, { type: 'User Story' }),
+      item(11, { parent: 10, state: 'Resolved' }),
+      item(12, { parent: 10, state: 'Closed' }),
+    ]);
+    expect(summarizeHierarchyNode(tree.nodes.get(10)!, lookup).completed).toBe(1);
+    expect(summarizeHierarchyNode(tree.nodes.get(10)!).completed).toBe(2);
+  });
+
+  it('indexes process type colours and icons by lower-cased name', () => {
+    const lookup = buildWorkItemTypeLookup([
+      { name: 'Meetings', color: 'CCCCCC', icon: { id: 'icon_headphone' } },
+      { name: 'Release', color: 'not-a-colour' },
+    ]);
+    expect(lookup.get('meetings')).toEqual({
+      color: '#cccccc',
+      iconId: 'icon_headphone',
+    });
+    expect(lookup.get('release')).toEqual({ color: undefined, iconId: undefined });
   });
 });

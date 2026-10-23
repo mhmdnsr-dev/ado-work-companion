@@ -38,9 +38,27 @@ const PROJECTS = [
 ];
 
 const WORK_ITEM_TYPES = [
-  { name: 'Task', description: 'A unit of work' },
+  {
+    name: 'Task',
+    description: 'A unit of work',
+    states: [
+      { name: 'New', color: 'b2b2b2', category: 'Proposed' },
+      { name: 'Active', color: '007acc', category: 'InProgress' },
+      { name: 'Blocked', color: 'b20b1e', category: 'InProgress' },
+      { name: 'Closed', color: '339933', category: 'Completed' },
+    ],
+  },
   { name: 'Bug', description: 'A defect' },
   { name: 'User Story', description: 'A user-facing story' },
+  { name: 'Feature', description: 'A feature' },
+  { name: 'Epic', description: 'An epic' },
+  // Custom process type: rendered with its ADO icon and colour.
+  {
+    name: 'Meetings',
+    description: 'Team meetings',
+    color: 'cccccc',
+    icon: { id: 'icon_headphone' },
+  },
 ];
 
 const CURRENT_SPRINT = {
@@ -179,7 +197,12 @@ const WORK_ITEMS: Record<number, MockWorkItem> = {
     }),
     // 999 is intentionally missing from the batch response. It exercises the
     // null-entry guard when Azure omits a deleted/missing linked work item.
-    relations: [childRelation(101), childRelation(301), childRelation(999)],
+    relations: [
+      childRelation(101),
+      childRelation(301),
+      childRelation(304),
+      childRelation(999),
+    ],
   },
   202: {
     id: 202,
@@ -192,7 +215,39 @@ const WORK_ITEMS: Record<number, MockWorkItem> = {
       changedDate: '2026-01-04T00:00:00Z',
       remainingWork: 0,
     }),
-    relations: [childRelation(102), childRelation(302), childRelation(303)],
+    relations: [
+      parentRelation(401),
+      childRelation(102),
+      childRelation(302),
+      childRelation(303),
+    ],
+  },
+  // Ancestors above "Authentication": loaded only as context rows.
+  401: {
+    id: 401,
+    fields: fields({
+      id: 401,
+      title: 'Sign-in revamp',
+      type: 'Feature',
+      state: 'Active',
+      assignedTo: ALEX,
+      changedDate: '2025-12-01T00:00:00Z',
+      remainingWork: 0,
+    }),
+    relations: [parentRelation(501), childRelation(202), childRelation(203)],
+  },
+  501: {
+    id: 501,
+    fields: fields({
+      id: 501,
+      title: 'Customer portal',
+      type: 'Epic',
+      state: 'Active',
+      assignedTo: ALEX,
+      changedDate: '2025-11-01T00:00:00Z',
+      remainingWork: 0,
+    }),
+    relations: [childRelation(401)],
   },
   301: {
     id: 301,
@@ -204,6 +259,19 @@ const WORK_ITEMS: Record<number, MockWorkItem> = {
       assignedTo: BLAIR,
       changedDate: '2026-01-01T00:00:00Z',
       remainingWork: 3,
+    }),
+    relations: [parentRelation(201)],
+  },
+  304: {
+    id: 304,
+    fields: fields({
+      id: 304,
+      title: 'Search sync meeting',
+      type: 'Meetings',
+      state: 'New',
+      assignedTo: BLAIR,
+      changedDate: '2025-12-29T00:00:00Z',
+      remainingWork: 1,
     }),
     relations: [parentRelation(201)],
   },

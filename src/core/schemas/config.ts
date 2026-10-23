@@ -3,13 +3,7 @@ import { z } from 'zod';
 import { ADO_API } from '../constants/api';
 import { DEFAULT_PAT_COOKIE_LIFETIME } from '../constants/pat-cookie';
 
-export const patCookieLifetimeSchema = z.enum([
-  '7d',
-  '14d',
-  '30d',
-  '90d',
-  'forever',
-]);
+export const patCookieLifetimeSchema = z.enum(['7d', '14d', '30d', '90d', 'forever']);
 
 /**
  * Connection form schema (shared web + future mobile).

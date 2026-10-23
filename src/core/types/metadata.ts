@@ -84,6 +84,8 @@ export interface WorkItemType {
   color?: string;
   icon?: { id?: string; url?: string };
   isDisabled?: boolean;
+  /** Returned by the list endpoint: each state's colour and category. */
+  states?: WorkItemStateColor[];
   url?: string;
 }
 

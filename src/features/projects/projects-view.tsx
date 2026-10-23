@@ -122,8 +122,8 @@ export function ProjectsView({
           <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Projects</h1>
           <p className="text-sm text-muted-foreground md:text-base">
             Choose which project in{' '}
-            <span className="font-medium text-foreground">{settings.organization}</span> you
-            want to organize work in.
+            <span className="font-medium text-foreground">{settings.organization}</span>{' '}
+            you want to organize work in.
           </p>
         </header>
       )}
