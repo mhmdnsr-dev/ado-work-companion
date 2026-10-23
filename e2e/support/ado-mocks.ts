@@ -355,7 +355,11 @@ export async function installAdoMocks(page: Page) {
       path.includes('/_apis/work/teamsettings/iterations/') &&
       path.endsWith('/workitems')
     ) {
-      return json(route, { workItemRelations: [] });
+      return json(route, {
+        workItemRelations: [101, 102, 201, 202, 301, 302, 303, 304].map((id) => ({
+          target: { id },
+        })),
+      });
     }
 
     if (path.includes('/_apis/work/teamsettings/iterations')) {
