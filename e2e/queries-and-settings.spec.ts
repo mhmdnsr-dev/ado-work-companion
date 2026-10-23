@@ -61,3 +61,31 @@ test('settings theme is a one-row segmented control', async ({ page }) => {
   await expect(page.locator('html')).toHaveClass(/dark/);
   await theme.getByRole('radio', { name: 'System' }).click();
 });
+
+test('settings shows one project field unless typing is needed', async ({ page }) => {
+  await installAdoMocks(page);
+  await configureMockConnection(page);
+  await page.goto('/settings');
+
+  const manual = page.getByRole('textbox', { name: 'Project name manual entry' });
+  // One field: the picker already shows the saved project.
+  await expect(page.locator('#project-combobox')).toContainText('Mock Project', {
+    timeout: 20_000,
+  });
+  await expect(manual).toHaveCount(0);
+
+  // Once the list loads without "Mock Project", the text box explains itself.
+  await page.getByRole('button', { name: 'Refresh projects' }).click();
+  await expect(manual).toHaveValue('Mock Project');
+
+  await page.locator('#project-combobox').click();
+  await page.getByRole('option', { name: 'Alpha Project' }).click();
+  await expect(manual).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Type a name instead' }).click();
+  await expect(manual).toHaveValue('Alpha Project');
+
+  // The disclosure names what it holds and shows its value.
+  const apiVersion = page.locator('summary').filter({ hasText: 'API version' });
+  await expect(apiVersion).toContainText('7.2-preview');
+});

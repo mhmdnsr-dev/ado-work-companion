@@ -2,6 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  ChevronRight,
   ExternalLink,
   FolderSync,
   Loader2,
@@ -210,6 +211,7 @@ function ConfigurationFormLoaded({
   const organization = form.watch('organization');
   const patValue = form.watch('pat');
   const patCookieLifetime = form.watch('patCookieLifetime');
+  const apiVersion = form.watch('apiVersion');
   const canCallApi = Boolean(organization?.trim() && (patValue || hasServerPat));
 
   function toLiveCredentials(values: AdoConnectionFormValues) {
@@ -496,11 +498,19 @@ function ConfigurationFormLoaded({
         />
 
         {isSettings ? (
-          <details className="rounded-lg border px-4 py-3">
-            <summary className="touch-target flex cursor-pointer items-center text-sm font-medium">
-              Advanced
+          // Name what's inside and show its value: a bare "Advanced" said nothing.
+          <details className="group rounded-lg border border-border">
+            <summary className="touch-target flex cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
+              <ChevronRight
+                className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
+                aria-hidden
+              />
+              <span className="flex-1">API version</span>
+              <span className="font-mono text-xs font-normal text-muted-foreground">
+                {apiVersion || ADO_API.DEFAULT_VERSION}
+              </span>
             </summary>
-            <div className="pt-4">
+            <div className="border-t border-border px-3 py-3">
               <Controller
                 name="apiVersion"
                 control={form.control}
