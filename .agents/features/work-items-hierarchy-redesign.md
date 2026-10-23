@@ -9,11 +9,11 @@ Roadmap slice 1 (DESIGN.md): replace the stacked work item cards with a tree-tab
 ## Decisions (with why)
 
 - Direction: "C's structure with A's dark mode" (user's pick from the mock canvas https://claude.ai/artifact/4yFWN2dFqREKyH1RFj11fW).
-- Keep Geist and Geist Mono (already loaded through next/font, and Ledger used them). The Plex font from mock C wasn't worth an extra font download.
+- Font: IBM Plex Sans/Mono app-wide (user asked for C's Plex, 2026-10-23), replacing Geist.
 - Context rows = ancestors that `enrichHierarchyItems` loads only for grouping (not matched, not expanded for children). They are tracked explicitly instead of inferred from tree shape.
 - The chevron is not a nested `<button>`: axe flags nested-interactive inside `treeitem`. The row owns keyboard toggling; the gutter is a pointer-only hit area.
 - The global `.dark` palette is unchanged in this slice; adopting the Ledger ground app-wide is slice 2.
-- The display mode moves from the filter panel to a List/Tree toggle in the list toolbar.
+- The display mode moves from the filter panel to a List/Tree toggle in the list toolbar. Tree is the default (user request); a saved "list" view still wins.
 
 ## Open questions
 

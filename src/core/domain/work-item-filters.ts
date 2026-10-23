@@ -12,7 +12,7 @@ export const workItemFiltersSchema = z.object({
   sprintPath: z.string().default(''),
   assignedTo: z.string().default('@Me'),
   search: z.string().default(''),
-  displayMode: z.enum(['list', 'hierarchy']).default('list'),
+  displayMode: z.enum(['list', 'hierarchy']).default('hierarchy'),
   includeChildren: z.boolean().default(true),
 });
 
@@ -31,7 +31,7 @@ export function emptyWorkItemFilters(
     sprintPath: '',
     assignedTo: '@Me',
     search: '',
-    displayMode: 'list',
+    displayMode: 'hierarchy',
     includeChildren: true,
   };
 }

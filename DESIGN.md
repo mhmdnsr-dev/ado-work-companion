@@ -37,7 +37,7 @@ Existing shadcn tokens (`--background`, `--muted`, `--border`, `--primary`, …)
 
 Values are stored as oklch, and Tailwind exposes them as `text-wit-*`, `bg-state-*`, and so on. Glyph colours meet 3:1 against `--background` (non-text). State labels use `--foreground`; only the dot is coloured.
 
-Type: Geist (UI) and Geist Mono (IDs, hours, counts) via `next/font`. Sizes: row title 14px (`text-sm`), meta 12px (`text-xs`), column headers 11px uppercase with tracking.
+Type: IBM Plex Sans (UI) and IBM Plex Mono (IDs, hours, counts) via `next/font`, falling back to Segoe UI, the font ADO itself uses. Sizes: row title 14px (`text-sm`), meta 12px (`text-xs`), column headers 11px uppercase with tracking.
 
 ## Patterns
 
@@ -50,7 +50,7 @@ Type: Geist (UI) and Geist Mono (IDs, hours, counts) via `next/font`. Sizes: row
 - **Rails**: a 1px `--border` line per ancestor level, with an elbow into each child.
 - **Selected (open) row**: `bg-primary/10` plus a 3px inset primary bar on the leading edge.
 - **Columns**: Title (flex), Assigned to (md+), State (dot + label), Rem. (mono, right-aligned). The column header is decorative (`aria-hidden`).
-- Flat list mode reuses the same rows at level 1, so the two modes look the same.
+- **Tree is the default view.** Flat list mode reuses the same rows at level 1, so the two modes look the same.
 
 ## Redesign Roadmap
 

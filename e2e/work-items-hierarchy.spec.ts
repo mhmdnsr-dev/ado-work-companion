@@ -7,16 +7,21 @@ test.describe('work item hierarchy', () => {
     await installAdoMocks(page);
     await configureMockConnection(page);
     await page.goto('/work-items');
-    await expect(page.getByText('2 work items', { exact: true })).toBeVisible({
-      timeout: 20_000,
-    });
+    await expect(page.getByText('7 work items in 2 groups', { exact: true })).toBeVisible(
+      { timeout: 20_000 },
+    );
   });
 
   test('groups matched tasks under their stories and expands them', async ({ page }) => {
-    await expect(page.getByRole('button', { name: 'List' })).toHaveAttribute(
+    await expect(page.getByRole('button', { name: 'Tree' })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
+
+    await page.getByRole('button', { name: 'List' }).click();
+    await expect(page.getByText('2 work items', { exact: true })).toBeVisible({
+      timeout: 20_000,
+    });
     await expect(page.getByText('Implement search', { exact: true })).toBeVisible();
     await expect(page.getByText('Search experience', { exact: true })).toHaveCount(0);
 
