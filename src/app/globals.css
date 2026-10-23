@@ -61,6 +61,12 @@
   --state-resolved: oklch(0.669 0.149 66.1);
   --state-completed: oklch(0.574 0.16 143.1);
   --state-removed: oklch(0.723 0.013 255.5);
+
+  /* Sprint progress ordinal ramp, early → done (validated: dataviz --ordinal). */
+  --progress-proposed: #86b6ef;
+  --progress-in-progress: #3987e5;
+  --progress-resolved: #256abf;
+  --progress-completed: #104281;
 }
 
 /* Ledger dark (DESIGN.md): deep blue-black ground, quiet borders, calm text. */
@@ -116,6 +122,12 @@
   --state-resolved: oklch(0.804 0.124 80.7);
   --state-completed: oklch(0.773 0.138 155.1);
   --state-removed: oklch(0.498 0.022 262.9);
+
+  /* On dark, done reads brightest (most contrast with the ground). */
+  --progress-proposed: #184f95;
+  --progress-in-progress: #2a78d6;
+  --progress-resolved: #6da7ec;
+  --progress-completed: #b7d3f6;
 }
 
 @theme inline {
@@ -174,6 +186,10 @@
   --color-state-resolved: var(--state-resolved);
   --color-state-completed: var(--state-completed);
   --color-state-removed: var(--state-removed);
+  --color-progress-proposed: var(--progress-proposed);
+  --color-progress-in-progress: var(--progress-in-progress);
+  --color-progress-resolved: var(--progress-resolved);
+  --color-progress-completed: var(--progress-completed);
 
   /* Motion: state changes only (DESIGN.md principle 5). */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
