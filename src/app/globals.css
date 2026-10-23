@@ -194,6 +194,14 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 
+  /*
+   * Radix modals set pointer-events: none on <body>; toasts live outside the
+   * modal layer and their actions (e.g. Undo) must stay tappable.
+   */
+  [data-sonner-toaster] {
+    pointer-events: auto;
+  }
+
   /* Visible, high-contrast focus ring for keyboard users on every interactive node. */
   :focus-visible {
     @apply rounded-sm ring-2 ring-ring ring-offset-2 ring-offset-background outline-none;

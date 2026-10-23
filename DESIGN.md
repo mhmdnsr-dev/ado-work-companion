@@ -63,6 +63,16 @@ Type: IBM Plex Sans (UI) and IBM Plex Mono (IDs, hours, counts) via `next/font`,
 - **Filters sheet**: a bottom sheet on phones (grab handle, max 88dvh, safe-area padding) and a right sheet from `md` up. Filters apply live. The footer has Reset and Save in one row and a full-width "Show work items".
 - **Toolbar**: one row with the count (short on phones), List/Tree (icon-only on phones), a single Expand/Collapse toggle, and Refresh.
 
+### Work item detail sheet (`work-item-detail-sheet.tsx`, `work-item-quick-update.tsx`)
+
+- **Header**: the type and mono `#id` on a small line, then the work item title (2-line clamp) as the sheet title, and a 44px close button.
+- **Quick update card** (first thing in the sheet). These are the daily actions, one tap each:
+  - **State chips**: the type's process states with ADO colours. A tap saves the state immediately, and the toast offers **Undo**. "Removed" is never a chip.
+  - **Log work**: +0.5h / +1h / +2h / +4h moves hours from Remaining to Completed in one PATCH (`buildLogWorkPatches`; Remaining never goes below 0).
+  - **Remaining stepper**: −/+ in 0.5h steps or typed; "Save remaining" appears only when the value changed.
+- **Full form** below, unchanged. **Footer**: one row on phones (delete icon, Close, Save changes) with safe-area padding.
+- **Toasts over modals**: `[data-sonner-toaster]` keeps pointer events, and Sheet/Dialog ignore outside-interactions on toasts, so toast actions work while a sheet is open.
+
 ## Redesign Roadmap
 
 One PR per slice, ordered by phone impact (see AGENTS.md › Mobile-first). Tick each when it merges to `main`.
