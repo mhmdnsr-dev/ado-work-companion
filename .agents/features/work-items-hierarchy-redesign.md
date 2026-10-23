@@ -17,15 +17,19 @@ Roadmap slice 1 (DESIGN.md): replace the stacked work item cards with a tree-tab
 
 ## Open questions
 
-- Live check on real ADO data (deep Epic → Feature → Story → Task trees, custom states) is still pending; it needs the user's PAT in the browser.
+- Only Story → Task depth appeared live: `enrichHierarchyItems` doesn't fetch the parents of stories (Features), so no context rows show on real data. Decide whether to load one more ancestor level.
+- Custom work item types (e.g. "Meetings") get the generic grey glyph; we could use the type colour from `workitemtypes` instead.
 - Phone Work Items has no visible `<h1>` (axe `page-has-heading-one`, moderate). The header is `hidden` below `md`, which predates this slice; fix it with the shell in slice 2.
 
 ## Progress log
 
 - 2026-10-23: DESIGN.md written; branch created.
+- 2026-10-23: Tree is the default view; IBM Plex app-wide.
+- 2026-10-23: Live check on tilde-technology / NDC Portal (62 items, 7 groups). Fixed: custom states now use the process category and colour from `workitemtypes` ("Ready for UAT", Task "Resolved" = InProgress); hours keep two decimals (0.25); the State column wraps long names.
 - 2026-10-23: Domain helpers (state categories, rollup, visible-row flattening, collapsed persistence) with unit tests. `WorkItemTree` replaces `WorkItemHierarchyList` and `WorkItemListCard` (also used by Queries). List/Tree toggle and Expand/Collapse all moved to the list toolbar. Context ancestors are tracked in `enrichHierarchyItems`.
 
 ## Verification evidence
 
 - 2026-10-23: `npm run verify` passes (47 unit tests). `npm run test:e2e`: 27/27 pass, including new keyboard-navigation and collapsed-persistence tests.
 - 2026-10-23: Playwright screenshots, phone 390×844 and desktop 1280, light and dark (mocked ADO). axe (wcag2a/aa, wcag21aa, best-practice) on `/work-items` tree mode, light and dark: the only violation is the pre-existing `page-has-heading-one`.
+- 2026-10-23 (live, dev server, real ADO): collapse via chevron and ←/→ works, focus is kept, collapsed state survives a reload per org/project, Expand all restores 62 rows, no console errors. The phone viewport couldn't be emulated in that Chrome window (covered by the Playwright 390px runs instead).

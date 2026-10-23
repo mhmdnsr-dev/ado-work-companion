@@ -37,6 +37,7 @@ export {
   HIERARCHY_CHILD_REL,
   HIERARCHY_PARENT_REL,
   buildWorkItemHierarchy,
+  buildWorkItemStateLookup,
   collectHierarchyParentIds,
   flattenVisibleHierarchy,
   getWorkItemChildIds,
@@ -44,10 +45,13 @@ export {
   isClosedWorkItemState,
   summarizeHierarchyNode,
   workItemStateCategory,
+  workItemStateInfo,
   type VisibleHierarchyRow,
   type WorkItemHierarchyNode,
   type WorkItemHierarchySummary,
   type WorkItemStateCategory,
+  type WorkItemStateInfo,
+  type WorkItemStateLookup,
 } from './work-item-hierarchy';
 export {
   clearCollapsedTreeIds,

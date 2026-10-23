@@ -46,7 +46,19 @@ export const STATE_DOT_CLASS: Record<WorkItemStateCategory, string> = {
   removed: 'bg-state-removed',
 };
 
-/** Hours as ADO shows them: whole numbers stay whole, fractions keep one decimal. */
+/** Hours as ADO shows them: up to two decimals, trailing zeros dropped (0.25, 1.5, 3). */
 export function formatHours(hours: number): string {
-  return Number.isInteger(hours) ? String(hours) : hours.toFixed(1);
+  return String(Math.round(hours * 100) / 100);
+}
+
+/**
+ * Near-white process colours (ADO uses `ffffff` for Removed) vanish on light
+ * surfaces, so those fall back to the category token.
+ */
+export function usableStateColor(color: string | undefined): string | undefined {
+  if (!color) return undefined;
+  const n = Number.parseInt(color.slice(1), 16);
+  const luminance =
+    0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
+  return luminance > 235 ? undefined : color;
 }

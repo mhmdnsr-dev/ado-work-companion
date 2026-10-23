@@ -35,7 +35,7 @@ Existing shadcn tokens (`--background`, `--muted`, `--border`, `--primary`, …)
 | `--state-completed`   | Done, Closed                    | `#2F8F2F`       | `#62CF8E`     |
 | `--state-removed`     | Removed, Cut                    | `#A0A6AE`       | `#5C6370`     |
 
-Values are stored as oklch, and Tailwind exposes them as `text-wit-*`, `bg-state-*`, and so on. Glyph colours meet 3:1 against `--background` (non-text). State labels use `--foreground`; only the dot is coloured.
+State dots use the project's own process colours from `workitemtypes` when ADO provides them (near-white ones fall back to the category token); the `--state-*` tokens are the fallback. Values are stored as oklch, and Tailwind exposes them as `text-wit-*`, `bg-state-*`, and so on. Glyph colours meet 3:1 against `--background` (non-text). State labels use `--foreground`; only the dot is coloured.
 
 Type: IBM Plex Sans (UI) and IBM Plex Mono (IDs, hours, counts) via `next/font`, falling back to Segoe UI, the font ADO itself uses. Sizes: row title 14px (`text-sm`), meta 12px (`text-xs`), column headers 11px uppercase with tracking.
 

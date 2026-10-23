@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import { adoQueryKeys, STORAGE_KEYS } from '@core/constants';
 import {
   buildWorkItemHierarchy,
+  buildWorkItemStateLookup,
   buildWorkItemsListWiql,
   clearCollapsedTreeIds,
   clearWorkItemFilters,
@@ -337,7 +338,14 @@ function WorkItemsViewContent({
   });
 
   const teams = teamsQuery.data?.data ?? [];
-  const workItemTypes = typesQuery.data?.data ?? [];
+  const workItemTypes = useMemo(
+    () => typesQuery.data?.data ?? [],
+    [typesQuery.data?.data],
+  );
+  const stateLookup = useMemo(
+    () => buildWorkItemStateLookup(workItemTypes),
+    [workItemTypes],
+  );
   const selectedTeam = teams.find((team) => team.id === teamId || team.name === teamId);
   const teamName = selectedTeam?.name ?? '';
 
@@ -1154,6 +1162,7 @@ function WorkItemsViewContent({
           onOpen={openItem}
           selectedId={selectedId}
           contextIds={contextIds}
+          stateLookup={stateLookup}
         />
       ) : (
         <WorkItemTree
@@ -1161,6 +1170,7 @@ function WorkItemsViewContent({
           roots={pageItems}
           onOpen={openItem}
           selectedId={selectedId}
+          stateLookup={stateLookup}
         />
       )}
 

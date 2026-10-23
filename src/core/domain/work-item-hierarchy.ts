@@ -1,3 +1,4 @@
+import type { WorkItemType } from '../types/metadata';
 import type { WorkItem } from '../types/work-items';
 import { fieldNumber, fieldString, parseWorkItemIdFromRelationUrl } from './work-items';
 
@@ -141,9 +142,62 @@ const STATE_CATEGORIES: Record<string, WorkItemStateCategory> = {
   removed: 'removed',
 };
 
-export function workItemStateCategory(item: WorkItem): WorkItemStateCategory {
-  const state = fieldString(item, 'System.State').trim().toLowerCase();
-  return STATE_CATEGORIES[state] ?? 'proposed';
+const ADO_STATE_CATEGORIES: Record<string, WorkItemStateCategory> = {
+  proposed: 'proposed',
+  inprogress: 'inProgress',
+  resolved: 'resolved',
+  completed: 'completed',
+  removed: 'removed',
+};
+
+export interface WorkItemStateInfo {
+  category: WorkItemStateCategory;
+  /** The process's configured colour as `#rrggbb`, when ADO provides one. */
+  color?: string;
+}
+
+/** Process states keyed by `type::state`, both lower-cased. */
+export type WorkItemStateLookup = ReadonlyMap<string, WorkItemStateInfo>;
+
+function stateKey(type: string, state: string): string {
+  return `${type.trim().toLowerCase()}::${state.trim().toLowerCase()}`;
+}
+
+/**
+ * Indexes the states returned with each work item type, so custom process
+ * states ("Ready for UAT", "Blocked", …) get their real category and colour.
+ */
+export function buildWorkItemStateLookup(types: WorkItemType[]): WorkItemStateLookup {
+  const lookup = new Map<string, WorkItemStateInfo>();
+  for (const type of types) {
+    for (const state of type.states ?? []) {
+      if (!state.name) continue;
+      const category = ADO_STATE_CATEGORIES[(state.category ?? '').toLowerCase()];
+      if (!category) continue;
+      const color = /^[0-9a-f]{6}$/i.test(state.color ?? '')
+        ? `#${state.color!.toLowerCase()}`
+        : undefined;
+      lookup.set(stateKey(type.name, state.name), { category, color });
+    }
+  }
+  return lookup;
+}
+
+export function workItemStateInfo(
+  item: WorkItem,
+  lookup?: WorkItemStateLookup,
+): WorkItemStateInfo {
+  const state = fieldString(item, 'System.State');
+  const known = lookup?.get(stateKey(fieldString(item, 'System.WorkItemType'), state));
+  if (known) return known;
+  return { category: STATE_CATEGORIES[state.trim().toLowerCase()] ?? 'proposed' };
+}
+
+export function workItemStateCategory(
+  item: WorkItem,
+  lookup?: WorkItemStateLookup,
+): WorkItemStateCategory {
+  return workItemStateInfo(item, lookup).category;
 }
 
 export interface WorkItemHierarchySummary {
@@ -158,6 +212,7 @@ export interface WorkItemHierarchySummary {
 /** Rolls up progress for a parent row from its loaded leaf descendants. */
 export function summarizeHierarchyNode(
   node: WorkItemHierarchyNode,
+  lookup?: WorkItemStateLookup,
 ): WorkItemHierarchySummary {
   const summary: WorkItemHierarchySummary = { total: 0, completed: 0, remainingHours: 0 };
   const visit = (current: WorkItemHierarchyNode) => {
@@ -167,7 +222,7 @@ export function summarizeHierarchyNode(
         continue;
       }
       summary.total += 1;
-      const category = workItemStateCategory(child.item);
+      const category = workItemStateCategory(child.item, lookup);
       if (category === 'completed' || category === 'resolved') summary.completed += 1;
       summary.remainingHours +=
         fieldNumber(child.item, 'Microsoft.VSTS.Scheduling.RemainingWork') ?? 0;

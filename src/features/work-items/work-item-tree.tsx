@@ -10,14 +10,16 @@ import {
   identityDisplayName,
   listWorkItemAttachments,
   summarizeHierarchyNode,
-  workItemStateCategory,
+  workItemStateInfo,
   type VisibleHierarchyRow,
   type WorkItemHierarchyNode,
+  type WorkItemStateLookup,
 } from '@core/domain';
 import type { WorkItem } from '@core/types';
 import {
   STATE_DOT_CLASS,
   formatHours,
+  usableStateColor,
   workItemTypeVisual,
 } from '@/features/work-items/work-item-visuals';
 import { cn } from '@/lib/utils';
@@ -74,6 +76,7 @@ export function WorkItemTree({
   onToggle,
   selectedId = null,
   contextIds = NO_COLLAPSED,
+  stateLookup,
   className,
 }: {
   roots: WorkItemHierarchyNode[];
@@ -86,6 +89,8 @@ export function WorkItemTree({
   selectedId?: number | null;
   /** Ancestors loaded only to group matches; rendered muted. */
   contextIds?: ReadonlySet<number>;
+  /** Process state categories and colours from the project's work item types. */
+  stateLookup?: WorkItemStateLookup;
   /** Overrides the frame, e.g. to drop the phone full-bleed inside a panel. */
   className?: string;
 }) {
@@ -159,7 +164,7 @@ export function WorkItemTree({
       >
         <span className="flex-1">Title</span>
         <span className="hidden w-40 md:block">Assigned to</span>
-        <span className="w-24">State</span>
+        <span className="w-24 md:w-36">State</span>
         <span className="w-10 text-right">Rem.</span>
       </div>
       <ul role="tree" aria-label={label} className="flex flex-col">
@@ -168,6 +173,7 @@ export function WorkItemTree({
             key={row.id ?? `${row.node.item.url}-${index}`}
             row={row}
             isContext={row.id != null && contextIds.has(row.id)}
+            stateLookup={stateLookup}
             selected={row.id != null && row.id === selectedId}
             tabbable={row.id === tabbableId}
             registerRef={(element) => {
@@ -189,6 +195,7 @@ export function WorkItemTree({
 function WorkItemTreeRow({
   row,
   isContext,
+  stateLookup,
   selected,
   tabbable,
   registerRef,
@@ -199,6 +206,7 @@ function WorkItemTreeRow({
 }: {
   row: VisibleHierarchyRow;
   isContext: boolean;
+  stateLookup?: WorkItemStateLookup;
   selected: boolean;
   tabbable: boolean;
   registerRef: (element: HTMLLIElement | null) => void;
@@ -219,7 +227,10 @@ function WorkItemTreeRow({
   const visual = workItemTypeVisual(type);
   const TypeIcon = visual.icon;
   const isParent = row.hasChildren;
-  const summary = isParent && !isContext ? summarizeHierarchyNode(row.node) : null;
+  const summary =
+    isParent && !isContext ? summarizeHierarchyNode(row.node, stateLookup) : null;
+  const stateInfo = workItemStateInfo(item, stateLookup);
+  const stateColor = usableStateColor(stateInfo.color);
   const progress = summary && summary.total > 0 ? summary.completed / summary.total : 0;
   const childCount = row.node.children.length;
   const remaining = summary ? summary.remainingHours : ownRemaining;
@@ -364,15 +375,17 @@ function WorkItemTreeRow({
         <span className="hidden w-40 truncate pt-2.5 text-sm leading-5 text-muted-foreground md:block">
           {isParent ? '' : assignee}
         </span>
-        <span className="flex w-24 min-w-0 items-center gap-1.5 pt-2.5 text-sm leading-5 text-foreground">
+        <span className="flex w-24 min-w-0 items-start gap-1.5 pt-2.5 text-sm leading-5 text-foreground md:w-36">
           <span
             aria-hidden
             className={cn(
-              'size-2 shrink-0 rounded-full',
-              STATE_DOT_CLASS[workItemStateCategory(item)],
+              'mt-1.5 size-2 shrink-0 rounded-full',
+              !stateColor && STATE_DOT_CLASS[stateInfo.category],
             )}
+            style={stateColor ? { backgroundColor: stateColor } : undefined}
           />
-          <span className="truncate">{state}</span>
+          {/* Custom states can be long ("Ready for UAT"): wrap rather than cut. */}
+          <span className="line-clamp-2 break-words">{state}</span>
         </span>
         <span className="w-10 pt-2.5 text-right font-mono text-sm leading-5 text-foreground tabular-nums">
           {isContext || remaining == null ? (

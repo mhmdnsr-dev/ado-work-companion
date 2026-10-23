@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { WorkItem } from '../types/work-items';
 import {
   buildWorkItemHierarchy,
+  buildWorkItemStateLookup,
   collectHierarchyParentIds,
   flattenVisibleHierarchy,
   getWorkItemChildIds,
@@ -10,6 +11,7 @@ import {
   isClosedWorkItemState,
   summarizeHierarchyNode,
   workItemStateCategory,
+  workItemStateInfo,
 } from './work-item-hierarchy';
 
 function item(
@@ -20,6 +22,7 @@ function item(
     state?: string;
     changed?: string;
     remaining?: number;
+    type?: string;
   } = {},
 ): WorkItem {
   const relations = [];
@@ -39,6 +42,7 @@ function item(
     id,
     fields: {
       'System.State': options.state ?? 'New',
+      'System.WorkItemType': options.type ?? 'Task',
       'System.ChangedDate': options.changed ?? '2026-01-01T00:00:00Z',
       ...(options.remaining != null
         ? { 'Microsoft.VSTS.Scheduling.RemainingWork': options.remaining }
@@ -176,5 +180,38 @@ describe('work item hierarchy helpers', () => {
       item(4),
     ]);
     expect(collectHierarchyParentIds(tree.roots).sort()).toEqual([1, 2]);
+  });
+
+  it('prefers the process state category and colour from work item types', () => {
+    const lookup = buildWorkItemStateLookup([
+      {
+        name: 'Task',
+        states: [
+          { name: 'Resolved', category: 'InProgress', color: 'fbbc3d' },
+          { name: 'Blocked', category: 'InProgress', color: 'b20b1e' },
+          { name: 'Closed', category: 'Completed', color: '339933' },
+          { name: 'Odd', category: 'Unknown', color: 'zzz' },
+        ],
+      },
+    ]);
+
+    expect(workItemStateInfo(item(1, { state: 'blocked' }), lookup)).toEqual({
+      category: 'inProgress',
+      color: '#b20b1e',
+    });
+    // Without a lookup entry the built-in defaults still apply.
+    expect(
+      workItemStateInfo(item(2, { state: 'Resolved', type: 'Bug' }), lookup),
+    ).toEqual({ category: 'resolved' });
+    expect(workItemStateCategory(item(3, { state: 'Odd' }), lookup)).toBe('proposed');
+
+    // In this process a resolved Task is still in progress, so it is not "done".
+    const tree = buildWorkItemHierarchy([
+      item(10, { type: 'User Story' }),
+      item(11, { parent: 10, state: 'Resolved' }),
+      item(12, { parent: 10, state: 'Closed' }),
+    ]);
+    expect(summarizeHierarchyNode(tree.nodes.get(10)!, lookup).completed).toBe(1);
+    expect(summarizeHierarchyNode(tree.nodes.get(10)!).completed).toBe(2);
   });
 });
