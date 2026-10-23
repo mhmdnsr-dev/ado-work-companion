@@ -67,8 +67,8 @@ test.describe('work item hierarchy', () => {
     await expect(
       page.getByRole('treeitem', { name: /^Bug 102: Fix login/ }),
     ).toHaveAttribute('aria-level', '4');
-    await expect(epic).toContainText('Parent of matches');
-    await expect(feature).toContainText('Parent of matches');
+    await expect(epic).toContainText('Outside filters');
+    await expect(feature).toContainText('Outside filters');
 
     // Custom process types use their ADO colour and icon.
     const meeting = page.getByRole('treeitem', {
@@ -156,9 +156,13 @@ test.describe('work item hierarchy', () => {
     );
     await expect(page.getByRole('treeitem')).toHaveCount(6);
     await expect(
-      page.getByRole('button', { name: 'Remove filter: Only my matches' }),
+      page.getByRole('button', { name: 'Remove filter: Matching children only' }),
     ).toBeVisible();
-    await expect(page.getByText('Parent of matches', { exact: true })).toHaveCount(4);
+    await expect(page.getByText('Outside filters', { exact: true })).toHaveCount(4);
+    // A story whose children are only your matches still rolls them up.
+    const auth = page.getByRole('treeitem', { name: /^User Story 202: Authentication/ });
+    await expect(auth).toContainText('0/1');
+    await expect(auth).toContainText('2');
     await expect(page.getByText('QA search', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Write auth tests', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Token refresh', { exact: true })).toHaveCount(0);

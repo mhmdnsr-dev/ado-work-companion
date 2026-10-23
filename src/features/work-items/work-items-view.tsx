@@ -753,7 +753,7 @@ function WorkItemsViewContent({
     displayMode === 'hierarchy' && !includeChildren
       ? {
           key: 'children',
-          label: 'Only my matches',
+          label: 'Matching children only',
           onRemove: () => patchFilters({ includeChildren: true }),
         }
       : null,

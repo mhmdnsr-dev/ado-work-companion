@@ -207,11 +207,22 @@ export function WorkItemFiltersSheet({
 
           {filters.displayMode === 'hierarchy' ? (
             <div className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
-              <Label htmlFor="work-items-include-children" className="font-normal">
-                Include child tasks/bugs
-              </Label>
+              <div className="space-y-0.5">
+                <Label htmlFor="work-items-include-children" className="font-normal">
+                  Show all children
+                </Label>
+                <p
+                  id="work-items-include-children-hint"
+                  className="text-xs text-muted-foreground"
+                >
+                  {filters.includeChildren
+                    ? 'Every task and bug under each parent, whoever it’s assigned to.'
+                    : 'Only children that match your filters, for example just your tasks.'}
+                </p>
+              </div>
               <Switch
                 id="work-items-include-children"
+                aria-describedby="work-items-include-children-hint"
                 checked={filters.includeChildren}
                 onCheckedChange={(checked) => onChange({ includeChildren: checked })}
               />

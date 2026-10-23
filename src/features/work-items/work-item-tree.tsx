@@ -237,8 +237,9 @@ function WorkItemTreeRow({
   const visual = workItemTypeVisual(type, typeLookup?.get(type.trim().toLowerCase()));
   const TypeIcon = visual.icon;
   const isParent = row.hasChildren;
-  const summary =
-    isParent && !isContext ? summarizeHierarchyNode(row.node, stateLookup) : null;
+  // Context parents roll up too: with "all children" off, that is your share
+  // of the story (only your tasks are loaded under it).
+  const summary = isParent ? summarizeHierarchyNode(row.node, stateLookup) : null;
   const stateInfo = workItemStateInfo(item, stateLookup);
   const stateColor = usableStateColor(stateInfo.color);
   const stateDot = (
@@ -258,6 +259,7 @@ function WorkItemTreeRow({
     `${type} ${id}: ${title}`,
     state,
     summary ? `${summary.completed} of ${summary.total} done` : assignee,
+    isContext ? 'outside your filters, shown to group matching items' : null,
     isParent && !row.expanded
       ? `${childCount} child${childCount === 1 ? '' : 'ren'} hidden`
       : null,
@@ -391,11 +393,11 @@ function WorkItemTreeRow({
                   {summary.completed}/{summary.total}
                 </span>
               </span>
-            ) : isContext ? (
-              <span className="truncate">Parent of matches</span>
-            ) : (
+            ) : isContext ? null : (
               <span className="max-w-full truncate md:hidden">{assignee}</span>
             )}
+            {/* Doesn't match the filters itself; shown to group the items below. */}
+            {isContext ? <span className="truncate">Outside filters</span> : null}
             {attachmentCount > 0 ? (
               <span className="flex shrink-0 items-center gap-0.5">
                 <Paperclip className="size-3" aria-hidden />
@@ -415,7 +417,7 @@ function WorkItemTreeRow({
           </span>
         </span>
         <span className="w-10 pt-2.5 text-right font-mono text-sm leading-5 text-foreground tabular-nums">
-          {isContext || remaining == null ? (
+          {remaining == null ? (
             <span className="text-muted-foreground">–</span>
           ) : (
             formatHours(remaining)
