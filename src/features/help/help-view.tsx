@@ -134,12 +134,15 @@ function ContactForm() {
 export function HelpView() {
   return (
     <article className="mx-auto w-full max-w-3xl">
-      <header className="space-y-4 pb-10">
-        <div className="max-w-sm rounded-lg bg-white px-3 py-2 ring-1 ring-border/60">
+      <header className="space-y-4 pb-6 md:pb-10">
+        {/* Smaller on phones: the logo shouldn't push the help itself below the fold. */}
+        <div className="max-w-56 rounded-lg bg-white px-3 py-2 ring-1 ring-border/60 md:max-w-sm">
           <BrandLockup width={320} priority />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-3xl font-semibold tracking-tight">Help & About</h1>
+          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
+            Help & About
+          </h1>
           <Badge variant="secondary">v{APP_INFO.version}</Badge>
         </div>
         <p className="max-w-2xl text-muted-foreground">
@@ -164,7 +167,7 @@ export function HelpView() {
 
       <nav
         aria-label="Help sections"
-        className="-mx-4 flex scrollbar-thin gap-2 overflow-x-auto border-y border-border px-4 py-3 md:mx-0 md:flex-wrap md:border-x-0 md:px-0"
+        className="safe-top sticky top-0 z-20 -mx-4 flex scrollbar-none gap-2 overflow-x-auto border-y border-border bg-background/85 [mask-image:linear-gradient(to_right,black_88%,transparent)] px-4 py-2 backdrop-blur-md md:mx-0 md:flex-wrap md:border-x-0 md:[mask-image:none] md:px-0"
       >
         {[
           ['connect-heading', 'Connect'],
@@ -176,7 +179,7 @@ export function HelpView() {
           <a
             key={id}
             href={`#${id}`}
-            className="touch-target inline-flex shrink-0 items-center rounded-md border border-border px-3 text-sm font-medium active:bg-muted"
+            className="relative inline-flex h-9 shrink-0 items-center rounded-full border border-border bg-card px-4 text-sm font-medium transition-colors before:absolute before:inset-x-0 before:-inset-y-1 before:content-[''] hover:bg-accent active:bg-muted"
           >
             {label}
           </a>
@@ -185,7 +188,7 @@ export function HelpView() {
 
       <div className="divide-y divide-border">
         <section className="space-y-4 py-8" aria-labelledby="connect-heading">
-          <h2 id="connect-heading" className="text-xl font-semibold">
+          <h2 id="connect-heading" className="scroll-mt-20 text-xl font-semibold">
             Connect Azure DevOps
           </h2>
           <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
@@ -220,7 +223,7 @@ export function HelpView() {
         </section>
 
         <section className="space-y-4 py-8" aria-labelledby="workflow-heading">
-          <h2 id="workflow-heading" className="text-xl font-semibold">
+          <h2 id="workflow-heading" className="scroll-mt-20 text-xl font-semibold">
             Daily workflow
           </h2>
           <dl className="space-y-4 text-sm">
@@ -247,7 +250,7 @@ export function HelpView() {
         </section>
 
         <section className="space-y-4 py-8" aria-labelledby="install-heading">
-          <h2 id="install-heading" className="text-xl font-semibold">
+          <h2 id="install-heading" className="scroll-mt-20 text-xl font-semibold">
             Install the app
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -257,7 +260,7 @@ export function HelpView() {
         </section>
 
         <section className="space-y-4 py-8" aria-labelledby="about-heading">
-          <h2 id="about-heading" className="text-xl font-semibold">
+          <h2 id="about-heading" className="scroll-mt-20 text-xl font-semibold">
             About
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -265,7 +268,7 @@ export function HelpView() {
             Azure DevOps.
           </p>
           <nav
-            aria-label="Author links"
+            aria-label="Author profiles"
             className="flex flex-wrap gap-x-4 gap-y-2 text-sm"
           >
             <a
@@ -298,7 +301,7 @@ export function HelpView() {
 
         <section className="space-y-4 py-8" aria-labelledby="contact-heading">
           <div className="space-y-1">
-            <h2 id="contact-heading" className="text-xl font-semibold">
+            <h2 id="contact-heading" className="scroll-mt-20 text-xl font-semibold">
               Contact
             </h2>
             <p className="text-sm text-muted-foreground">

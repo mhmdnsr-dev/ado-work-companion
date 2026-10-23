@@ -19,8 +19,15 @@ Roadmap slice 6, phone-first: Queries, Settings, and Help in the new style, plus
 
 ## Open questions
 
+- The connection form still uses its own card, not a grouped section. Converting it means touching the shared first-run setup screen too, so it was left for later.
+
 ## Progress log
 
+- 2026-10-23: Built all four parts. Also fixed: light primary contrast (4.44 → 4.89:1, app-wide), a duplicate Help landmark, "Clear local preferences" missing the collapsed-tree key, and e2e sign-ins hitting the production rate limit (now one sign-in per worker, cookie reused).
 - 2026-10-23: "Before" screenshots at 360px. Queries: a fixed-height library card, a placeholder pane on phones, and an extra tap to run a query. Settings: nested cards, a cramped token row, stacked centred buttons. Help: a large logo and clipped tabs.
 
 ## Verification evidence
+
+- `npm run verify` (62 unit tests); `npm run test:e2e` 39/39, twice in a row (new: query opens and runs, folders, search with paths and the empty state, WIQL disclosure, theme segmented control).
+- axe (WCAG 2.1 AA + best-practice) at 360px, light and dark, on /queries, /queries?query=…, /settings, /help: 0 violations.
+- Live, read-only, NDC Portal: the real query tree loads (My Queries, Shared Queries, nested folders); no errors.

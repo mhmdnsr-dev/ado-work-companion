@@ -1,4 +1,4 @@
-import type { Page, Route } from '@playwright/test';
+import type { BrowserContext, Page, Route } from '@playwright/test';
 
 export const MOCK_ORG = 'contoso';
 export const MOCK_PROJECT = 'Mock Project';
@@ -444,7 +444,9 @@ export async function installAdoMocks(page: Page) {
       const key = decodeURIComponent(path.split('/_apis/wit/queries/')[1] ?? '');
       if (!key) return json(route, { count: QUERY_TREE.length, value: QUERY_TREE });
       const query = findQuery(QUERY_TREE, key);
-      return query ? json(route, query) : json(route, { message: 'Query not found' }, 404);
+      return query
+        ? json(route, query)
+        : json(route, { message: 'Query not found' }, 404);
     }
 
     if (path.includes('/_apis/wit/wiql')) {
@@ -537,10 +539,20 @@ export async function configureMockConnection(
     { org: organization, nextProject: project },
   );
 
+  // /api/config is rate limited (30 writes / 15 min per IP, as in production),
+  // so each worker signs in once and reuses the encrypted session cookie.
+  if (sessionCookies) {
+    await page.context().addCookies(sessionCookies);
+    return;
+  }
   const response = await page.request.post('/api/config', {
     data: { pat: 'mock-playwright-pat', cookieLifetime: '14d' },
   });
   if (!response.ok()) {
     throw new Error(`Could not configure mock connection: HTTP ${response.status()}`);
   }
+  sessionCookies = await page.context().cookies();
 }
+
+/** Session cookies from this worker's first sign-in (module scope = per worker). */
+let sessionCookies: Awaited<ReturnType<BrowserContext['cookies']>> | null = null;

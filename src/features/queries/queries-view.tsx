@@ -6,12 +6,15 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  ChevronDown,
+  ChevronLeft,
   ChevronRight,
+  FileSearch,
   Folder,
   FolderKanban,
-  FileSearch,
-  Play,
+  Link2,
+  List,
+  ListTree,
+  Loader2,
   RefreshCw,
   Search,
 } from 'lucide-react';
@@ -24,12 +27,10 @@ import {
 } from '@core/domain';
 import type { QueryHierarchyItem, WorkItem } from '@core/types';
 import { useConnection } from '@/components/providers';
+import { EmptyState, ErrorState, RowsSkeleton } from '@/components/shared/states';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WorkItemTree, toFlatNodes } from '@/features/work-items/work-item-tree';
 import { cn } from '@/lib/utils';
@@ -164,7 +165,8 @@ function QueriesViewContent({
       ...adoQueryKeys.queries.run(organization, project, selectedId ?? ''),
       runToken,
     ],
-    enabled: Boolean(api && project && selectedId && runToken > 0 && canRun),
+    // Opening a query runs it: results are why people open one.
+    enabled: Boolean(api && project && selectedId && canRun),
     queryFn: async ({ signal }) => {
       if (!api || !selectedId) throw new Error('Connection is not ready.');
 
@@ -269,10 +271,17 @@ function QueriesViewContent({
     setPage(0);
   }
 
-  function onRun() {
+  function onRerun() {
     if (!canRun || !selectedId) return;
     setPage(0);
     setRunToken((token) => token + 1);
+  }
+
+  function refreshLibrary() {
+    setFolderChildren({});
+    setExpandedIds(null);
+    void listQuery.refetch();
+    void queryClient.invalidateQueries({ queryKey: adoQueryKeys.queries.all });
   }
 
   function openWorkItem(id: number) {
@@ -314,274 +323,272 @@ function QueriesViewContent({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 md:gap-6">
       <header className="hidden flex-col gap-3 md:flex md:flex-row md:items-end md:justify-between">
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Queries</h1>
           <p className="text-sm text-muted-foreground md:text-base">
-            Browse and run saved queries in{' '}
+            Run saved queries in{' '}
             <span className="font-medium text-foreground">{project}</span>.
           </p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          className="touch-target h-11 gap-2"
-          disabled={listQuery.isFetching}
-          onClick={() => {
-            setFolderChildren({});
-            setExpandedIds(null);
-            void listQuery.refetch();
-            void queryClient.invalidateQueries({
-              queryKey: adoQueryKeys.queries.all,
-            });
-          }}
-        >
-          <RefreshCw className={cn('size-4', listQuery.isFetching && 'animate-spin')} />
-          Refresh
-        </Button>
       </header>
 
-      <section
-        aria-label="Query search"
-        className={cn(
-          'rounded-lg border border-border p-4',
-          selectedId && 'hidden lg:block',
-        )}
-      >
-        <div className="space-y-2">
-          <Label htmlFor="queries-search">Search saved queries</Label>
-          <div className="relative">
-            <Search
-              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden
-            />
-            <Input
-              id="queries-search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Filter by name or path…"
-              className="touch-target h-11 pl-9"
-            />
-          </div>
-        </div>
-      </section>
-
-      {listQuery.isError ? (
-        <Alert variant="destructive">
-          <AlertTitle>Could not load queries</AlertTitle>
-          <AlertDescription>
-            {listQuery.error instanceof Error
-              ? listQuery.error.message
-              : 'Something went wrong loading the query hierarchy.'}
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      <div className="grid gap-6 lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)]">
+      {/* Phones show the library or the open query; lg shows both side by side. */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)] lg:items-start lg:gap-6">
         <section
           aria-label="Saved queries"
-          className={cn(
-            'rounded-lg border border-border',
-            selectedId && 'hidden lg:block',
-          )}
+          className={cn('flex flex-col gap-3', selectedId && 'hidden lg:flex')}
         >
-          <div className="border-b border-border px-4 py-3">
-            <h2 className="text-sm font-medium">Library</h2>
-            <p className="text-xs text-muted-foreground">My Queries and Shared Queries</p>
-          </div>
-
-          {listQuery.isLoading ? (
-            <div className="space-y-2 p-4">
-              <Skeleton className="h-8 w-full" />
-              <Skeleton className="h-8 w-5/6" />
-              <Skeleton className="h-8 w-4/5" />
+          <form
+            role="search"
+            className="flex gap-2"
+            onSubmit={(event) => event.preventDefault()}
+          >
+            <div className="relative min-w-0 flex-1">
+              <Search
+                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden
+              />
+              <Input
+                id="queries-search"
+                type="search"
+                enterKeyHint="search"
+                aria-label="Search saved queries"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search saved queries"
+                className="touch-target h-11 ps-9"
+              />
             </div>
-          ) : showSearchResults ? (
-            <ScrollArea className="h-[min(28rem,50vh)]">
-              <ul className="space-y-1 p-2" role="listbox" aria-label="Matching queries">
-                {searchable.length === 0 ? (
-                  <li className="px-3 py-6 text-center text-sm text-muted-foreground">
-                    No queries match that search.
-                  </li>
-                ) : (
-                  searchable.map(({ item, depth }) => (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="touch-target size-11 shrink-0 text-muted-foreground"
+              aria-label="Refresh queries"
+              title="Refresh queries"
+              disabled={listQuery.isFetching}
+              onClick={refreshLibrary}
+            >
+              <RefreshCw
+                className={cn('size-4', listQuery.isFetching && 'animate-spin')}
+              />
+            </Button>
+          </form>
+
+          {listQuery.isError ? (
+            <ErrorState
+              title="Could not load queries"
+              error={listQuery.error}
+              onRetry={refreshLibrary}
+              retrying={listQuery.isFetching}
+            />
+          ) : listQuery.isLoading ? (
+            <RowsSkeleton rows={5} />
+          ) : roots.length === 0 ? (
+            <EmptyState
+              icon={FileSearch}
+              title="No saved queries"
+              description="Create queries in Azure DevOps (My Queries or Shared Queries) and they show up here."
+            />
+          ) : showSearchResults && searchable.length === 0 ? (
+            <EmptyState
+              icon={Search}
+              title="No queries match"
+              description={`Nothing named or filed under “${search.trim()}”.`}
+              action={
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="touch-target h-11"
+                  onClick={() => setSearch('')}
+                >
+                  Clear search
+                </Button>
+              }
+            />
+          ) : (
+            <div className="-mx-4 overflow-hidden border-y border-border bg-card md:mx-0 md:rounded-lg md:border">
+              {showSearchResults ? (
+                <ul role="list" aria-label="Matching queries" className="flex flex-col">
+                  {searchable.map(({ item }) => (
                     <li key={item.id}>
                       <QueryRow
                         item={item}
-                        depth={depth}
+                        depth={0}
                         selected={selectedId === item.id}
                         expanded={false}
                         loading={false}
-                        onSelect={() => selectQuery(item)}
-                        onToggle={() => selectQuery(item)}
+                        showPath
+                        onActivate={() => selectQuery(item)}
                       />
                     </li>
-                  ))
-                )}
-              </ul>
-            </ScrollArea>
-          ) : (
-            <ScrollArea className="h-[min(28rem,50vh)]">
-              <QueryTree
-                nodes={roots}
-                depth={0}
-                selectedId={selectedId}
-                expandedIds={resolvedExpanded}
-                loadingFolderId={loadingFolderId}
-                onSelect={selectQuery}
-                onToggle={(folder) => void onExpandFolder(folder)}
-              />
-            </ScrollArea>
-          )}
-        </section>
-
-        <section aria-label="Query details" className="flex flex-col gap-4">
-          {!selectedId ? (
-            <div className="flex min-h-48 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border p-8 text-center">
-              <FileSearch className="size-8 text-muted-foreground" aria-hidden />
-              <p className="text-sm font-medium">Select a query</p>
-              <p className="max-w-sm text-sm text-muted-foreground">
-                Choose a saved query to preview its WIQL and run it against this project.
-              </p>
-            </div>
-          ) : detailQuery.isLoading ? (
-            <div className="space-y-3 rounded-lg border border-border p-4">
-              <Skeleton className="h-6 w-48" />
-              <Skeleton className="h-4 w-72" />
-              <Skeleton className="h-32 w-full" />
-            </div>
-          ) : detailQuery.isError ? (
-            <Alert variant="destructive">
-              <AlertTitle>Could not load query</AlertTitle>
-              <AlertDescription>
-                {detailQuery.error instanceof Error
-                  ? detailQuery.error.message
-                  : 'Something went wrong loading this query.'}
-              </AlertDescription>
-            </Alert>
-          ) : selectedQuery ? (
-            <div className="space-y-4 rounded-lg border border-border p-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0 space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-lg font-semibold tracking-tight">
-                      {selectedQuery.name}
-                    </h2>
-                    {selectedQuery.queryType ? (
-                      <Badge variant="secondary">{selectedQuery.queryType}</Badge>
-                    ) : null}
-                    {selectedQuery.isPublic != null ? (
-                      <Badge variant="outline">
-                        {selectedQuery.isPublic ? 'Shared' : 'Personal'}
-                      </Badge>
-                    ) : null}
-                  </div>
-                  {selectedQuery.path ? (
-                    <p className="truncate text-sm text-muted-foreground">
-                      {selectedQuery.path}
-                    </p>
-                  ) : null}
-                </div>
-                <Button
-                  type="button"
-                  className="touch-target h-11 shrink-0 gap-2"
-                  disabled={!canRun || runQuery.isFetching}
-                  onClick={onRun}
-                >
-                  <Play
-                    className={cn('size-4', runQuery.isFetching && 'animate-pulse')}
-                  />
-                  {runQuery.isFetching ? 'Running…' : 'Run query'}
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="query-wiql">WIQL</Label>
-                <ScrollArea className="h-40 rounded-md border border-border bg-muted/20">
-                  <pre
-                    id="query-wiql"
-                    className="p-3 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap"
-                  >
-                    {selectedQuery.wiql?.trim() || 'No WIQL available for this item.'}
-                  </pre>
-                </ScrollArea>
-              </div>
-            </div>
-          ) : null}
-
-          {runToken > 0 ? (
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-end justify-between gap-2">
-                <div>
-                  <h3 className="text-base font-semibold tracking-tight">Results</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {runQuery.isFetching
-                      ? 'Running query…'
-                      : runQuery.isError
-                        ? 'Run failed'
-                        : `${results.length} work item${results.length === 1 ? '' : 's'}${
-                            runQuery.data?.truncated ? ` (first ${RUN_TOP})` : ''
-                          }`}
-                  </p>
-                </div>
-                {pageCount > 1 ? (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="touch-target"
-                      disabled={safePage <= 0}
-                      onClick={() => setPage((p) => Math.max(0, p - 1))}
-                    >
-                      Previous
-                    </Button>
-                    <span className="text-sm text-muted-foreground">
-                      {safePage + 1} / {pageCount}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="touch-target"
-                      disabled={safePage >= pageCount - 1}
-                      onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
-
-              {runQuery.isError ? (
-                <Alert variant="destructive">
-                  <AlertTitle>Could not run query</AlertTitle>
-                  <AlertDescription>
-                    {runQuery.error instanceof Error
-                      ? runQuery.error.message
-                      : 'Something went wrong running this query.'}
-                  </AlertDescription>
-                </Alert>
-              ) : runQuery.isFetching ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-28 w-full rounded-xl" />
-                  <Skeleton className="h-28 w-full rounded-xl" />
-                </div>
-              ) : results.length === 0 ? (
-                <p className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-                  No work items matched this query.
-                </p>
+                  ))}
+                </ul>
               ) : (
-                <WorkItemTree
-                  label="Query results"
-                  roots={toFlatNodes(pageItems)}
-                  onOpen={openWorkItem}
-                  selectedId={detailId}
-                  className="mx-0 rounded-lg border"
+                <QueryTree
+                  nodes={roots}
+                  depth={0}
+                  selectedId={selectedId}
+                  expandedIds={resolvedExpanded}
+                  loadingFolderId={loadingFolderId}
+                  onSelect={selectQuery}
+                  onToggle={(folder) => void onExpandFolder(folder)}
                 />
               )}
             </div>
+          )}
+        </section>
+
+        <section
+          aria-label="Query details"
+          className={cn('flex flex-col gap-4', !selectedId && 'hidden lg:flex')}
+        >
+          {!selectedId ? (
+            <EmptyState
+              icon={FileSearch}
+              title="Pick a query"
+              description="Its results open here. Tap a work item to update it."
+            />
+          ) : detailQuery.isLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-4 w-64" />
+              <RowsSkeleton rows={4} />
+            </div>
+          ) : detailQuery.isError ? (
+            <ErrorState
+              title="Could not load this query"
+              error={detailQuery.error}
+              onRetry={() => void detailQuery.refetch()}
+              retrying={detailQuery.isFetching}
+            />
+          ) : selectedQuery ? (
+            <>
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg bg-muted">
+                  <QueryTypeGlyph
+                    type={selectedQuery.queryType}
+                    className="size-4 text-muted-foreground"
+                  />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg leading-snug font-semibold tracking-tight break-words">
+                    {selectedQuery.name}
+                  </h2>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {[
+                      selectedQuery.isPublic == null
+                        ? null
+                        : selectedQuery.isPublic
+                          ? 'Shared'
+                          : 'Personal',
+                      selectedQuery.path,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="touch-target size-11 shrink-0 text-muted-foreground"
+                  aria-label="Run again"
+                  title="Run again"
+                  disabled={!canRun || runQuery.isFetching}
+                  onClick={onRerun}
+                >
+                  <RefreshCw
+                    className={cn('size-4', runQuery.isFetching && 'animate-spin')}
+                  />
+                </Button>
+              </div>
+
+              {canRun ? (
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm text-muted-foreground" aria-live="polite">
+                      {runQuery.isFetching && !runQuery.data
+                        ? 'Running…'
+                        : runQuery.isError
+                          ? 'Run failed'
+                          : `${results.length} work item${results.length === 1 ? '' : 's'}${
+                              runQuery.data?.truncated ? ` (first ${RUN_TOP})` : ''
+                            }`}
+                    </p>
+                    {pageCount > 1 ? (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="touch-target size-10"
+                          aria-label="Previous page"
+                          disabled={safePage <= 0}
+                          onClick={() => setPage((p) => Math.max(0, p - 1))}
+                        >
+                          <ChevronLeft className="size-4" />
+                        </Button>
+                        <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                          {safePage + 1}/{pageCount}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="touch-target size-10"
+                          aria-label="Next page"
+                          disabled={safePage >= pageCount - 1}
+                          onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+                        >
+                          <ChevronRight className="size-4" />
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {runQuery.isError ? (
+                    <ErrorState
+                      title="Could not run this query"
+                      error={runQuery.error}
+                      onRetry={onRerun}
+                      retrying={runQuery.isFetching}
+                    />
+                  ) : runQuery.isLoading ? (
+                    <RowsSkeleton rows={4} />
+                  ) : results.length === 0 ? (
+                    <EmptyState
+                      icon={FileSearch}
+                      title="No matching work items"
+                      description="This query returns nothing in the project right now."
+                    />
+                  ) : (
+                    <WorkItemTree
+                      label="Query results"
+                      roots={toFlatNodes(pageItems)}
+                      onOpen={openWorkItem}
+                      selectedId={detailId}
+                      className={cn(runQuery.isFetching && 'opacity-60')}
+                    />
+                  )}
+                </div>
+              ) : null}
+
+              <details className="group rounded-lg border border-border">
+                <summary className="touch-target flex cursor-pointer items-center gap-2 px-3 text-sm text-muted-foreground hover:text-foreground">
+                  <ChevronRight
+                    className="size-4 transition-transform group-open:rotate-90"
+                    aria-hidden
+                  />
+                  Show WIQL
+                </summary>
+                <pre className="overflow-x-auto border-t border-border bg-muted/20 p-3 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap">
+                  {selectedQuery.wiql?.trim() || 'No WIQL available for this item.'}
+                </pre>
+              </details>
+            </>
           ) : null}
         </section>
       </div>
@@ -596,15 +603,20 @@ function QueriesViewContent({
         people={[]}
         iterations={[]}
         onChanged={() => {
-          if (runToken > 0) {
-            void queryClient.invalidateQueries({
-              queryKey: adoQueryKeys.queries.run(organization, project, selectedId ?? ''),
-            });
-          }
+          void queryClient.invalidateQueries({
+            queryKey: adoQueryKeys.queries.run(organization, project, selectedId ?? ''),
+          });
         }}
       />
     </div>
   );
+}
+
+/** Flat, tree, and direct-links queries read differently, so their glyphs differ. */
+function QueryTypeGlyph({ type, className }: { type?: string; className?: string }) {
+  if (type === 'tree') return <ListTree className={className} aria-hidden />;
+  if (type === 'oneHop') return <Link2 className={className} aria-hidden />;
+  return <List className={className} aria-hidden />;
 }
 
 function QueryTree({
@@ -624,24 +636,16 @@ function QueryTree({
   onSelect: (item: QueryHierarchyItem) => void;
   onToggle: (folder: QueryHierarchyItem) => void;
 }) {
-  if (nodes.length === 0 && depth === 0) {
-    return (
-      <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-        No saved queries in this project.
-      </p>
-    );
-  }
-
   return (
     <ul
-      className={cn('space-y-0.5 p-2', depth > 0 && 'pl-2')}
       role={depth === 0 ? 'tree' : 'group'}
+      aria-label={depth === 0 ? 'Saved queries' : undefined}
+      className="flex flex-col"
     >
       {nodes.map((item) => {
         const isFolder = Boolean(item.isFolder);
         const expanded = expandedIds.has(item.id);
         const children = item.children ?? [];
-
         return (
           <li
             key={item.id}
@@ -655,8 +659,7 @@ function QueryTree({
               selected={selectedId === item.id}
               expanded={expanded}
               loading={loadingFolderId === item.id}
-              onSelect={() => onSelect(item)}
-              onToggle={() => onToggle(item)}
+              onActivate={() => (isFolder ? onToggle(item) : onSelect(item))}
             />
             {isFolder && expanded && children.length > 0 ? (
               <QueryTree
@@ -669,13 +672,6 @@ function QueryTree({
                 onToggle={onToggle}
               />
             ) : null}
-            {isFolder &&
-            expanded &&
-            children.length === 0 &&
-            item.hasChildren &&
-            loadingFolderId === item.id ? (
-              <p className="px-4 py-2 text-xs text-muted-foreground">Loading…</p>
-            ) : null}
           </li>
         );
       })}
@@ -683,76 +679,69 @@ function QueryTree({
   );
 }
 
+/** One 44px row per folder or query; the whole row is the target. */
 function QueryRow({
   item,
   depth,
   selected,
   expanded,
   loading,
-  onSelect,
-  onToggle,
+  showPath = false,
+  onActivate,
 }: {
   item: QueryHierarchyItem;
   depth: number;
   selected: boolean;
   expanded: boolean;
   loading: boolean;
-  onSelect: () => void;
-  onToggle: () => void;
+  /** Search results are flat, so they show where each query lives. */
+  showPath?: boolean;
+  onActivate: () => void;
 }) {
   const isFolder = Boolean(item.isFolder);
-
   return (
-    <div
+    <button
+      type="button"
+      onClick={onActivate}
+      disabled={loading}
+      aria-label={
+        isFolder ? `${expanded ? 'Collapse' : 'Expand'} ${item.name}` : undefined
+      }
       className={cn(
-        'flex items-center gap-1 rounded-md',
-        selected && !isFolder && 'bg-muted',
+        'flex min-h-11 w-full items-center gap-2 border-b border-border/70 pe-4 text-left text-sm transition-colors hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset',
+        isFolder && 'font-medium',
+        selected && 'bg-primary/10 shadow-[inset_3px_0_0_var(--color-primary)]',
       )}
-      style={{ paddingLeft: `${depth * 0.75}rem` }}
+      style={{ paddingInlineStart: 8 + depth * 16 }}
     >
-      {isFolder ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="size-8 shrink-0"
-          aria-label={expanded ? `Collapse ${item.name}` : `Expand ${item.name}`}
-          aria-expanded={expanded}
-          disabled={loading}
-          onClick={onToggle}
-        >
-          {expanded ? (
-            <ChevronDown className="size-4" />
-          ) : (
-            <ChevronRight className="size-4" />
-          )}
-        </Button>
-      ) : (
-        <span
-          className="inline-flex size-8 shrink-0 items-center justify-center"
-          aria-hidden
-        >
-          <FileSearch className="size-4 text-muted-foreground" />
-        </span>
-      )}
-      <button
-        type="button"
-        className={cn(
-          'flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-          selected && !isFolder && 'font-medium',
-        )}
-        onClick={onSelect}
+      <span
+        aria-hidden
+        className="grid size-6 shrink-0 place-items-center text-muted-foreground"
       >
         {isFolder ? (
-          <Folder className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          loading ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <ChevronRight
+              className={cn('size-4 transition-transform', expanded && 'rotate-90')}
+            />
+          )
         ) : null}
+      </span>
+      {isFolder ? (
+        <Folder className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+      ) : (
+        <QueryTypeGlyph
+          type={item.queryType}
+          className="size-4 shrink-0 text-muted-foreground"
+        />
+      )}
+      <span className="flex min-w-0 flex-1 flex-col py-2">
         <span className="truncate">{item.name}</span>
-        {!isFolder && item.queryType ? (
-          <Badge variant="outline" className="ml-auto shrink-0 text-[0.65rem]">
-            {item.queryType}
-          </Badge>
+        {showPath && item.path ? (
+          <span className="truncate text-xs text-muted-foreground">{item.path}</span>
         ) : null}
-      </button>
-    </div>
+      </span>
+    </button>
   );
 }
