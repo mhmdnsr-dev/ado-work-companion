@@ -46,7 +46,7 @@ Type: IBM Plex Sans (UI) and IBM Plex Mono (IDs, hours, counts) via `next/font`,
 - ARIA tree: `ul[role=tree]` > `li[role=treeitem]` with `aria-level`, `aria-setsize`, `aria-posinset`, `aria-expanded` (parents only), and `aria-selected` (the open item). Roving tabindex: one row is tabbable. ↑/↓ move, → expands or enters, ← collapses or goes to the parent, Home/End jump, Enter/Space opens.
 - **Parent row**: `bg-muted/50` band, semibold title, rotating chevron (the whole 44px gutter is the hit area), a rollup bar plus "done/total" in the meta line, and summed remaining hours in Rem. A collapsed parent shows a child-count pill.
 - **Child row**: plain background, the assignee in the meta line, its own hours.
-- **Context row**: an ancestor loaded only for grouping (it didn't match the filters). Its glyph is muted, its title is in muted colour, and its meta says "Parent of matches". It has no rollup.
+- **Context row**: an item that doesn't match the filters itself but groups the items below it (for example a story assigned to someone else, above your task). Its glyph and title are muted, with **no extra label**: ADO users already read parents as grouping. It still rolls up the children loaded under it, so with **Show all children** off a story shows your share: your tasks' progress and hours.
 - **Ancestry**: the full parent chain above the matches is loaded (up to 4 levels: Story → Feature → Epic → …) as context rows. Their other children are never loaded. Ancestors the token can't read are skipped, and closed ancestors are hidden in the Open view.
 - **Custom types**: standard types use the `--wit-*` tokens. Custom process types (for example "Meetings") use their ADO icon (mapped to a matching Lucide icon) and their ADO colour, with lightness clamped per theme (`.wit-custom-glyph`) so pale or deep process colours stay legible.
 - **Rails**: a 1px `--border` line per ancestor level, with an elbow into each child.
@@ -59,7 +59,7 @@ Type: IBM Plex Sans (UI) and IBM Plex Mono (IDs, hours, counts) via `next/font`,
 
 - **One search row**: a `type="search"` field (the keyboard's search key submits it; an in-field clear button) plus a **Filters** button with a count badge. A separate Search button appears only from `md` up.
 - **Quick views**: underline tabs (Assigned to me, Following, Mentioned, My activity) mirroring the ADO Work Items hub. They're backed by the `@Me`, `@Follows`, `@RecentMentions`, and `@MyRecentActivity` WIQL macros. On phones they scroll sideways with an edge fade.
-- **Active filter chips**: every non-default filter (search, type, status, team, sprint, a specific assignee, children hidden) is a removable chip, plus "Clear all" when there are two or more. Chips are 36px tall with a 44px hit area (`::before`).
+- **Active filter chips**: every non-default filter (search, type, status, team, sprint, a specific assignee, "Matching children only") is a removable chip, plus "Clear all" when there are two or more. Chips are 36px tall with a 44px hit area (`::before`).
 - **Filters sheet**: a bottom sheet on phones (grab handle, max 88dvh, safe-area padding) and a right sheet from `md` up. Filters apply live. The footer has Reset and Save in one row and a full-width "Show work items".
 - **Toolbar**: one row with the count (short on phones), List/Tree (icon-only on phones), a single Expand/Collapse toggle, and Refresh.
 
