@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { findCurrentIterationPath, flattenClassificationPaths } from './work-items';
+import {
+  buildLogWorkPatches,
+  buildRemainingWorkPatch,
+  buildWorkItemsListWiql,
+  findCurrentIterationPath,
+  flattenClassificationPaths,
+} from './work-items';
 
 describe('flattenClassificationPaths', () => {
   it('preserves nodes and their attributes for current-sprint detection', () => {
@@ -130,5 +136,59 @@ describe('findCurrentIterationPath', () => {
       ),
     ).toBe('Sprint Name Only');
     expect(findCurrentIterationPath([], now)).toBe('');
+  });
+});
+
+describe('buildWorkItemsListWiql', () => {
+  it('adds the WIQL macro for each quick view', () => {
+    const wiql = (scope: Parameters<typeof buildWorkItemsListWiql>[0]['scope']) =>
+      buildWorkItemsListWiql({ project: 'Web', scope });
+
+    expect(wiql('following')).toContain('[System.Id] IN (@Follows)');
+    expect(wiql('mentioned')).toContain('[System.Id] IN (@RecentMentions)');
+    expect(wiql('activity')).toContain('[System.Id] IN (@MyRecentActivity)');
+    expect(wiql('all')).not.toContain('[System.Id] IN');
+    expect(wiql(undefined)).not.toContain('[System.Id] IN');
+  });
+});
+
+describe('work logging patches', () => {
+  const task = (remaining?: number, completed?: number) => ({
+    id: 1,
+    fields: {
+      ...(remaining != null
+        ? { 'Microsoft.VSTS.Scheduling.RemainingWork': remaining }
+        : {}),
+      ...(completed != null
+        ? { 'Microsoft.VSTS.Scheduling.CompletedWork': completed }
+        : {}),
+    },
+  });
+
+  it('moves logged hours from remaining to completed', () => {
+    const result = buildLogWorkPatches(task(4, 1.5), 2);
+    expect(result).toMatchObject({ remaining: 2, completed: 3.5 });
+    expect(result.operations).toEqual([
+      { op: 'add', path: '/fields/Microsoft.VSTS.Scheduling.RemainingWork', value: 2 },
+      { op: 'add', path: '/fields/Microsoft.VSTS.Scheduling.CompletedWork', value: 3.5 },
+    ]);
+  });
+
+  it('never drops remaining below zero and handles missing fields', () => {
+    expect(buildLogWorkPatches(task(0.25), 1)).toMatchObject({
+      remaining: 0,
+      completed: 1,
+    });
+    expect(buildLogWorkPatches(task(), 0.5)).toMatchObject({
+      remaining: 0,
+      completed: 0.5,
+    });
+    // Floating point: 0.1 + 0.2 must not become 0.30000000000000004.
+    expect(buildLogWorkPatches(task(1, 0.1), 0.2).completed).toBe(0.3);
+  });
+
+  it('clamps a direct remaining value at zero', () => {
+    expect(buildRemainingWorkPatch(-1)[0]?.value).toBe(0);
+    expect(buildRemainingWorkPatch(3.333)[0]?.value).toBe(3.33);
   });
 });

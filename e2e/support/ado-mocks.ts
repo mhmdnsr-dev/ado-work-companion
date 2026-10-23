@@ -314,15 +314,14 @@ function json(route: Route, body: unknown, status = 200) {
   return route.fulfill({ status, json: body });
 }
 
-function workItemsForIds(ids: number[]): Array<MockWorkItem | null> {
-  return ids.map((id) => WORK_ITEMS[id] ?? null);
-}
-
 /**
  * Routes every Azure DevOps request made by the app through deterministic mock
  * data. The tests never need a real PAT or network access to Azure DevOps.
  */
 export async function installAdoMocks(page: Page) {
+  // Per-page copy so PATCHes made by one test never leak into another.
+  const store: Record<number, MockWorkItem> = structuredClone(WORK_ITEMS);
+
   await page.route('**/api/ado/**', async (route) => {
     const url = new URL(route.request().url());
     const path = decodeURIComponent(url.pathname);
@@ -333,12 +332,13 @@ export async function installAdoMocks(page: Page) {
 
     if (path.includes('/_apis/wit/workitemtypes/') && path.endsWith('/states')) {
       return json(route, {
-        count: 4,
+        count: 5,
         value: [
           { name: 'New', color: 'b2b2b2', category: 'Proposed' },
           { name: 'Active', color: '007acc', category: 'InProgress' },
           { name: 'Resolved', color: 'ff9d00', category: 'Resolved' },
           { name: 'Closed', color: '339933', category: 'Completed' },
+          { name: 'Removed', color: 'ffffff', category: 'Removed' },
         ],
       });
     }
@@ -382,13 +382,32 @@ export async function installAdoMocks(page: Page) {
           .filter((id) => Number.isInteger(id) && id > 0);
         return json(route, {
           count: ids.length,
-          value: workItemsForIds(ids),
+          value: ids.map((id) => store[id] ?? null),
         });
       }
 
       const singleMatch = /\/workitems\/(\d+)$/.exec(path);
       const singleId = singleMatch ? Number(singleMatch[1]) : NaN;
-      const singleItem = Number.isInteger(singleId) ? WORK_ITEMS[singleId] : undefined;
+      const singleItem = Number.isInteger(singleId) ? store[singleId] : undefined;
+      if (singleItem && route.request().method() === 'PATCH') {
+        const operations = (route.request().postDataJSON() ?? []) as Array<{
+          op: string;
+          path: string;
+          value?: unknown;
+        }>;
+        for (const operation of operations) {
+          if (!operation.path.startsWith('/fields/')) continue;
+          const field = operation.path.slice('/fields/'.length);
+          if (operation.op === 'remove') delete singleItem.fields[field];
+          else singleItem.fields[field] = operation.value;
+        }
+        singleItem.fields['System.Rev'] =
+          Number(singleItem.fields['System.Rev'] ?? 1) + 1;
+        (singleItem as MockWorkItem & { rev?: number }).rev = Number(
+          singleItem.fields['System.Rev'],
+        );
+        return json(route, singleItem);
+      }
       if (singleItem) return json(route, singleItem);
       return json(route, { message: 'Work item not found' }, 404);
     }

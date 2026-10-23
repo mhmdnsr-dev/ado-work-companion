@@ -127,8 +127,21 @@ export function findCurrentIterationPath(
 /**
  * Builds a practical WIQL filter for the Work Items page (not a free-form editor).
  */
+/**
+ * ADO "Work Items" hub quick views, backed by WIQL macros.
+ * `all` applies no view restriction (the Assigned to me view is `all` + `@Me`).
+ */
+export type WorkItemScope = 'all' | 'following' | 'mentioned' | 'activity';
+
+const SCOPE_CLAUSES: Record<Exclude<WorkItemScope, 'all'>, string> = {
+  following: '[System.Id] IN (@Follows)',
+  mentioned: '[System.Id] IN (@RecentMentions)',
+  activity: '[System.Id] IN (@MyRecentActivity)',
+};
+
 export function buildWorkItemsListWiql(params: {
   project: string;
+  scope?: WorkItemScope;
   workItemType?: string;
   /** open = exclude Closed/Removed; all = no state filter; closed = Closed only */
   stateScope?: 'open' | 'all' | 'closed';
@@ -140,6 +153,8 @@ export function buildWorkItemsListWiql(params: {
 }): string {
   const project = escapeWiqlString(params.project.trim());
   const clauses: string[] = [`[System.TeamProject] = '${project}'`];
+
+  if (params.scope && params.scope !== 'all') clauses.push(SCOPE_CLAUSES[params.scope]);
 
   if (params.workItemType && params.workItemType !== 'all') {
     clauses.push(`[System.WorkItemType] = '${escapeWiqlString(params.workItemType)}'`);
@@ -460,4 +475,45 @@ export function buildWorkItemLinkUpdatePatches(params: {
     }),
   );
   return operations;
+}
+
+const REMAINING_WORK = 'Microsoft.VSTS.Scheduling.RemainingWork';
+const COMPLETED_WORK = 'Microsoft.VSTS.Scheduling.CompletedWork';
+
+/** Hours rounded to two decimals, as ADO stores them (0.25, 1.5). */
+function roundHours(hours: number): number {
+  return Math.round(hours * 100) / 100;
+}
+
+/**
+ * "I spent N hours on this": moves hours from Remaining to Completed in one
+ * patch. Remaining never goes below zero.
+ */
+export function buildLogWorkPatches(
+  item: WorkItem,
+  hours: number,
+): { operations: JsonPatchOperation[]; remaining: number; completed: number } {
+  const remaining = roundHours(
+    Math.max(0, (fieldNumber(item, REMAINING_WORK) ?? 0) - hours),
+  );
+  const completed = roundHours((fieldNumber(item, COMPLETED_WORK) ?? 0) + hours);
+  return {
+    remaining,
+    completed,
+    operations: [
+      { op: 'add', path: `/fields/${REMAINING_WORK}`, value: remaining },
+      { op: 'add', path: `/fields/${COMPLETED_WORK}`, value: completed },
+    ],
+  };
+}
+
+/** Sets Remaining Work directly (negative values clamp to zero). */
+export function buildRemainingWorkPatch(hours: number): JsonPatchOperation[] {
+  return [
+    {
+      op: 'add',
+      path: `/fields/${REMAINING_WORK}`,
+      value: roundHours(Math.max(0, hours)),
+    },
+  ];
 }

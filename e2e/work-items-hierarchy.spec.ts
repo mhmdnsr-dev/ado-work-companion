@@ -67,8 +67,9 @@ test.describe('work item hierarchy', () => {
     await expect(
       page.getByRole('treeitem', { name: /^Bug 102: Fix login/ }),
     ).toHaveAttribute('aria-level', '4');
-    await expect(epic).toContainText('Parent of matches');
-    await expect(feature).toContainText('Parent of matches');
+    // Grouping-only parents carry no extra label: ADO users read them as groups.
+    await expect(epic).not.toContainText('Outside filters');
+    await expect(feature).not.toContainText('Outside filters');
 
     // Custom process types use their ADO colour and icon.
     const meeting = page.getByRole('treeitem', {
@@ -137,7 +138,16 @@ test.describe('work item hierarchy', () => {
       },
     );
 
-    await page.locator('#work-items-include-children').click();
+    await page.getByRole('button', { name: 'Open filters' }).click();
+    const sheet = page.getByRole('dialog', { name: 'Filters' });
+    await sheet.locator('#work-items-include-children').click();
+    await sheet.getByRole('button', { name: 'Save filters' }).click();
+    await expect(
+      page.getByText('Filters saved for this project', { exact: true }),
+    ).toBeVisible();
+    await sheet.getByRole('button', { name: 'Show work items' }).click();
+    await expect(sheet).toBeHidden();
+
     // Without children the stories (and the Epic/Feature above one of them)
     // only group the two matches, so they render as muted context rows.
     await expect(page.getByText('2 work items in 2 groups', { exact: true })).toBeVisible(
@@ -146,15 +156,16 @@ test.describe('work item hierarchy', () => {
       },
     );
     await expect(page.getByRole('treeitem')).toHaveCount(6);
-    await expect(page.getByText('Parent of matches', { exact: true })).toHaveCount(4);
+    await expect(
+      page.getByRole('button', { name: 'Remove filter: Matching children only' }),
+    ).toBeVisible();
+    // A story whose children are only your matches still rolls them up.
+    const auth = page.getByRole('treeitem', { name: /^User Story 202: Authentication/ });
+    await expect(auth).toContainText('0/1');
+    await expect(auth).toContainText('2');
     await expect(page.getByText('QA search', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Write auth tests', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Token refresh', { exact: true })).toHaveCount(0);
-
-    await page.getByRole('button', { name: 'Save filters' }).click();
-    await expect(
-      page.getByText('Filters saved for this project', { exact: true }),
-    ).toBeVisible();
 
     await page.reload();
     await expect(page.getByText('2 work items in 2 groups', { exact: true })).toBeVisible(
@@ -166,6 +177,7 @@ test.describe('work item hierarchy', () => {
       'aria-pressed',
       'true',
     );
+    await page.getByRole('button', { name: 'Open filters' }).click();
     await expect(page.locator('#work-items-include-children')).toHaveAttribute(
       'data-state',
       'unchecked',
