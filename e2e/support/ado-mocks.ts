@@ -303,6 +303,73 @@ const WORK_ITEMS: Record<number, MockWorkItem> = {
   },
 };
 
+// Saved queries: personal and shared folders, one nested folder.
+const QUERY_TREE = [
+  {
+    id: 'folder-mine',
+    name: 'My Queries',
+    path: 'My Queries',
+    isFolder: true,
+    hasChildren: true,
+    isPublic: false,
+    children: [
+      {
+        id: 'q-my-active',
+        name: 'My active tasks',
+        path: 'My Queries/My active tasks',
+        queryType: 'flat',
+        isPublic: false,
+        wiql: 'SELECT [System.Id] FROM WorkItems WHERE [System.AssignedTo] = @Me',
+      },
+    ],
+  },
+  {
+    id: 'folder-shared',
+    name: 'Shared Queries',
+    path: 'Shared Queries',
+    isFolder: true,
+    hasChildren: true,
+    isPublic: true,
+    children: [
+      {
+        id: 'q-active-bugs',
+        name: 'Active bugs',
+        path: 'Shared Queries/Active bugs',
+        queryType: 'flat',
+        isPublic: true,
+        wiql: "SELECT [System.Id] FROM WorkItems WHERE [System.WorkItemType] = 'Bug'",
+      },
+      {
+        id: 'folder-sprint',
+        name: 'Sprint',
+        path: 'Shared Queries/Sprint',
+        isFolder: true,
+        hasChildren: true,
+        isPublic: true,
+        children: [
+          {
+            id: 'q-sprint-tasks',
+            name: 'Current sprint tasks',
+            path: 'Shared Queries/Sprint/Current sprint tasks',
+            queryType: 'flat',
+            isPublic: true,
+            wiql: 'SELECT [System.Id] FROM WorkItems WHERE [System.IterationPath] = @CurrentIteration',
+          },
+        ],
+      },
+    ],
+  },
+];
+
+function findQuery(nodes: typeof QUERY_TREE, key: string): unknown {
+  for (const node of nodes as Array<Record<string, unknown>>) {
+    if (node.id === key || node.path === key) return node;
+    const found = findQuery((node.children ?? []) as typeof QUERY_TREE, key);
+    if (found) return found;
+  }
+  return null;
+}
+
 const WIQL_RESULT = {
   queryType: 'flat',
   queryResultType: 'workitem',
@@ -371,6 +438,13 @@ export async function installAdoMocks(page: Page) {
 
     if (path.endsWith('/_apis/work/teamsettings')) {
       return json(route, TEAM_SETTINGS);
+    }
+
+    if (path.includes('/_apis/wit/queries')) {
+      const key = decodeURIComponent(path.split('/_apis/wit/queries/')[1] ?? '');
+      if (!key) return json(route, { count: QUERY_TREE.length, value: QUERY_TREE });
+      const query = findQuery(QUERY_TREE, key);
+      return query ? json(route, query) : json(route, { message: 'Query not found' }, 404);
     }
 
     if (path.includes('/_apis/wit/wiql')) {
