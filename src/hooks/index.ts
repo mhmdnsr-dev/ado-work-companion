@@ -3,3 +3,4 @@
  * Shared business logic stays in `src/core`.
  */
 export { useCurrentUser } from './use-current-user';
+export { useMediaQuery } from './use-media-query';

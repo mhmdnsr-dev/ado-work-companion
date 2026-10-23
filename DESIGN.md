@@ -55,6 +55,14 @@ Type: IBM Plex Sans (UI) and IBM Plex Mono (IDs, hours, counts) via `next/font`,
 - **Indent**: `--tree-indent` is 14px on phones and 20px from `md` up, so deep Epic → Task chains keep room for titles.
 - **Tree is the default view.** Flat list mode reuses the same rows at level 1, so the two modes look the same.
 
+### Work Items header and filters (`work-items-view.tsx`, `work-item-filters-sheet.tsx`)
+
+- **One search row**: a `type="search"` field (the keyboard's search key submits it; an in-field clear button) plus a **Filters** button with a count badge. A separate Search button appears only from `md` up.
+- **Quick views**: underline tabs (Assigned to me, Following, Mentioned, My activity) mirroring the ADO Work Items hub. They're backed by the `@Me`, `@Follows`, `@RecentMentions`, and `@MyRecentActivity` WIQL macros. On phones they scroll sideways with an edge fade.
+- **Active filter chips**: every non-default filter (search, type, status, team, sprint, a specific assignee, children hidden) is a removable chip, plus "Clear all" when there are two or more. Chips are 36px tall with a 44px hit area (`::before`).
+- **Filters sheet**: a bottom sheet on phones (grab handle, max 88dvh, safe-area padding) and a right sheet from `md` up. Filters apply live. The footer has Reset and Save in one row and a full-width "Show work items".
+- **Toolbar**: one row with the count (short on phones), List/Tree (icon-only on phones), a single Expand/Collapse toggle, and Refresh.
+
 ## Redesign Roadmap
 
 One PR per slice, ordered by phone impact (see AGENTS.md › Mobile-first). Tick each when it merges to `main`.

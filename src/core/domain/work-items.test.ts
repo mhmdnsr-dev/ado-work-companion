@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { findCurrentIterationPath, flattenClassificationPaths } from './work-items';
+import {
+  buildWorkItemsListWiql,
+  findCurrentIterationPath,
+  flattenClassificationPaths,
+} from './work-items';
 
 describe('flattenClassificationPaths', () => {
   it('preserves nodes and their attributes for current-sprint detection', () => {
@@ -130,5 +134,18 @@ describe('findCurrentIterationPath', () => {
       ),
     ).toBe('Sprint Name Only');
     expect(findCurrentIterationPath([], now)).toBe('');
+  });
+});
+
+describe('buildWorkItemsListWiql', () => {
+  it('adds the WIQL macro for each quick view', () => {
+    const wiql = (scope: Parameters<typeof buildWorkItemsListWiql>[0]['scope']) =>
+      buildWorkItemsListWiql({ project: 'Web', scope });
+
+    expect(wiql('following')).toContain('[System.Id] IN (@Follows)');
+    expect(wiql('mentioned')).toContain('[System.Id] IN (@RecentMentions)');
+    expect(wiql('activity')).toContain('[System.Id] IN (@MyRecentActivity)');
+    expect(wiql('all')).not.toContain('[System.Id] IN');
+    expect(wiql(undefined)).not.toContain('[System.Id] IN');
   });
 });

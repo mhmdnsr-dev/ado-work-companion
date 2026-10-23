@@ -13,6 +13,7 @@ export const workItemFiltersSchema = z.object({
   assignedTo: z.string().default('@Me'),
   search: z.string().default(''),
   displayMode: z.enum(['list', 'hierarchy']).default('hierarchy'),
+  scope: z.enum(['all', 'following', 'mentioned', 'activity']).default('all'),
   includeChildren: z.boolean().default(true),
 });
 
@@ -32,6 +33,7 @@ export function emptyWorkItemFilters(
     assignedTo: '@Me',
     search: '',
     displayMode: 'hierarchy',
+    scope: 'all',
     includeChildren: true,
   };
 }
