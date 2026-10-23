@@ -5,10 +5,7 @@ import { Resend } from 'resend';
 
 import { contactMessageSchema } from '@core/schemas';
 import { corsPreflightResponse, jsonWithCors } from '@/lib/server/cors';
-import {
-  clientIpFromRequest,
-  contactRateLimit,
-} from '@/lib/server/rate-limit';
+import { clientIpFromRequest, contactRateLimit } from '@/lib/server/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -88,8 +85,7 @@ export async function POST(request: NextRequest) {
     `<hr /><p style="color:#666;font-size:12px">Sent via ADO Work Companion Message me form.</p>`,
   ].join('');
 
-  const idempotencyKey =
-    body.idempotencyKey?.trim() || `contact/${randomUUID()}`;
+  const idempotencyKey = body.idempotencyKey?.trim() || `contact/${randomUUID()}`;
 
   const resend = new Resend(apiKey);
   const { data, error } = await resend.emails.send(

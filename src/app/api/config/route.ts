@@ -13,10 +13,7 @@ import {
   hasPatCookie,
   readPatFromRequest,
 } from '@/lib/server/pat-cookie';
-import {
-  clientIpFromRequest,
-  configWriteRateLimit,
-} from '@/lib/server/rate-limit';
+import { clientIpFromRequest, configWriteRateLimit } from '@/lib/server/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -100,7 +97,11 @@ export async function POST(request: NextRequest) {
     }
     return jsonWithCors(
       request,
-      { message: 'A personal access token is required.', hasPat: false, configured: false },
+      {
+        message: 'A personal access token is required.',
+        hasPat: false,
+        configured: false,
+      },
       { status: 400 },
     );
   }

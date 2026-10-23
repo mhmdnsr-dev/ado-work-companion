@@ -1,7 +1,4 @@
-import type {
-  WorkItemComment,
-  WorkItemCommentList,
-} from '../../types/metadata';
+import type { WorkItemComment, WorkItemCommentList } from '../../types/metadata';
 import type { AdoTransport } from '../transport';
 import type { AdoRequestResult } from '../types';
 

@@ -5,10 +5,7 @@ import { buildPatAuthorizationHeader } from '@core/utils';
 
 import { applyCorsHeaders, corsPreflightResponse, jsonWithCors } from '@/lib/server/cors';
 import { readPatFromRequest } from '@/lib/server/pat-cookie';
-import {
-  adoProxyRateLimit,
-  clientIpFromRequest,
-} from '@/lib/server/rate-limit';
+import { adoProxyRateLimit, clientIpFromRequest } from '@/lib/server/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
