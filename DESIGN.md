@@ -1,0 +1,64 @@
+# DESIGN.md
+
+The design north star for ADO Work Companion. Every UI change follows this file, even when neighbouring legacy screens do not yet. Update it in the same PR when a token or pattern changes.
+
+## Direction: "Boards+ structure, Ledger dark"
+
+Chosen 2026-10-23 from three mock directions:
+
+- **Structure (from Boards+)**: feels like a refined Azure Boards. People already know ADO, so we keep its mental model (type colours, tree rows, state dots, Remaining column) and remove its clutter. Work is shown as **rows in a tree-table**, not stacked cards.
+- **Dark mode (from Ledger)**: a deep blue-black ground, quiet borders, luminous but desaturated type/state colours, monospace IDs and numbers. Dense, calm, keyboard-friendly.
+
+### Principles
+
+1. **Hierarchy is visible at a glance.** Parents and children never look the same. A parent row is a shaded band with a bold title and a progress rollup. A child row is plain, with its owner. Guide rails connect children to their parent.
+2. **Colour carries meaning, never decoration.** Hue is reserved for work item _type_ (glyph) and _state_ (dot). Everything else is neutral. State is always shown with a text label too, never colour alone.
+3. **Numbers are data.** IDs, hours, and counts use the mono font with tabular figures, right-aligned in columns.
+4. **Phone first, desktop richer.** At 360–412px, a row is a title and meta line plus State and Rem. columns. Wider screens add columns (Assigned to) rather than stretching things.
+5. **Motion explains state changes only.** The chevron rotates, revealed rows fade and slide in about 4px. Nothing loops. The global reduced-motion rule applies.
+
+## Tokens (`src/app/globals.css`)
+
+Existing shadcn tokens (`--background`, `--muted`, `--border`, `--primary`, …) stay the base. Added for work items:
+
+| Token                 | Use                             | Light (Boards+) | Dark (Ledger) |
+| --------------------- | ------------------------------- | --------------- | ------------- |
+| `--wit-epic`          | Epic glyph                      | `#C25E00`       | `#F5A25D`     |
+| `--wit-feature`       | Feature glyph                   | `#773B93`       | `#C4A1F5`     |
+| `--wit-story`         | User Story / PBI / Requirement  | `#0078A8`       | `#6CC4EE`     |
+| `--wit-task`          | Task                            | `#9A7A00`       | `#E9C46A`     |
+| `--wit-bug`           | Bug                             | `#CC293D`       | `#F2858B`     |
+| `--wit-other`         | Any other type                  | `#5D6673`       | `#9AA1AE`     |
+| `--state-proposed`    | New, To Do, Proposed…           | `#8A919B`       | `#8B93A1`     |
+| `--state-in-progress` | Active, Committed, In Progress… | `#007ACC`       | `#6F9BF2`     |
+| `--state-resolved`    | Resolved                        | `#D17F00`       | `#E8B65A`     |
+| `--state-completed`   | Done, Closed                    | `#2F8F2F`       | `#62CF8E`     |
+| `--state-removed`     | Removed, Cut                    | `#A0A6AE`       | `#5C6370`     |
+
+Values are stored as oklch, and Tailwind exposes them as `text-wit-*`, `bg-state-*`, and so on. Glyph colours meet 3:1 against `--background` (non-text). State labels use `--foreground`; only the dot is coloured.
+
+Type: Geist (UI) and Geist Mono (IDs, hours, counts) via `next/font`. Sizes: row title 14px (`text-sm`), meta 12px (`text-xs`), column headers 11px uppercase with tracking.
+
+## Patterns
+
+### Work item tree-table (`src/features/work-items/work-item-tree.tsx`)
+
+- ARIA tree: `ul[role=tree]` > `li[role=treeitem]` with `aria-level`, `aria-setsize`, `aria-posinset`, `aria-expanded` (parents only), and `aria-selected` (the open item). Roving tabindex: one row is tabbable. ↑/↓ move, → expands or enters, ← collapses or goes to the parent, Home/End jump, Enter/Space opens.
+- **Parent row**: `bg-muted/50` band, semibold title, rotating chevron (the whole 44px gutter is the hit area), a rollup bar plus "done/total" in the meta line, and summed remaining hours in Rem. A collapsed parent shows a child-count pill.
+- **Child row**: plain background, the assignee in the meta line, its own hours.
+- **Context row**: an ancestor loaded only for grouping (it didn't match the filters). Its glyph is muted, its title is in muted colour, and its meta says "Parent of matches". It has no rollup.
+- **Rails**: a 1px `--border` line per ancestor level, with an elbow into each child.
+- **Selected (open) row**: `bg-primary/10` plus a 3px inset primary bar on the leading edge.
+- **Columns**: Title (flex), Assigned to (md+), State (dot + label), Rem. (mono, right-aligned). The column header is decorative (`aria-hidden`).
+- Flat list mode reuses the same rows at level 1, so the two modes look the same.
+
+## Redesign Roadmap
+
+One PR per slice, in order. Tick each when it merges to `main`.
+
+- [ ] 1. Work Items tree-table and rows (`feat/work-items-hierarchy-redesign`)
+- [ ] 2. Global refresh: adopt the Ledger dark ground app-wide, typography scale, shell/sidebar/bottom nav, motion tokens
+- [ ] 3. Work Items filters: chip bar, proper `Sheet` bottom sheet, ADO-style view tabs (Assigned to me / Following / Recently updated)
+- [ ] 4. Work item detail sheet
+- [ ] 5. Dashboard (status cards, sprint charts; use the `dataviz` skill)
+- [ ] 6. Queries, Settings, Help; empty, loading, and error states
