@@ -10,6 +10,11 @@ export { loadFavorites, saveFavorites, toggleFavorite } from './favorites';
 export {
   buildIdentityMentionHtml,
   buildLogWorkPatches,
+  MAX_LOG_HOURS,
+  parseHoursInput,
+  planLogWork,
+  type HoursInput,
+  type LogWorkPlan,
   buildRemainingWorkPatch,
   buildWorkItemLinkCandidatesWiql,
   buildWorkItemLinkPatches,

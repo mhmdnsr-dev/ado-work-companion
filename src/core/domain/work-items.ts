@@ -479,6 +479,7 @@ export function buildWorkItemLinkUpdatePatches(params: {
 
 const REMAINING_WORK = 'Microsoft.VSTS.Scheduling.RemainingWork';
 const COMPLETED_WORK = 'Microsoft.VSTS.Scheduling.CompletedWork';
+const ORIGINAL_ESTIMATE = 'Microsoft.VSTS.Scheduling.OriginalEstimate';
 
 /** Hours rounded to two decimals, as ADO stores them (0.25, 1.5). */
 function roundHours(hours: number): number {
@@ -500,6 +501,82 @@ export function buildLogWorkPatches(
   return {
     remaining,
     completed,
+    operations: [
+      { op: 'add', path: `/fields/${REMAINING_WORK}`, value: remaining },
+      { op: 'add', path: `/fields/${COMPLETED_WORK}`, value: completed },
+    ],
+  };
+}
+
+/** More than this in one log is almost always a typo ("25" for "2.5"). */
+export const MAX_LOG_HOURS = 40;
+
+export type HoursInput =
+  | { kind: 'empty' }
+  | { kind: 'invalid'; message: string }
+  | { kind: 'valid'; hours: number };
+
+/** Parses typed hours ("2.5", "2,5"), rounded to two decimals as ADO stores them. */
+export function parseHoursInput(text: string): HoursInput {
+  const trimmed = text.trim();
+  if (!trimmed) return { kind: 'empty' };
+  const value = Number(trimmed.replace(',', '.'));
+  if (!Number.isFinite(value))
+    return { kind: 'invalid', message: 'Enter a number of hours.' };
+  if (value <= 0) return { kind: 'invalid', message: 'Enter more than 0 hours.' };
+  if (value > MAX_LOG_HOURS) {
+    return {
+      kind: 'invalid',
+      message: `That’s more than ${MAX_LOG_HOURS}h in one log. Check the amount.`,
+    };
+  }
+  return { kind: 'valid', hours: roundHours(value) };
+}
+
+export interface LogWorkPlan {
+  operations: JsonPatchOperation[];
+  remainingBefore: number;
+  remaining: number;
+  completed: number;
+  /** True when the log uses up all remaining hours (Remaining would be 0). */
+  clearsRemaining: boolean;
+  /** Hours logged beyond what was remaining. Allowed: estimates are guesses. */
+  overRemaining: number;
+  /** Hours Completed goes past the Original Estimate, when one is set. */
+  overEstimate: number;
+  originalEstimate: number | null;
+}
+
+/**
+ * Plans one "log work" save. Over-runs are allowed and reported, never
+ * blocked. When the log clears Remaining, `remainingAfter` lets the user say
+ * how much is still left, in the same patch.
+ */
+export function planLogWork(
+  item: WorkItem,
+  hours: number,
+  remainingAfter?: number,
+): LogWorkPlan {
+  const remainingBefore = fieldNumber(item, REMAINING_WORK) ?? 0;
+  const originalEstimate = fieldNumber(item, ORIGINAL_ESTIMATE);
+  const clearsRemaining = hours >= remainingBefore;
+  const remaining = roundHours(
+    clearsRemaining && remainingAfter != null
+      ? Math.max(0, remainingAfter)
+      : Math.max(0, remainingBefore - hours),
+  );
+  const completed = roundHours((fieldNumber(item, COMPLETED_WORK) ?? 0) + hours);
+  return {
+    remainingBefore,
+    remaining,
+    completed,
+    clearsRemaining,
+    overRemaining: roundHours(Math.max(0, hours - remainingBefore)),
+    overEstimate:
+      originalEstimate != null && originalEstimate > 0
+        ? roundHours(Math.max(0, completed - originalEstimate))
+        : 0,
+    originalEstimate,
     operations: [
       { op: 'add', path: `/fields/${REMAINING_WORK}`, value: remaining },
       { op: 'add', path: `/fields/${COMPLETED_WORK}`, value: completed },

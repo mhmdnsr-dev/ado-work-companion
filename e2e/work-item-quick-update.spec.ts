@@ -56,6 +56,62 @@ test.describe('work item quick update', () => {
     await expect(quick.getByText('Remaining 6h · Completed 0h')).toBeVisible();
   });
 
+  test('blocks only impossible amounts', async ({ page }) => {
+    const quick = page.getByRole('region', { name: 'Quick update' });
+    await expect(quick).toBeVisible({ timeout: 20_000 });
+    const hours = quick.getByLabel('Hours to log');
+
+    await hours.fill('abc');
+    await expect(quick.getByText('Enter a number of hours.')).toBeVisible();
+    await expect(hours).toHaveAttribute('aria-invalid', 'true');
+    await expect(quick.getByRole('button', { name: 'Log work' })).toBeDisabled();
+
+    await hours.fill('41');
+    await expect(quick.getByText(/more than 40h in one log/)).toBeVisible();
+
+    await hours.fill('1');
+    await expect(quick.getByRole('button', { name: 'Log 1h' })).toBeEnabled();
+  });
+
+  test('allows an over-run and keeps what is still left in the same save', async ({
+    page,
+  }) => {
+    const patches: string[] = [];
+    page.on('request', (request) => {
+      if (request.method() === 'PATCH') patches.push(request.postData() ?? '');
+    });
+    const quick = page.getByRole('region', { name: 'Quick update' });
+    await expect(quick).toBeVisible({ timeout: 20_000 });
+
+    // 4h remaining; 5h actually spent, and about 2h still to go.
+    await quick.getByLabel('Hours to log').fill('5');
+    await expect(quick.getByText('1h more than the remaining estimate.')).toBeVisible();
+    await quick.getByLabel('Remaining after').fill('2');
+    await expect(quick.getByText('Remaining 4 → 2h · Completed 0 → 5h')).toBeVisible();
+
+    await quick.getByRole('button', { name: 'Log 5h' }).click();
+    await expect(page.getByText('Logged 5h on #101 · 2h remaining')).toBeVisible();
+    expect(patches).toHaveLength(1);
+    expect(patches[0]).toContain('"value":2');
+    expect(patches[0]).toContain('"value":5');
+    await expect(page.getByRole('button', { name: /^Mark as/ })).toHaveCount(0);
+  });
+
+  test('offers to close the item when nothing is left', async ({ page }) => {
+    const quick = page.getByRole('region', { name: 'Quick update' });
+    await expect(quick).toBeVisible({ timeout: 20_000 });
+
+    await quick.getByRole('button', { name: 'Add 4 hours' }).click();
+    await quick.getByRole('button', { name: 'Log 4h' }).click();
+    await expect(page.getByText('Logged 4h on #101 · 0h remaining')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Mark as Closed' }).click();
+    await expect(page.getByText('#101 moved to Closed')).toBeVisible();
+    await expect(
+      quick.getByRole('group', { name: 'State' }).getByRole('button', { name: 'Closed' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+  });
+
   test('changes state with one tap and can undo it', async ({ page }) => {
     const quick = page.getByRole('region', { name: 'Quick update' });
     const states = quick.getByRole('group', { name: 'State' });
