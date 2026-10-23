@@ -24,9 +24,10 @@ export function NavLink({ item, onNavigate, className }: NavLinkProps) {
       onClick={onNavigate}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'touch-target flex w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+        'touch-target relative flex w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+        // Active: an accent bar on the leading edge instead of a ring.
         active &&
-          'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-ring',
+          "bg-sidebar-accent text-sidebar-accent-foreground before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-full before:bg-sidebar-primary before:content-['']",
         className,
       )}
     >

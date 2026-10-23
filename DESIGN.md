@@ -73,6 +73,14 @@ Type: IBM Plex Sans (UI) and IBM Plex Mono (IDs, hours, counts) via `next/font`,
 - **Full form** below, unchanged. **Footer**: one row on phones (delete icon, Close, Save changes) with safe-area padding.
 - **Toasts over modals**: `[data-sonner-toaster]` keeps pointer events, and Sheet/Dialog ignore outside-interactions on toasts, so toast actions work while a sheet is open.
 
+### App shell (`src/components/layout`)
+
+- **Dark ground (Ledger)**: background `#0E1014`, cards `#14171D`, borders `#232833`, text `#E7E9EE`, muted text `#9AA1AE` (7.3:1), primary `#5B8DEF` (5.9:1). Values are stored as oklch in `.dark`. Light keeps the Boards+ white and ADO blue.
+- **Phone app bar**: one 56px row. The page title is the phone `<h1>` (page headers are `hidden` below `md`, so each breakpoint has exactly one visible `<h1>`). A project pill on the right shows the project and a connection-health dot, and links to Settings. It uses translucent `bg-background/85` with `backdrop-blur`.
+- **Bottom nav**: the active tab gets a `bg-primary/15` pill behind its icon and a semibold label; the bar uses the same translucent blur.
+- **Sidebar (md+)**: the active item gets a 3px leading accent bar instead of a ring.
+- **Motion tokens** (`@theme`): `--ease-standard`, `--ease-emphasized`, `--duration-quick` (150ms), `--duration-moderate` (220ms). Use them as `duration-(--duration-moderate) ease-(--ease-standard)`.
+
 ## Redesign Roadmap
 
 One PR per slice, ordered by phone impact (see AGENTS.md › Mobile-first). Tick each when it merges to `main`.
@@ -80,6 +88,6 @@ One PR per slice, ordered by phone impact (see AGENTS.md › Mobile-first). Tick
 - [x] 1. Work Items tree-table and rows (#16, #17)
 - [ ] 2. Work Items phone header and filters: one-row search, filter chip bar, a proper `Sheet` bottom sheet, ADO-style quick views (Assigned to me / Following / Recently updated)
 - [ ] 3. Work item detail sheet: quick updates (one-tap state, remaining-hours stepper) above the full form
-- [ ] 4. App-wide shell: adopt the Ledger dark ground, phone app bar and bottom nav, page `<h1>`, typography scale, motion tokens
+- [ ] 4. App-wide shell: adopt the Ledger dark ground, phone app bar and bottom nav, page `<h1>`, motion tokens
 - [ ] 5. Dashboard (status cards, sprint charts; use the `dataviz` skill)
 - [ ] 6. Queries, Settings, Help; empty, loading, and error states

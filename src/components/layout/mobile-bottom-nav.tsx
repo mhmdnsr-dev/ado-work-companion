@@ -16,10 +16,19 @@ export function MobileBottomNav({ onOpenMore }: { onOpenMore: () => void }) {
   const pathname = usePathname();
   const moreActive = pathname === '/settings' || pathname === '/help';
 
+  const tabClass =
+    'group flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-[0.6875rem] font-medium text-muted-foreground';
+  // Active tab: a pill behind the icon, readable at a glance on any ground.
+  const iconClass = (active: boolean) =>
+    cn(
+      'flex h-8 w-14 items-center justify-center rounded-full transition-colors duration-(--duration-moderate) ease-(--ease-standard)',
+      active ? 'bg-primary/15 text-primary' : 'group-active:bg-muted',
+    );
+
   return (
     <nav
       aria-label="Primary"
-      className="mobile-safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background md:hidden"
+      className="mobile-safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/85 backdrop-blur-md md:hidden"
     >
       <div className="grid h-16 grid-cols-4">
         {MOBILE_TABS.map(({ href, label, Icon }) => {
@@ -29,13 +38,19 @@ export function MobileBottomNav({ onOpenMore }: { onOpenMore: () => void }) {
               key={href}
               href={href}
               aria-current={active ? 'page' : undefined}
-              className={cn(
-                'flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-[0.6875rem] font-medium text-muted-foreground transition-colors active:bg-muted',
-                active && 'text-primary',
-              )}
+              className={tabClass}
             >
-              <Icon className="size-5" strokeWidth={active ? 2.5 : 2} aria-hidden />
-              <span className="max-w-full truncate">{label}</span>
+              <span className={iconClass(active)}>
+                <Icon className="size-5" strokeWidth={active ? 2.4 : 2} aria-hidden />
+              </span>
+              <span
+                className={cn(
+                  'max-w-full truncate',
+                  active && 'font-semibold text-foreground',
+                )}
+              >
+                {label}
+              </span>
             </Link>
           );
         })}
@@ -43,14 +58,13 @@ export function MobileBottomNav({ onOpenMore }: { onOpenMore: () => void }) {
           type="button"
           aria-label="Open more navigation"
           aria-current={moreActive ? 'page' : undefined}
-          className={cn(
-            'flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-[0.6875rem] font-medium text-muted-foreground transition-colors active:bg-muted',
-            moreActive && 'text-primary',
-          )}
+          className={tabClass}
           onClick={onOpenMore}
         >
-          <Ellipsis className="size-5" strokeWidth={moreActive ? 2.5 : 2} aria-hidden />
-          <span>More</span>
+          <span className={iconClass(moreActive)}>
+            <Ellipsis className="size-5" strokeWidth={moreActive ? 2.4 : 2} aria-hidden />
+          </span>
+          <span className={cn(moreActive && 'font-semibold text-foreground')}>More</span>
         </button>
       </div>
     </nav>
