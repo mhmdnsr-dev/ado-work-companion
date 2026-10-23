@@ -1,15 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Minus, Plus } from 'lucide-react';
+import { Info, Loader2, Minus, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
-  buildLogWorkPatches,
+  MAX_LOG_HOURS,
   buildRemainingWorkPatch,
   buildWorkItemStateLookup,
   fieldNumber,
   fieldString,
+  parseHoursInput,
+  planLogWork,
   workItemStateInfo,
 } from '@core/domain';
 import type { JsonPatchOperation, WorkItem, WorkItemStateColor } from '@core/types';
@@ -68,12 +70,24 @@ export function WorkItemQuickUpdate({
   // Log work is composed locally (chips and the stepper only change the amount)
   // and saved once, so 2.5h is one request, not three.
   const [amountDraft, setAmountDraft] = useState('');
+  // Only shown when a log clears Remaining: "how much is still left?"
+  const [remainingAfterDraft, setRemainingAfterDraft] = useState('');
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [remainingDraft, setRemainingDraft] = useState(formatHours(remaining));
   const [pending, setPending] = useState<string | null>(null);
   const lookup = buildWorkItemStateLookup([{ name: type, states }]);
-  const amount = parseHours(amountDraft);
-  const preview = amount > 0 ? buildLogWorkPatches(item, amount) : null;
+  const amountInput = parseHoursInput(amountDraft);
+  const amount = amountInput.kind === 'valid' ? amountInput.hours : 0;
+  // Zero is a valid answer here ("nothing left"), so it isn't parseHoursInput.
+  const remainingAfterValid =
+    remainingAfterDraft.trim() === '' ||
+    /^\d+([.,]\d+)?$/.test(remainingAfterDraft.trim());
+  const remainingAfter =
+    remainingAfterDraft.trim() === '' ? undefined : parseHours(remainingAfterDraft);
+  const plan = amount > 0 ? planLogWork(item, amount, remainingAfter) : null;
+  const canLog = plan != null && (!plan.clearsRemaining || remainingAfterValid);
+  const doneState = states.find((state) => state.category === 'Completed')?.name;
+  const isDone = workItemStateInfo(item, lookup).category === 'completed';
   const remainingTarget = parseHours(remainingDraft);
   // Only a real number may set Remaining: "abc" must not silently become 0.
   const remainingValid = /^\d+([.,]\d+)?$/.test(remainingDraft.trim());
@@ -113,18 +127,27 @@ export function WorkItemQuickUpdate({
   }
 
   async function logWork() {
-    if (!preview) return;
-    const ok = await patch('log', preview.operations);
-    if (ok) {
-      setAmountDraft('');
-      toast.success(
-        `Logged ${formatHours(amount)}h on #${id} · ${formatHours(preview.remaining)}h remaining`,
-      );
+    if (!plan || !canLog) return;
+    const ok = await patch('log', plan.operations);
+    if (!ok) return;
+    setAmountDraft('');
+    setRemainingAfterDraft('');
+    const message = `Logged ${formatHours(amount)}h on #${id} · ${formatHours(plan.remaining)}h remaining`;
+    // Nothing left on open work: closing it is usually the next tap.
+    if (plan.remaining === 0 && !isDone && doneState) {
+      toast.success(message, {
+        action: {
+          label: `Mark as ${doneState}`,
+          onClick: () => void changeState(doneState),
+        },
+      });
+    } else {
+      toast.success(message);
     }
   }
 
   function addToAmount(delta: number) {
-    setAmountDraft(formatHours(Math.max(0, amount + delta)));
+    setAmountDraft(formatHours(Math.min(MAX_LOG_HOURS, Math.max(0, amount + delta))));
   }
 
   async function saveRemaining() {
@@ -237,6 +260,10 @@ export function WorkItemQuickUpdate({
                 <Input
                   inputMode="decimal"
                   aria-label="Hours to log"
+                  aria-invalid={amountInput.kind === 'invalid'}
+                  aria-describedby={
+                    amountInput.kind === 'invalid' ? 'hours-to-log-error' : undefined
+                  }
                   placeholder="0"
                   value={amountDraft}
                   onChange={(event) => setAmountDraft(event.target.value)}
@@ -278,32 +305,77 @@ export function WorkItemQuickUpdate({
             </div>
           </div>
 
-          {/* Shows both fields before saving, so nothing changes by surprise. */}
-          <p aria-live="polite" className="min-h-4 text-xs text-muted-foreground">
-            {preview ? (
-              <>
-                Remaining {formatHours(remaining)} →{' '}
-                <span className="font-semibold text-foreground">
-                  {formatHours(preview.remaining)}h
-                </span>{' '}
-                · Completed {formatHours(completed)} →{' '}
-                <span className="font-semibold text-foreground">
-                  {formatHours(preview.completed)}h
+          {amountInput.kind === 'invalid' ? (
+            <p id="hours-to-log-error" className="text-xs font-medium text-destructive">
+              {amountInput.message}
+            </p>
+          ) : null}
+
+          {plan?.clearsRemaining ? (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background/40 px-3 py-2">
+              <label htmlFor="quick-remaining-after" className="min-w-0 text-xs">
+                <span className="block font-medium text-foreground">Remaining after</span>
+                <span className="block text-muted-foreground">
+                  Change it if work is still left
                 </span>
+              </label>
+              <Input
+                id="quick-remaining-after"
+                inputMode="decimal"
+                placeholder="0"
+                value={remainingAfterDraft}
+                aria-invalid={!remainingAfterValid}
+                onChange={(event) => setRemainingAfterDraft(event.target.value)}
+                className="h-11 w-20 shrink-0 text-center font-mono tabular-nums"
+              />
+            </div>
+          ) : null}
+
+          {/* Shows both fields before saving, so nothing changes by surprise. */}
+          <div
+            aria-live="polite"
+            className="min-h-4 space-y-1 text-xs text-muted-foreground"
+          >
+            {plan ? (
+              <>
+                <p>
+                  Remaining {formatHours(remaining)} →{' '}
+                  <span className="font-semibold text-foreground">
+                    {formatHours(plan.remaining)}h
+                  </span>{' '}
+                  · Completed {formatHours(completed)} →{' '}
+                  <span className="font-semibold text-foreground">
+                    {formatHours(plan.completed)}h
+                  </span>
+                </p>
+                {/* Over-runs are allowed: estimates are guesses. Say so, don't block. */}
+                {plan.overRemaining > 0 ? (
+                  <p className="flex items-start gap-1.5">
+                    <Info className="mt-px size-3.5 shrink-0" aria-hidden />
+                    {formatHours(plan.overRemaining)}h more than the remaining estimate.
+                  </p>
+                ) : null}
+                {plan.overEstimate > 0 && plan.originalEstimate != null ? (
+                  <p className="flex items-start gap-1.5">
+                    <Info className="mt-px size-3.5 shrink-0" aria-hidden />
+                    Completed goes {formatHours(plan.overEstimate)}h past the original{' '}
+                    {formatHours(plan.originalEstimate)}h estimate.
+                  </p>
+                ) : null}
               </>
-            ) : (
-              'Tap the chips or type hours, then log them in one go.'
+            ) : amountInput.kind === 'invalid' ? null : (
+              <p>Tap the chips or type hours, then log them in one go.</p>
             )}
-          </p>
+          </div>
 
           <Button
             type="button"
             className="touch-target h-11 w-full gap-2"
-            disabled={!preview || pending != null}
+            disabled={!canLog || pending != null}
             onClick={() => void logWork()}
           >
             {pending === 'log' ? <Loader2 className="size-4 animate-spin" /> : null}
-            {preview ? `Log ${formatHours(amount)}h` : 'Log work'}
+            {plan ? `Log ${formatHours(amount)}h` : 'Log work'}
           </Button>
 
           <div className="border-t border-border pt-2">

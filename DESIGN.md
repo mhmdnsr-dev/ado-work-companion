@@ -69,6 +69,10 @@ Type: IBM Plex Sans (UI) and IBM Plex Mono (IDs, hours, counts) via `next/font`,
 - **Quick update card** (first thing in the sheet). These are the daily actions, one tap each:
   - **State chips**: the type's process states with ADO colours. A tap saves the state immediately, and the toast offers **Undo**. "Removed" is never a chip.
   - **Log work composer**: the +0.5h / +1h / +2h / +4h chips and the −/+ stepper only **build an amount** (or type one, e.g. 2.5). A live preview shows both effects ("Remaining 4 → 1.5h · Completed 0 → 2.5h"), and one **Log 2.5h** button saves it in a single PATCH (`buildLogWorkPatches`; Remaining never goes below 0).
+  - **Validation**: block only impossible input (not a number, ≤ 0, more than 40h in one log). Show the reason under the field and disable Log. Hours round to 2 decimals.
+  - **Over-runs are allowed, and explained**: estimates are guesses. The preview notes "1h more than the remaining estimate." and "Completed goes 1h past the original 8h estimate." in muted text with an info icon, not as errors.
+  - **Remaining after**: when a log would clear Remaining, a field asks how much is still left (default 0), saved in the same PATCH (`planLogWork`).
+  - **Close nudge**: when Remaining reaches 0 on open work, the success toast offers "Mark as <process done state>" (Undo follows from the state change).
   - **Adjust remaining only**: a disclosure for re-estimates ("Set remaining to …h"), labelled so it's clear Completed doesn't change. Save is enabled only for a valid, changed number.
 - **Full form** below, unchanged. **Footer**: one row on phones (delete icon, Close, Save changes) with safe-area padding.
 - **Toasts over modals**: `[data-sonner-toaster]` keeps pointer events, and Sheet/Dialog ignore outside-interactions on toasts, so toast actions work while a sheet is open.
