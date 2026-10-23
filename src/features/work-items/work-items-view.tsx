@@ -13,6 +13,7 @@ import {
   ListTree,
   Plus,
   RefreshCw,
+  SearchX,
   Search,
   SlidersHorizontal,
   SquareMinus,
@@ -51,6 +52,7 @@ import { useConnection } from '@/components/providers';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { EmptyState, ErrorState, RowsSkeleton } from '@/components/shared/states';
 import { Skeleton } from '@/components/ui/skeleton';
 import { createLocalStorageAdapter } from '@/lib/adapters';
 import { WorkItemCreateDialog } from '@/features/work-items/work-item-create-dialog';
@@ -929,25 +931,12 @@ function WorkItemsViewContent({
       ) : null}
 
       {listQuery.isError ? (
-        <Alert variant="destructive">
-          <AlertTitle>Could not load work items</AlertTitle>
-          <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span>
-              {listQuery.error instanceof Error
-                ? listQuery.error.message
-                : 'Unexpected error loading work items.'}
-            </span>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="touch-target h-11 shrink-0"
-              onClick={() => void listQuery.refetch()}
-            >
-              Retry
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <ErrorState
+          title="Could not load work items"
+          error={listQuery.error}
+          onRetry={() => void listQuery.refetch()}
+          retrying={listQuery.isFetching}
+        />
       ) : null}
 
       <div className="flex items-center justify-between gap-2">
@@ -1025,25 +1014,39 @@ function WorkItemsViewContent({
       </div>
 
       {listQuery.isLoading ? (
-        <div className="-mx-4 overflow-hidden border-y border-border md:mx-0 md:rounded-lg md:border">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <div
-              key={index}
-              className="flex items-center gap-3 border-b border-border/70 px-4 py-3 last:border-b-0"
-            >
-              <Skeleton className="size-4 rounded-sm" />
-              <div className="flex flex-1 flex-col gap-1.5">
-                <Skeleton className="h-4 w-3/5" />
-                <Skeleton className="h-3 w-24" />
-              </div>
-              <Skeleton className="h-4 w-16" />
-            </div>
-          ))}
-        </div>
-      ) : (displayMode === 'hierarchy' ? pageRoots : pageItems).length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border px-4 py-12 text-center text-sm text-muted-foreground">
-          No work items match these filters. Create one or broaden your search.
-        </div>
+        <RowsSkeleton />
+      ) : listQuery.isError ? null : (displayMode === 'hierarchy' ? pageRoots : pageItems)
+          .length === 0 ? (
+        <EmptyState
+          icon={SearchX}
+          title="No work items match"
+          description={
+            filterChips.length > 0
+              ? 'Try removing a filter, or pick another quick view.'
+              : 'Nothing here yet. Create a work item or pick another quick view.'
+          }
+          action={
+            filterChips.length > 0 ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="touch-target h-11"
+                onClick={clearAllChips}
+              >
+                Clear filters
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                className="touch-target h-11 gap-2"
+                onClick={() => setCreateOpen(true)}
+              >
+                <Plus className="size-4" />
+                New work item
+              </Button>
+            )
+          }
+        />
       ) : displayMode === 'hierarchy' ? (
         <WorkItemTree
           label="Work items"

@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, FolderKanban, RefreshCw, Users } from 'lucide-react';
+import { ChevronDown, CircleCheck, FolderKanban, RefreshCw, Users } from 'lucide-react';
 
 import { adoQueryKeys, STORAGE_KEYS } from '@core/constants';
 import {
@@ -32,6 +32,7 @@ import type { AzureDevOpsApi } from '@core/api/azure-devops-api';
 import type { IdentityRef, WorkItem } from '@core/types';
 import { useConnection } from '@/components/providers';
 import { useCurrentUser, useMediaQuery } from '@/hooks';
+import { EmptyState, ErrorState } from '@/components/shared/states';
 import { SearchableSelect } from '@/components/shared/searchable-select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -489,7 +490,6 @@ export function SprintBurndownPanel() {
     'Team overview';
   const isMe = isMemberView && selectedMember?.id === currentUserId;
 
-  const chartsError = chartsQuery.error;
   const usesRestTeamCharts = teamModel?.source === 'rest';
   const model = isMemberView ? memberModel : teamModel;
   const snapshot = isMemberView ? memberStats : teamSnapshot;
@@ -564,18 +564,20 @@ export function SprintBurndownPanel() {
       ) : null}
 
       {teamsQuery.isError ? (
-        <Alert variant="destructive">
-          <AlertTitle>Could not load teams</AlertTitle>
-          <AlertDescription>
-            {teamsQuery.error instanceof Error
-              ? teamsQuery.error.message
-              : 'Unknown error'}
-          </AlertDescription>
-        </Alert>
+        <ErrorState
+          title="Could not load teams"
+          error={teamsQuery.error}
+          onRetry={() => void teamsQuery.refetch()}
+          retrying={teamsQuery.isFetching}
+        />
       ) : null}
 
       {!teamsQuery.isLoading && teams.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No teams found in this project.</p>
+        <EmptyState
+          icon={Users}
+          title="No teams in this project"
+          description="Sprints belong to teams. Add a team in Azure DevOps project settings."
+        />
       ) : null}
 
       {resolvedTeam && !sprintQuery.isLoading && !currentSprint ? (
@@ -589,20 +591,12 @@ export function SprintBurndownPanel() {
       ) : null}
 
       {chartsQuery.isError ? (
-        <Alert variant="destructive">
-          <AlertTitle>Could not load the sprint</AlertTitle>
-          <AlertDescription className="space-y-2">
-            <p>{chartsError instanceof Error ? chartsError.message : 'Query failed.'}</p>
-            {chartsError instanceof AdoClientError &&
-            chartsError.suggestions.length > 0 ? (
-              <ul className="list-disc space-y-1 pl-4 text-sm">
-                {chartsError.suggestions.map((suggestion) => (
-                  <li key={suggestion}>{suggestion}</li>
-                ))}
-              </ul>
-            ) : null}
-          </AlertDescription>
-        </Alert>
+        <ErrorState
+          title="Could not load the sprint"
+          error={chartsQuery.error}
+          onRetry={() => void chartsQuery.refetch()}
+          retrying={chartsQuery.isFetching}
+        />
       ) : null}
 
       {resolvedTeam && (sprintQuery.isLoading || chartsQuery.isLoading) ? (
@@ -653,9 +647,11 @@ export function SprintBurndownPanel() {
               </Link>
             </div>
             {openWork.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-                Nothing open in this sprint. Nice.
-              </p>
+              <EmptyState
+                icon={CircleCheck}
+                title="Nothing open in this sprint"
+                description="Everything here is done. Nice."
+              />
             ) : (
               <>
                 <WorkItemTree

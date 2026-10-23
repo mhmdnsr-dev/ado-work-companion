@@ -28,6 +28,7 @@ import {
   type AdoConnectionFormValues,
 } from '@core/schemas';
 import { AdoClientError } from '@core/types';
+import { cn } from '@/lib/utils';
 import { useConnection } from '@/components/providers';
 import { BrandLockup } from '@/components/brand';
 import { PatInput } from '@/components/shared/pat-input';
@@ -611,8 +612,29 @@ function ConfigurationFormLoaded({
         </form>
       </CardContent>
 
-      <CardFooter className="mobile-safe-bottom sticky bottom-0 z-10 flex flex-col gap-3 border-t border-border bg-card py-4 sm:static sm:items-stretch sm:border-t-0 sm:py-0">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <CardFooter
+        className={cn(
+          'flex w-full flex-col items-stretch gap-2',
+          // Setup has no bottom nav, so its actions can stay in thumb reach.
+          !isSettings &&
+            'mobile-safe-bottom sticky bottom-0 z-10 border-t border-border bg-card py-4 sm:static sm:border-t-0 sm:py-0',
+        )}
+      >
+        <div className="grid w-full grid-cols-2 gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="touch-target h-11"
+            onClick={() => void onTestConnection()}
+            disabled={testing || !canCallApi}
+          >
+            {testing ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <PlugZap className="size-4" />
+            )}
+            Test Connection
+          </Button>
           <Button
             type="submit"
             form={formId}
@@ -626,25 +648,11 @@ function ConfigurationFormLoaded({
             )}
             Save
           </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            className="touch-target h-11"
-            onClick={() => void onTestConnection()}
-            disabled={testing || !canCallApi}
-          >
-            {testing ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <PlugZap className="size-4" />
-            )}
-            Test Connection
-          </Button>
           {!isSettings ? (
             <Button
               type="button"
               variant="outline"
-              className="touch-target h-11"
+              className="touch-target col-span-2 h-11"
               onClick={() => void onLoadProjects()}
               disabled={loadingProjects || !canCallApi}
             >
@@ -656,15 +664,6 @@ function ConfigurationFormLoaded({
               Load Projects
             </Button>
           ) : null}
-          <Button
-            type="button"
-            variant="outline"
-            className={`touch-target h-11 ${isSettings ? 'sm:col-span-2' : ''}`}
-            onClick={() => void onReset()}
-          >
-            <RotateCcw className="size-4" />
-            Reset
-          </Button>
         </div>
 
         {!isSettings ? (
@@ -678,6 +677,17 @@ function ConfigurationFormLoaded({
             Continue to Dashboard
           </Button>
         ) : null}
+
+        {/* Destructive and rare: kept visible but quiet, away from Save. */}
+        <Button
+          type="button"
+          variant="ghost"
+          className="touch-target h-11 w-full gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+          onClick={() => void onReset()}
+        >
+          <RotateCcw className="size-4" />
+          Reset
+        </Button>
       </CardFooter>
     </Card>
   );

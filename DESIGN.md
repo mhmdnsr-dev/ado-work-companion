@@ -35,7 +35,7 @@ Existing shadcn tokens (`--background`, `--muted`, `--border`, `--primary`, …)
 | `--state-completed`   | Done, Closed                    | `#2F8F2F`       | `#62CF8E`     |
 | `--state-removed`     | Removed, Cut                    | `#A0A6AE`       | `#5C6370`     |
 
-State dots use the project's own process colours from `workitemtypes` when ADO provides them (near-white ones fall back to the category token); the `--state-*` tokens are the fallback. Values are stored as oklch, and Tailwind exposes them as `text-wit-*`, `bg-state-*`, and so on. Glyph colours meet 3:1 against `--background` (non-text). State labels use `--foreground`; only the dot is coloured.
+State dots use the project's own process colours from `workitemtypes` when ADO provides them (near-white ones fall back to the category token); the `--state-*` tokens are the fallback. Light `--primary` is L 0.54 (`#1d6ec6`): 4.9:1 under button text and 5.1:1 as text, after axe flagged the original at 4.44:1. Values are stored as oklch, and Tailwind exposes them as `text-wit-*`, `bg-state-*`, and so on. Glyph colours meet 3:1 against `--background` (non-text). State labels use `--foreground`; only the dot is coloured.
 
 Type: IBM Plex Sans (UI) and IBM Plex Mono (IDs, hours, counts) via `next/font`, falling back to Segoe UI, the font ADO itself uses. Sizes: row title 14px (`text-sm`), meta 12px (`text-xs`), column headers 11px uppercase with tracking.
 
@@ -96,6 +96,18 @@ A daily start screen, built with the `dataviz` method (form first, colour last, 
 - **Burndown**: emphasis form. Remaining is the accent 2px line with a 10% wash, the end dot (r4, 2px surface ring) and the one direct label; ideal is a grey 2px context line. Two series, so there's a line-key legend. Hairline solid gridlines on round ticks. A crosshair tooltip works with pointer and ←/→/Home/End, and **Show data** opens a table, so no value is hover-only. Rendered at measured pixel width (`useElementWidth`), not a scaled viewBox.
 - **By state**: part-to-whole as one stacked bar (12px, 2px surface gaps, 4px outer radius) with a counted legend. States are ordered by progress, so they use an **ordinal blue ramp** (`--progress-*`, validated with `validate_palette.js --ordinal` in light and dark). Categorical state colours failed the CVD check (Resolved vs Done under protan, ΔE 2.3).
 - **Responsive by container**: tree columns use container queries (`@container` with `@2xl:`), so a half-width column keeps the phone row layout.
+
+### States (`src/components/shared/states.tsx`)
+
+- **EmptyState**: an icon in a muted circle, a title that says what's missing, one line on why, and **one** action that helps (for example "Clear filters" or "New work item"). Dashed border.
+- **ErrorState**: a destructive alert with the message, ADO's suggestions when it returns any, and **Retry** (44px, shows progress).
+- **RowsSkeleton**: placeholder rows shaped like tree rows, so a list doesn't jump when it loads. Use it for every list load; refetches keep the old render dimmed instead.
+
+### Queries, Settings, Help
+
+- **Queries**: phones show the library _or_ the open query; `lg` shows both. The library is a searchable folder tree of 44px rows; each row is one button, with an icon for the query type (flat, tree, direct links). Search results show each query's path. **Opening a query runs it**; results are tree rows, WIQL sits behind "Show WIQL", and Refresh re-runs.
+- **Settings**: grouped sections (a small uppercase heading above one card). Theme is a one-row segmented radio group. In the connection form: the token field's show, copy, and clear actions sit inside the field (copy and clear only appear once there's a token), Test Connection and Save share one row, and Reset is a quiet destructive button below them. Its footer is sticky only in first-run setup, where there's no bottom nav.
+- **Help**: a smaller logo on phones; sticky, horizontally scrolling pill tabs with an edge fade; headings use `scroll-mt-20` so the tabs never cover them.
 
 ## Redesign Roadmap
 
