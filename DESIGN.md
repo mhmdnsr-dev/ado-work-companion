@@ -57,11 +57,11 @@ Type: IBM Plex Sans (UI) and IBM Plex Mono (IDs, hours, counts) via `next/font`,
 
 ## Redesign Roadmap
 
-One PR per slice, in order. Tick each when it merges to `main`.
+One PR per slice, ordered by phone impact (see AGENTS.md › Mobile-first). Tick each when it merges to `main`.
 
-- [ ] 1. Work Items tree-table and rows (`feat/work-items-hierarchy-redesign`)
-- [ ] 2. Global refresh: adopt the Ledger dark ground app-wide, typography scale, shell/sidebar/bottom nav, motion tokens
-- [ ] 3. Work Items filters: chip bar, proper `Sheet` bottom sheet, ADO-style view tabs (Assigned to me / Following / Recently updated)
-- [ ] 4. Work item detail sheet
+- [x] 1. Work Items tree-table and rows (#16, #17)
+- [ ] 2. Work Items phone header and filters: one-row search, filter chip bar, a proper `Sheet` bottom sheet, ADO-style quick views (Assigned to me / Following / Recently updated)
+- [ ] 3. Work item detail sheet: quick updates (one-tap state, remaining-hours stepper) above the full form
+- [ ] 4. App-wide shell: adopt the Ledger dark ground, phone app bar and bottom nav, page `<h1>`, typography scale, motion tokens
 - [ ] 5. Dashboard (status cards, sprint charts; use the `dataviz` skill)
 - [ ] 6. Queries, Settings, Help; empty, loading, and error states
