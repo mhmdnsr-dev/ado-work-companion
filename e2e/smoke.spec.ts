@@ -65,7 +65,7 @@ test.describe('focused product routes', () => {
     await expect(page.getByText('Projects', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Load Projects' })).toHaveCount(0);
     await expect(page.getByRole('textbox', { name: 'API Version' })).toBeHidden();
-    await page.getByText('Advanced', { exact: true }).click();
+    await page.getByText('API version', { exact: true }).click();
     await expect(page.getByRole('textbox', { name: 'API Version' })).toBeVisible();
   });
 
