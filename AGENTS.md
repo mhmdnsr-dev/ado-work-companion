@@ -64,7 +64,7 @@ Branch: feat/<feature-name> · Started: YYYY-MM-DD
 ## Verification evidence (commands run, scores, screenshots)
 ```
 
-Update it at the end of each session so the next agent can resume. **Delete it in the last commit before the PR to `main`**. CI (`.github/workflows/no-feature-notes.yml`) fails PRs into `main` that still contain feature notes. Durable decisions belong in `DESIGN.md` or this file before the note is deleted.
+Update it at the end of each session so the next agent can resume. **Delete it in the final commit of the feature's own PR**, so it stays in the branch history but never reaches `development` (releases to `main` can follow a merge immediately). CI (`.github/workflows/no-feature-notes.yml`) fails PRs into `main` that still contain feature notes; `main` should also require that check in branch protection. Durable decisions belong in `DESIGN.md` or this file before the note is deleted.
 
 ## Quality gates (user-facing changes)
 

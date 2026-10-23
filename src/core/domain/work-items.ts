@@ -127,8 +127,21 @@ export function findCurrentIterationPath(
 /**
  * Builds a practical WIQL filter for the Work Items page (not a free-form editor).
  */
+/**
+ * ADO "Work Items" hub quick views, backed by WIQL macros.
+ * `all` applies no view restriction (the Assigned to me view is `all` + `@Me`).
+ */
+export type WorkItemScope = 'all' | 'following' | 'mentioned' | 'activity';
+
+const SCOPE_CLAUSES: Record<Exclude<WorkItemScope, 'all'>, string> = {
+  following: '[System.Id] IN (@Follows)',
+  mentioned: '[System.Id] IN (@RecentMentions)',
+  activity: '[System.Id] IN (@MyRecentActivity)',
+};
+
 export function buildWorkItemsListWiql(params: {
   project: string;
+  scope?: WorkItemScope;
   workItemType?: string;
   /** open = exclude Closed/Removed; all = no state filter; closed = Closed only */
   stateScope?: 'open' | 'all' | 'closed';
@@ -140,6 +153,8 @@ export function buildWorkItemsListWiql(params: {
 }): string {
   const project = escapeWiqlString(params.project.trim());
   const clauses: string[] = [`[System.TeamProject] = '${project}'`];
+
+  if (params.scope && params.scope !== 'all') clauses.push(SCOPE_CLAUSES[params.scope]);
 
   if (params.workItemType && params.workItemType !== 'all') {
     clauses.push(`[System.WorkItemType] = '${escapeWiqlString(params.workItemType)}'`);

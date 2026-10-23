@@ -31,6 +31,7 @@ export {
   workItemLinkTypes,
   type ExistingWorkItemLinkGroup,
   type IterationCandidate,
+  type WorkItemScope,
   type WorkItemAttachment,
 } from './work-items';
 export {
