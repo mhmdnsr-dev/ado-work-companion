@@ -8,6 +8,15 @@ ADO Work Companion is a mobile-first PWA for people with Azure DevOps tasks: upd
 
 Stack: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4, shadcn/ui (new-york, Radix), TanStack Query, React Hook Form + Zod, lucide icons, sonner toasts, `@ducanh2912/next-pwa`.
 
+## Mobile-first (non-negotiable)
+
+Most people use the app on their phone, usually as the installed PWA. Every change is designed for the phone first and then enhanced for larger screens, never the other way round.
+
+- Design and build at **360px wide first** (reference device: Samsung Galaxy A55, 360×800), then add to the layout at `md` and up. Use Tailwind's mobile-first order: unprefixed classes are for phones, `md:` and up add to them.
+- Don't squeeze desktop layouts onto phones. Extra table columns, side-by-side panels, and hover-only affordances belong at `md` and up. On a phone, put secondary data in a wrapping meta line, a sheet, or a disclosure.
+- Long real ADO data must fit: titles such as "Q4-CORE-WT1-T3253-004 Add Sponsored Flights…" and custom states such as "Ready for UAT". Let it wrap or clamp to 2 lines; never let it overflow or collide with neighbouring text.
+- Keep clear of the fixed chrome (app bar, bottom nav, floating action button), use touch targets of at least 44px, respect safe areas, and avoid horizontal page scroll.
+
 ## Commands
 
 | Command            | Use                                                                                           |
@@ -60,7 +69,7 @@ Update it at the end of each session so the next agent can resume. **Delete it i
 ## Quality gates (user-facing changes)
 
 1. `npm run verify` passes; e2e specs touching the screen are updated and pass.
-2. Mobile first: check at 360–412px wide and at desktop, in light and dark. Touch targets ≥ 44px (`.touch-target`), safe areas respected.
+2. Mobile first: check at **360px** (and 390–412px) with realistic long data before desktop, in light and dark. Confirm nothing overflows its row and there's no horizontal scroll. Touch targets ≥ 44px (`.touch-target`), safe areas respected.
 3. Lighthouse (mobile, navigation) on touched routes: **Accessibility ≥ 0.9, Best Practices ≥ 0.9**. Fix all Critical/Serious a11y failures. Write reports to `.lighthouse/` (gitignored); do not commit them.
 4. Respect `prefers-reduced-motion` (a global rule in `globals.css` already shortens animations; don't fight it).
 5. Keyboard accessible: visible focus, correct ARIA roles (e.g. tree pattern for hierarchies), no keyboard traps.
