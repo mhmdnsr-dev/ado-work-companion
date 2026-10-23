@@ -67,8 +67,9 @@ test.describe('work item hierarchy', () => {
     await expect(
       page.getByRole('treeitem', { name: /^Bug 102: Fix login/ }),
     ).toHaveAttribute('aria-level', '4');
-    await expect(epic).toContainText('Outside filters');
-    await expect(feature).toContainText('Outside filters');
+    // Grouping-only parents carry no extra label: ADO users read them as groups.
+    await expect(epic).not.toContainText('Outside filters');
+    await expect(feature).not.toContainText('Outside filters');
 
     // Custom process types use their ADO colour and icon.
     const meeting = page.getByRole('treeitem', {
@@ -158,7 +159,6 @@ test.describe('work item hierarchy', () => {
     await expect(
       page.getByRole('button', { name: 'Remove filter: Matching children only' }),
     ).toBeVisible();
-    await expect(page.getByText('Outside filters', { exact: true })).toHaveCount(4);
     // A story whose children are only your matches still rolls them up.
     const auth = page.getByRole('treeitem', { name: /^User Story 202: Authentication/ });
     await expect(auth).toContainText('0/1');

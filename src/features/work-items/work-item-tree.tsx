@@ -259,7 +259,6 @@ function WorkItemTreeRow({
     `${type} ${id}: ${title}`,
     state,
     summary ? `${summary.completed} of ${summary.total} done` : assignee,
-    isContext ? 'outside your filters, shown to group matching items' : null,
     isParent && !row.expanded
       ? `${childCount} child${childCount === 1 ? '' : 'ren'} hidden`
       : null,
@@ -396,8 +395,6 @@ function WorkItemTreeRow({
             ) : isContext ? null : (
               <span className="max-w-full truncate md:hidden">{assignee}</span>
             )}
-            {/* Doesn't match the filters itself; shown to group the items below. */}
-            {isContext ? <span className="truncate">Outside filters</span> : null}
             {attachmentCount > 0 ? (
               <span className="flex shrink-0 items-center gap-0.5">
                 <Paperclip className="size-3" aria-hidden />
