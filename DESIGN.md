@@ -14,7 +14,7 @@ Chosen 2026-10-23 from three mock directions:
 1. **Hierarchy is visible at a glance.** Parents and children never look the same. A parent row is a shaded band with a bold title and a progress rollup. A child row is plain, with its owner. Guide rails connect children to their parent.
 2. **Colour carries meaning, never decoration.** Hue is reserved for work item _type_ (glyph) and _state_ (dot). Everything else is neutral. State is always shown with a text label too, never colour alone.
 3. **Numbers are data.** IDs, hours, and counts use the mono font with tabular figures, right-aligned in columns.
-4. **Phone first, desktop richer.** At 360–412px, a row is a title and meta line plus State and Rem. columns. Wider screens add columns (Assigned to) rather than stretching things.
+4. **Phone first, always.** Users are mainly on phones (see AGENTS.md › Mobile-first). Design at 360px first. On a phone a row is a two-line title, a wrapping meta line (state, type/ID, rollup, owner), and a single Rem. column. Wider screens add columns (Assigned to, State) rather than stretching things.
 5. **Motion explains state changes only.** The chevron rotates, revealed rows fade and slide in about 4px. Nothing loops. The global reduced-motion rule applies.
 
 ## Tokens (`src/app/globals.css`)
@@ -51,7 +51,8 @@ Type: IBM Plex Sans (UI) and IBM Plex Mono (IDs, hours, counts) via `next/font`,
 - **Custom types**: standard types use the `--wit-*` tokens. Custom process types (for example "Meetings") use their ADO icon (mapped to a matching Lucide icon) and their ADO colour, with lightness clamped per theme (`.wit-custom-glyph`) so pale or deep process colours stay legible.
 - **Rails**: a 1px `--border` line per ancestor level, with an elbow into each child.
 - **Selected (open) row**: `bg-primary/10` plus a 3px inset primary bar on the leading edge.
-- **Columns**: Title (flex), Assigned to (md+), State (dot + label), Rem. (mono, right-aligned). The column header is decorative (`aria-hidden`).
+- **Columns**: phones have Title (flex, 2-line clamp) and Rem. (mono, right-aligned); the state dot and label lead the meta line. From `md` up: Title (1 line), Assigned to, State, Rem. The column header is decorative (`aria-hidden`).
+- **Indent**: `--tree-indent` is 14px on phones and 20px from `md` up, so deep Epic → Task chains keep room for titles.
 - **Tree is the default view.** Flat list mode reuses the same rows at level 1, so the two modes look the same.
 
 ## Redesign Roadmap

@@ -25,8 +25,11 @@ import {
 } from '@/features/work-items/work-item-visuals';
 import { cn } from '@/lib/utils';
 
-/** Horizontal step per tree level, in px. */
-const INDENT = 20;
+/**
+ * Horizontal step per tree level, from `--tree-indent` on the tree frame:
+ * tighter on phones so deep Epic → Task chains keep room for titles.
+ */
+const INDENT = 'var(--tree-indent)';
 /** Row inline-start padding before the chevron gutter. */
 const ROW_PADDING = 4;
 /** Centre of the 32px chevron gutter, relative to the gutter start. */
@@ -43,7 +46,7 @@ export function toFlatNodes(items: WorkItem[]): WorkItemHierarchyNode[] {
 function railStyles(row: VisibleHierarchyRow): CSSProperties[] {
   const rails: CSSProperties[] = [];
   for (let level = 0; level < row.depth; level += 1) {
-    const left = ROW_PADDING + level * INDENT + GUTTER_CENTER;
+    const left = `calc(${INDENT} * ${level} + ${ROW_PADDING + GUTTER_CENTER}px)`;
     if (level < row.depth - 1) {
       // Pass-through rail for an ancestor level that still has siblings below.
       if (!row.ancestorIsLast[level + 1])
@@ -63,7 +66,7 @@ function railStyles(row: VisibleHierarchyRow): CSSProperties[] {
     });
   }
   if (row.expanded) {
-    const left = ROW_PADDING + row.depth * INDENT + GUTTER_CENTER;
+    const left = `calc(${INDENT} * ${row.depth} + ${ROW_PADDING + GUTTER_CENTER}px)`;
     rails.push({ left, top: TITLE_CENTER + 8, bottom: 0, width: 1 });
   }
   return rails;
@@ -158,7 +161,7 @@ export function WorkItemTree({
   return (
     <div
       className={cn(
-        '-mx-4 overflow-hidden border-y border-border bg-card md:mx-0 md:rounded-lg md:border',
+        '-mx-4 overflow-hidden border-y border-border bg-card [--tree-indent:14px] md:mx-0 md:rounded-lg md:border md:[--tree-indent:20px]',
         className,
       )}
     >
@@ -168,7 +171,7 @@ export function WorkItemTree({
       >
         <span className="flex-1">Title</span>
         <span className="hidden w-40 md:block">Assigned to</span>
-        <span className="w-24 md:w-36">State</span>
+        <span className="hidden md:block md:w-36">State</span>
         <span className="w-10 text-right">Rem.</span>
       </div>
       <ul role="tree" aria-label={label} className="flex flex-col">
@@ -238,6 +241,16 @@ function WorkItemTreeRow({
     isParent && !isContext ? summarizeHierarchyNode(row.node, stateLookup) : null;
   const stateInfo = workItemStateInfo(item, stateLookup);
   const stateColor = usableStateColor(stateInfo.color);
+  const stateDot = (
+    <span
+      aria-hidden
+      className={cn(
+        'size-2 shrink-0 rounded-full',
+        !stateColor && STATE_DOT_CLASS[stateInfo.category],
+      )}
+      style={stateColor ? { backgroundColor: stateColor } : undefined}
+    />
+  );
   const progress = summary && summary.total > 0 ? summary.completed / summary.total : 0;
   const childCount = row.node.children.length;
   const remaining = summary ? summary.remainingHours : ownRemaining;
@@ -287,7 +300,9 @@ function WorkItemTreeRow({
       ))}
       <div
         className="flex items-start gap-2 pe-4"
-        style={{ paddingInlineStart: ROW_PADDING + row.depth * INDENT }}
+        style={{
+          paddingInlineStart: `calc(${INDENT} * ${row.depth} + ${ROW_PADDING}px)`,
+        }}
       >
         {isParent ? (
           // Pointer-only hit area; keyboard users toggle with ←/→ on the row.
@@ -328,10 +343,11 @@ function WorkItemTreeRow({
         />
 
         <div className="flex min-w-0 flex-1 flex-col gap-1 py-2.5">
-          <div className="flex min-w-0 items-center gap-2">
+          <div className="flex min-w-0 items-start gap-2">
+            {/* Phones get two lines: long ADO titles are unreadable when cut to one. */}
             <span
               className={cn(
-                'truncate text-sm leading-5',
+                'line-clamp-2 min-w-0 text-sm leading-5 break-words md:line-clamp-1',
                 isContext
                   ? 'text-muted-foreground'
                   : isParent
@@ -344,36 +360,41 @@ function WorkItemTreeRow({
             {isParent && !row.expanded ? (
               <span
                 aria-hidden
-                className="shrink-0 rounded-full bg-secondary px-1.5 font-mono text-[11px] leading-4 font-semibold text-secondary-foreground tabular-nums"
+                className="mt-0.5 shrink-0 rounded-full bg-secondary px-1.5 font-mono text-[11px] leading-4 font-semibold text-secondary-foreground tabular-nums"
               >
                 {childCount}
               </span>
             ) : null}
           </div>
-          <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+          {/* Wraps instead of overflowing; on phones it also carries the state. */}
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-4 text-muted-foreground">
+            <span className="flex max-w-full min-w-0 items-center gap-1.5 text-foreground md:hidden">
+              {stateDot}
+              <span className="truncate">{state}</span>
+            </span>
             <span className="shrink-0">
               {type.replace(/^User /, '')}{' '}
               <span className="font-mono tabular-nums">{id}</span>
             </span>
             {summary ? (
-              <>
+              <span className="flex shrink-0 items-center gap-1.5">
                 <span
                   aria-hidden
-                  className="flex h-1 w-14 shrink-0 overflow-hidden rounded-full bg-border"
+                  className="flex h-1 w-12 shrink-0 overflow-hidden rounded-full bg-border md:w-14"
                 >
                   <span
                     className="rounded-full bg-state-completed"
                     style={{ width: `${Math.round(progress * 100)}%` }}
                   />
                 </span>
-                <span className="shrink-0 font-mono tabular-nums">
+                <span className="font-mono tabular-nums">
                   {summary.completed}/{summary.total}
                 </span>
-              </>
+              </span>
             ) : isContext ? (
               <span className="truncate">Parent of matches</span>
             ) : (
-              <span className="truncate md:hidden">{assignee}</span>
+              <span className="max-w-full truncate md:hidden">{assignee}</span>
             )}
             {attachmentCount > 0 ? (
               <span className="flex shrink-0 items-center gap-0.5">
@@ -387,17 +408,11 @@ function WorkItemTreeRow({
         <span className="hidden w-40 truncate pt-2.5 text-sm leading-5 text-muted-foreground md:block">
           {isParent ? '' : assignee}
         </span>
-        <span className="flex w-24 min-w-0 items-start gap-1.5 pt-2.5 text-sm leading-5 text-foreground md:w-36">
-          <span
-            aria-hidden
-            className={cn(
-              'mt-1.5 size-2 shrink-0 rounded-full',
-              !stateColor && STATE_DOT_CLASS[stateInfo.category],
-            )}
-            style={stateColor ? { backgroundColor: stateColor } : undefined}
-          />
-          {/* Custom states can be long ("Ready for UAT"): wrap rather than cut. */}
-          <span className="line-clamp-2 break-words">{state}</span>
+        <span className="hidden min-w-0 items-center gap-1.5 pt-2.5 text-sm leading-5 text-foreground md:flex md:w-36">
+          {stateDot}
+          <span className="truncate" title={state}>
+            {state}
+          </span>
         </span>
         <span className="w-10 pt-2.5 text-right font-mono text-sm leading-5 text-foreground tabular-nums">
           {isContext || remaining == null ? (

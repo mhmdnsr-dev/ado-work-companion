@@ -23,6 +23,8 @@ Roadmap slice 1 (DESIGN.md): replace the stacked work item cards with a tree-tab
 
 ## Progress log
 
+- 2026-10-23: User feedback (Galaxy A55, 360px): "Ready for UAT" overflowed into the meta line and titles were cut to one word. Rows are now phone-first: 2-line titles, state in a wrapping meta line, only Rem. as a column on phones (State/Assigned from md), 14px indent on phones, and a spacer so the floating button never covers the last row. Mobile-first recorded in AGENTS.md as non-negotiable. Verified with Playwright at 360×800 (light and dark): no element overflows its row, no horizontal scroll.
+
 - 2026-10-23: Full ancestry (up to 4 levels) loaded as context rows, and context rows left without children are pruned after the Open filter. Custom process types use their ADO icon and colour. Mocks gained Epic 501 → Feature 401 → Story 202 and a "Meetings" item. Verified live: the Meetings headphones glyph shows, and the inaccessible parents are skipped without errors.
 
 - 2026-10-23: DESIGN.md written; branch created.

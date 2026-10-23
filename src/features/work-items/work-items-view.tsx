@@ -1250,6 +1250,8 @@ function WorkItemsViewContent({
         iterations={sprintOptions}
         onChanged={() => void invalidateList()}
       />
+      {/* Lets the last row and the pager scroll clear of the floating button. */}
+      <div aria-hidden className="h-16 md:hidden" />
       <Button
         type="button"
         size="icon"
