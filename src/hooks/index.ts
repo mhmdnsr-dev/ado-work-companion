@@ -4,3 +4,4 @@
  */
 export { useCurrentUser } from './use-current-user';
 export { useMediaQuery } from './use-media-query';
+export { useElementWidth } from './use-element-width';

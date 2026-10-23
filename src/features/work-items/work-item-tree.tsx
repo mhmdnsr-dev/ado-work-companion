@@ -161,7 +161,7 @@ export function WorkItemTree({
   return (
     <div
       className={cn(
-        '-mx-4 overflow-hidden border-y border-border bg-card [--tree-indent:14px] md:mx-0 md:rounded-lg md:border md:[--tree-indent:20px]',
+        '@container -mx-4 overflow-hidden border-y border-border bg-card md:mx-0 md:rounded-lg md:border',
         className,
       )}
     >
@@ -170,11 +170,17 @@ export function WorkItemTree({
         className="flex items-center gap-2 border-b border-border px-4 py-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
       >
         <span className="flex-1">Title</span>
-        <span className="hidden w-40 md:block">Assigned to</span>
-        <span className="hidden md:block md:w-36">State</span>
+        <span className="hidden w-40 @2xl:block">Assigned to</span>
+        <span className="hidden @2xl:block @2xl:w-36">State</span>
         <span className="w-10 text-right">Rem.</span>
       </div>
-      <ul role="tree" aria-label={label} className="flex flex-col">
+      {/* Columns and indent follow the tree's width (container queries), not the
+          viewport, so a half-width dashboard column still gets the phone layout. */}
+      <ul
+        role="tree"
+        aria-label={label}
+        className="flex flex-col [--tree-indent:14px] @2xl:[--tree-indent:20px]"
+      >
         {rows.map((row, index) => (
           <WorkItemTreeRow
             key={row.id ?? `${row.node.item.url}-${index}`}
@@ -348,7 +354,7 @@ function WorkItemTreeRow({
             {/* Phones get two lines: long ADO titles are unreadable when cut to one. */}
             <span
               className={cn(
-                'line-clamp-2 min-w-0 text-sm leading-5 break-words md:line-clamp-1',
+                'line-clamp-2 min-w-0 text-sm leading-5 break-words @2xl:line-clamp-1',
                 isContext
                   ? 'text-muted-foreground'
                   : isParent
@@ -369,7 +375,7 @@ function WorkItemTreeRow({
           </div>
           {/* Wraps instead of overflowing; on phones it also carries the state. */}
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-4 text-muted-foreground">
-            <span className="flex max-w-full min-w-0 items-center gap-1.5 text-foreground md:hidden">
+            <span className="flex max-w-full min-w-0 items-center gap-1.5 text-foreground @2xl:hidden">
               {stateDot}
               <span className="truncate">{state}</span>
             </span>
@@ -381,7 +387,7 @@ function WorkItemTreeRow({
               <span className="flex shrink-0 items-center gap-1.5">
                 <span
                   aria-hidden
-                  className="flex h-1 w-12 shrink-0 overflow-hidden rounded-full bg-border md:w-14"
+                  className="flex h-1 w-12 shrink-0 overflow-hidden rounded-full bg-border @2xl:w-14"
                 >
                   <span
                     className="rounded-full bg-state-completed"
@@ -393,7 +399,7 @@ function WorkItemTreeRow({
                 </span>
               </span>
             ) : isContext ? null : (
-              <span className="max-w-full truncate md:hidden">{assignee}</span>
+              <span className="max-w-full truncate @2xl:hidden">{assignee}</span>
             )}
             {attachmentCount > 0 ? (
               <span className="flex shrink-0 items-center gap-0.5">
@@ -404,10 +410,10 @@ function WorkItemTreeRow({
           </div>
         </div>
 
-        <span className="hidden w-40 truncate pt-2.5 text-sm leading-5 text-muted-foreground md:block">
+        <span className="hidden w-40 truncate pt-2.5 text-sm leading-5 text-muted-foreground @2xl:block">
           {isParent ? '' : assignee}
         </span>
-        <span className="hidden min-w-0 items-center gap-1.5 pt-2.5 text-sm leading-5 text-foreground md:flex md:w-36">
+        <span className="hidden min-w-0 items-center gap-1.5 pt-2.5 text-sm leading-5 text-foreground @2xl:flex @2xl:w-36">
           {stateDot}
           <span className="truncate" title={state}>
             {state}

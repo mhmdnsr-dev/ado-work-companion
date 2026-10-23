@@ -69,6 +69,10 @@ Type: IBM Plex Sans (UI) and IBM Plex Mono (IDs, hours, counts) via `next/font`,
 - **Quick update card** (first thing in the sheet). These are the daily actions, one tap each:
   - **State chips**: the type's process states with ADO colours. A tap saves the state immediately, and the toast offers **Undo**. "Removed" is never a chip.
   - **Log work composer**: the +0.5h / +1h / +2h / +4h chips and the −/+ stepper only **build an amount** (or type one, e.g. 2.5). A live preview shows both effects ("Remaining 4 → 1.5h · Completed 0 → 2.5h"), and one **Log 2.5h** button saves it in a single PATCH (`buildLogWorkPatches`; Remaining never goes below 0).
+  - **Validation**: block only impossible input (not a number, ≤ 0, more than 40h in one log). Show the reason under the field and disable Log. Hours round to 2 decimals.
+  - **Over-runs are allowed, and explained**: estimates are guesses. The preview notes "1h more than the remaining estimate." and "Completed goes 1h past the original 8h estimate." in muted text with an info icon, not as errors.
+  - **Remaining after**: when a log would clear Remaining, a field asks how much is still left (default 0), saved in the same PATCH (`planLogWork`).
+  - **Close nudge**: when Remaining reaches 0 on open work, the success toast offers "Mark as <process done state>" (Undo follows from the state change).
   - **Adjust remaining only**: a disclosure for re-estimates ("Set remaining to …h"), labelled so it's clear Completed doesn't change. Save is enabled only for a valid, changed number.
 - **Full form** below, unchanged. **Footer**: one row on phones (delete icon, Close, Save changes) with safe-area padding.
 - **Toasts over modals**: `[data-sonner-toaster]` keeps pointer events, and Sheet/Dialog ignore outside-interactions on toasts, so toast actions work while a sheet is open.
@@ -81,13 +85,25 @@ Type: IBM Plex Sans (UI) and IBM Plex Mono (IDs, hours, counts) via `next/font`,
 - **Sidebar (md+)**: the active item gets a 3px leading accent bar instead of a ring.
 - **Motion tokens** (`@theme`): `--ease-standard`, `--ease-emphasized`, `--duration-quick` (150ms), `--duration-moderate` (220ms). Use them as `duration-(--duration-moderate) ease-(--ease-standard)`.
 
+### Dashboard (`src/features/dashboard`)
+
+A daily start screen, built with the `dataviz` method (form first, colour last, validated):
+
+- **Scope row** above everything it filters: one "Team · Member" button opening a sheet, plus Refresh. Below it, the sprint name and dates.
+- **Summary**: a **hero figure** (remaining hours, 48px sans, proportional digits), a **days-left meter** ("Day 11 of 14", counting both ends; the track is a lighter step of the fill's hue), and four stat tiles (Done %, Completed h, Open items, Closed items).
+- **One counted set**: every number (hero, tiles, burndown end, state bar, open-work list) is computed over **leaf** sprint work (no child links, not Removed), with "done" from the process state categories (`summarizeSprintWork`, `isCountedSprintWork`). Never mix sources on one screen.
+- **Open work**: leaf items not done, in progress first, as tree rows (max 20, then a link to Work Items). A tap opens the work item sheet with Quick update. On phones it sits right after the summary; from `lg` it's the left column.
+- **Burndown**: emphasis form. Remaining is the accent 2px line with a 10% wash, the end dot (r4, 2px surface ring) and the one direct label; ideal is a grey 2px context line. Two series, so there's a line-key legend. Hairline solid gridlines on round ticks. A crosshair tooltip works with pointer and ←/→/Home/End, and **Show data** opens a table, so no value is hover-only. Rendered at measured pixel width (`useElementWidth`), not a scaled viewBox.
+- **By state**: part-to-whole as one stacked bar (12px, 2px surface gaps, 4px outer radius) with a counted legend. States are ordered by progress, so they use an **ordinal blue ramp** (`--progress-*`, validated with `validate_palette.js --ordinal` in light and dark). Categorical state colours failed the CVD check (Resolved vs Done under protan, ΔE 2.3).
+- **Responsive by container**: tree columns use container queries (`@container` with `@2xl:`), so a half-width column keeps the phone row layout.
+
 ## Redesign Roadmap
 
 One PR per slice, ordered by phone impact (see AGENTS.md › Mobile-first). Tick each when it merges to `main`.
 
 - [x] 1. Work Items tree-table and rows (#16, #17)
-- [ ] 2. Work Items phone header and filters: one-row search, filter chip bar, a proper `Sheet` bottom sheet, ADO-style quick views (Assigned to me / Following / Recently updated)
-- [ ] 3. Work item detail sheet: quick updates (one-tap state, remaining-hours stepper) above the full form
-- [ ] 4. App-wide shell: adopt the Ledger dark ground, phone app bar and bottom nav, page `<h1>`, motion tokens
+- [x] 2. Work Items phone header and filters: one-row search, filter chip bar, a proper `Sheet` bottom sheet, ADO-style quick views (Assigned to me / Following / Recently updated)
+- [x] 3. Work item detail sheet: quick updates (one-tap state, remaining-hours stepper) above the full form
+- [x] 4. App-wide shell: adopt the Ledger dark ground, phone app bar and bottom nav, page `<h1>`, motion tokens
 - [ ] 5. Dashboard (status cards, sprint charts; use the `dataviz` skill)
 - [ ] 6. Queries, Settings, Help; empty, loading, and error states

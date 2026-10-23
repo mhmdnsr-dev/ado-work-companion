@@ -263,7 +263,7 @@ function isTask(item: WorkItem): boolean {
   return fieldString(item, 'System.WorkItemType') === 'Task';
 }
 
-function isCompletedTask(item: WorkItem): boolean {
+function isCompletedTaskState(item: WorkItem): boolean {
   const state = fieldString(item, 'System.State');
   return COMPLETED_TASK_STATES.has(state);
 }
@@ -277,8 +277,14 @@ export function buildSprintBurndownFromWorkItems(params: {
   sprintStart: string;
   sprintEnd: string;
   asOf?: string;
+  /** Which items carry the work (default: Task type only). */
+  include?: (item: WorkItem) => boolean;
+  /** When an item is done (default: Closed/Done-style state names). */
+  isCompleted?: (item: WorkItem) => boolean;
 }): SprintBurndownModel {
-  const tasks = params.items.filter(isTask);
+  const include = params.include ?? isTask;
+  const isCompletedTask = params.isCompleted ?? isCompletedTaskState;
+  const tasks = params.items.filter(include);
   let remainingWork = 0;
   let startingWork = 0;
   for (const item of tasks) {
@@ -363,7 +369,7 @@ export function buildSprintSnapshotFromWorkItems(
     const remaining = fieldNumber(item, 'Microsoft.VSTS.Scheduling.RemainingWork') ?? 0;
     const completed = fieldNumber(item, 'Microsoft.VSTS.Scheduling.CompletedWork') ?? 0;
 
-    if (isCompletedTask(item)) {
+    if (isCompletedTaskState(item)) {
       completedTaskCount += 1;
       completedHours += completed;
     } else {

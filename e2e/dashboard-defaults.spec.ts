@@ -13,17 +13,16 @@ test.describe('dashboard defaults and layout', () => {
     await configureMockConnection(page);
     await page.goto('/dashboard');
 
-    await expect(page.locator('#dashboard-team')).toContainText('Team Alpha', {
-      timeout: 20_000,
+    const scope = page.getByRole('button', {
+      name: 'Change team and member. Now Team Alpha, Me (Alex Doe)',
     });
-    await expect(page.locator('#dashboard-member')).toContainText('Me (Alex Doe)', {
-      timeout: 20_000,
-    });
+    await expect(scope).toBeVisible({ timeout: 20_000 });
+    await scope.click();
+    const sheet = page.getByRole('dialog', { name: 'Sprint scope' });
+    await expect(sheet.locator('#dashboard-team')).toContainText('Team Alpha');
+    await expect(sheet.locator('#dashboard-member')).toContainText('Me (Alex Doe)');
+    await sheet.getByRole('button', { name: 'Done' }).click();
 
-    const main = page.locator('#main-content');
-    await expect(main.getByRole('button', { name: 'Test connection' })).toBeVisible();
-    await expect(main.getByText('contoso', { exact: true })).toBeVisible();
-    await expect(main.getByText('Mock Project', { exact: true })).toBeVisible();
     await expect(page.getByText('Quick Actions', { exact: true })).toHaveCount(0);
     await expect(page.getByText(/api version/i)).toHaveCount(0);
     await expect(page.getByText(/personal access token/i)).toHaveCount(0);
@@ -32,6 +31,41 @@ test.describe('dashboard defaults and layout', () => {
     await expect(favorites).not.toHaveAttribute('open', '');
     await page.getByText('Manage favorites', { exact: true }).click();
     await expect(favorites).toHaveAttribute('open', '');
+  });
+
+  test('leads with your sprint numbers and opens your work for quick updates', async ({
+    page,
+  }) => {
+    await configureMockConnection(page);
+    await page.goto('/dashboard');
+
+    const summary = page.getByRole('region', { name: 'Your remaining work' });
+    await expect(summary).toBeVisible({ timeout: 20_000 });
+    // Alex owns Implement search (4h) and Fix login (2h) in the sprint.
+    await expect(summary).toContainText('6h');
+    await expect(summary).toContainText('Open items2');
+    await expect(page.getByRole('meter', { name: 'Sprint time elapsed' })).toBeVisible();
+
+    const open = page.getByRole('region', { name: /Your open work/ });
+    await expect(open.getByRole('treeitem')).toHaveCount(2);
+    // In-progress work comes first.
+    await expect(open.getByRole('treeitem').first()).toHaveAccessibleName(
+      /^Task 101: Implement search/,
+    );
+
+    await expect(
+      page.getByRole('img', { name: 'Not started 1, In progress 1' }),
+    ).toBeVisible();
+
+    // The burndown keeps every value reachable without hovering.
+    await page.getByText('Show data', { exact: true }).click();
+    await expect(
+      page.getByRole('table', { name: 'Remaining and ideal work per day' }),
+    ).toBeVisible();
+
+    await open.getByRole('treeitem').first().click();
+    await expect(page).toHaveURL(/item=101/);
+    await expect(page.getByRole('region', { name: 'Quick update' })).toBeVisible();
   });
 
   test('settings selects the first project when none is saved', async ({ page }) => {
@@ -59,16 +93,19 @@ for (const width of [320, 390, 430]) {
     }) => {
       await installAdoMocks(page);
       await configureMockConnection(page);
-      await page.goto('/dashboard');
+      await page.goto('/work-items');
 
-      await page.getByText('Manage favorites', { exact: true }).click();
-      await page.getByRole('button', { name: 'Add Help & About to favorites' }).click();
-      await expect(page.getByText('Added to favorites', { exact: true })).toBeVisible();
+      await page.getByRole('button', { name: 'Open filters' }).click();
+      await page.getByRole('button', { name: 'Save filters' }).click();
+      await expect(
+        page.getByText('Filters saved for this project', { exact: true }),
+      ).toBeVisible();
+      await page.getByRole('button', { name: 'Show work items' }).click();
 
       // Let the enter animation settle before measuring the toast.
       await page.waitForTimeout(700);
 
-      const header = page.locator('header').filter({ hasText: 'Dashboard' }).first();
+      const header = page.locator('header').filter({ hasText: 'Work Items' }).first();
       const nav = page.getByRole('navigation', { name: 'Primary' });
       const toast = page.locator('[data-sonner-toast]').first();
 
