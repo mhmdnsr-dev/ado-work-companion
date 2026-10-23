@@ -241,15 +241,26 @@ test.describe('PWA installation guidance', () => {
 
   test('uses the browser-native install prompt when available', async ({ page }) => {
     await page.goto('/settings');
-    await page.evaluate(() => {
-      const event = new Event('beforeinstallprompt');
-      Object.assign(event, {
-        platforms: ['web'],
-        prompt: () => Promise.resolve(),
-        userChoice: Promise.resolve({ outcome: 'accepted' }),
-      });
-      window.dispatchEvent(event);
-    });
+
+    // Hydration attaches the beforeinstallprompt listener. Re-dispatch until it
+    // catches the event instead of racing the provider's first effect.
+    await expect
+      .poll(
+        async () => {
+          await page.evaluate(() => {
+            const event = new Event('beforeinstallprompt');
+            Object.assign(event, {
+              platforms: ['web'],
+              prompt: () => Promise.resolve(),
+              userChoice: Promise.resolve({ outcome: 'accepted' }),
+            });
+            window.dispatchEvent(event);
+          });
+          return page.getByRole('button', { name: 'Install', exact: true }).isVisible();
+        },
+        { message: 'waiting for the install prompt listener', timeout: 10_000 },
+      )
+      .toBe(true);
 
     await page.getByRole('button', { name: 'Install', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Install app' })).toHaveCount(0);
