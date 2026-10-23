@@ -364,226 +364,143 @@ function ConfigurationFormLoaded({
     router.push('/dashboard');
   }
 
-  return (
-    <Card className={isSettings ? 'w-full' : 'w-full max-w-2xl'}>
-      <CardHeader className="gap-3">
-        {!isSettings ? (
-          <div className="rounded-lg bg-white px-3 py-2 ring-1 ring-border/60 dark:bg-white">
-            <BrandLockup width={260} priority />
-          </div>
-        ) : null}
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <CardTitle className={isSettings ? 'text-xl' : 'text-2xl'}>
-              {isSettings
-                ? 'Connection'
-                : isConfigured
-                  ? 'Update your connection'
-                  : 'Connect so you can work on your tasks'}
-            </CardTitle>
-          </div>
-          {statusBadge(health.status)}
-        </div>
-        <CardDescription>
-          {isSettings
-            ? 'Organization, project, and access token for this device. Leave the token blank to keep the one already saved.'
-            : 'Enter your Azure DevOps organization and access token to get started. Project is optional. Your token stays on this device and is never placed in the address bar.'}{' '}
-          <Link
-            href="/help"
-            className="font-medium text-foreground underline-offset-4 hover:underline"
-          >
-            Help guide
-          </Link>
-        </CardDescription>
-        {hasServerPat && !isSettings ? (
+  const formFields = (
+    <form id={formId} onSubmit={form.handleSubmit(onSave)} className="space-y-6">
+      <FieldGroup>
+        <Controller
+          name="organization"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor="organization">Organization</FieldLabel>
+              <Input
+                {...field}
+                id="organization"
+                placeholder="contoso"
+                autoComplete="organization"
+                aria-invalid={fieldState.invalid}
+                className="touch-target h-11"
+              />
+              <FieldDescription>
+                {`The name in https://dev.azure.com/{organization}`}
+              </FieldDescription>
+              {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+            </Field>
+          )}
+        />
+
+        <Controller
+          name="pat"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor="pat">Personal Access Token</FieldLabel>
+              <PatInput
+                id="pat"
+                value={field.value}
+                onChange={field.onChange}
+                aria-invalid={fieldState.invalid}
+              />
+              <FieldDescription id="pat-hint">
+                {hasServerPat
+                  ? 'Leave blank to keep your saved token, or enter a new one to replace it.'
+                  : 'Required. Create a token in Azure DevOps with at least Project (Read) access.'}{' '}
+                <a
+                  className="inline-flex items-center gap-1 font-medium text-foreground"
+                  href="https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  How to get a token
+                  <ExternalLink className="size-3.5 opacity-70" aria-hidden />
+                </a>
+              </FieldDescription>
+              {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+            </Field>
+          )}
+        />
+
+        <Controller
+          name="patCookieLifetime"
+          control={form.control}
+          render={({ field }) => {
+            const lifetime = resolvePatCookieLifetime(field.value);
+            return (
+              <Field>
+                <FieldLabel htmlFor="patCookieLifetime">
+                  Remember token on this device
+                </FieldLabel>
+                <Select value={lifetime} onValueChange={field.onChange}>
+                  <SelectTrigger
+                    id="patCookieLifetime"
+                    className="touch-target h-11 w-full max-w-xs"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAT_COOKIE_LIFETIME_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldDescription>
+                  Controls how long this app keeps the encrypted token cookie — not the
+                  expiry date of the PAT in Azure DevOps.
+                </FieldDescription>
+              </Field>
+            );
+          }}
+        />
+
+        {patCookieLifetime === 'forever' ? (
           <Alert>
-            <AlertTitle>Token already saved</AlertTitle>
+            <AlertTitle>Long-lived device session</AlertTitle>
             <AlertDescription>
-              You can leave the token field empty to keep your current token, or enter a
-              new one to replace it.
+              Forever keeps the token cookie on this browser for as long as the browser
+              allows (often about a year). Prefer a shorter window on shared machines, and
+              use Reset when you are done.
             </AlertDescription>
           </Alert>
         ) : null}
-        {!isSettings ? (
-          <Alert>
-            <AlertTitle>Need a fresh start?</AlertTitle>
-            <AlertDescription>
-              Reset clears your saved connection settings and access token from this
-              device. You can set them up again anytime on this page.
-            </AlertDescription>
-          </Alert>
-        ) : null}
-        {health.message ? (
-          <Alert variant={health.status === 'failed' ? 'destructive' : 'default'}>
-            <AlertTitle>Connection status</AlertTitle>
-            <AlertDescription>{health.message}</AlertDescription>
-          </Alert>
-        ) : null}
-      </CardHeader>
 
-      <CardContent>
-        <form id={formId} onSubmit={form.handleSubmit(onSave)} className="space-y-6">
-          <FieldGroup>
-            <Controller
-              name="organization"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="organization">Organization</FieldLabel>
-                  <Input
-                    {...field}
-                    id="organization"
-                    placeholder="contoso"
-                    autoComplete="organization"
-                    aria-invalid={fieldState.invalid}
-                    className="touch-target h-11"
-                  />
-                  <FieldDescription>
-                    {`The name in https://dev.azure.com/{organization}`}
-                  </FieldDescription>
-                  {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
-                </Field>
-              )}
-            />
+        <Separator />
 
-            <Controller
-              name="pat"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="pat">Personal Access Token</FieldLabel>
-                  <PatInput
-                    id="pat"
-                    value={field.value}
-                    onChange={field.onChange}
-                    aria-invalid={fieldState.invalid}
-                  />
-                  <FieldDescription id="pat-hint">
-                    {hasServerPat
-                      ? 'Leave blank to keep your saved token, or enter a new one to replace it.'
-                      : 'Required. Create a token in Azure DevOps with at least Project (Read) access.'}{' '}
-                    <a
-                      className="inline-flex items-center gap-1 font-medium text-foreground"
-                      href="https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      How to get a token
-                      <ExternalLink className="size-3.5 opacity-70" aria-hidden />
-                    </a>
-                  </FieldDescription>
-                  {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
-                </Field>
-              )}
-            />
+        <Controller
+          name="project"
+          control={form.control}
+          render={({ field }) => (
+            <Field>
+              <FieldLabel htmlFor="project-combobox">Project (optional)</FieldLabel>
+              <ProjectCombobox
+                id="project-combobox"
+                value={field.value}
+                onChange={(value) => {
+                  setProjectTouched(true);
+                  field.onChange(value);
+                }}
+                projects={projects}
+                loading={projectsLoading || loadingProjects}
+                error={projectsError}
+                onRefresh={() => void onLoadProjects()}
+                disabled={!canCallApi && projects.length === 0}
+                allowManualEntry
+              />
+              <FieldDescription>
+                Choose a project after connecting, or type a name manually. Leave empty to
+                use organization-wide APIs.
+              </FieldDescription>
+            </Field>
+          )}
+        />
 
-            <Controller
-              name="patCookieLifetime"
-              control={form.control}
-              render={({ field }) => {
-                const lifetime = resolvePatCookieLifetime(field.value);
-                return (
-                  <Field>
-                    <FieldLabel htmlFor="patCookieLifetime">
-                      Remember token on this device
-                    </FieldLabel>
-                    <Select value={lifetime} onValueChange={field.onChange}>
-                      <SelectTrigger
-                        id="patCookieLifetime"
-                        className="touch-target h-11 w-full max-w-xs"
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PAT_COOKIE_LIFETIME_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FieldDescription>
-                      Controls how long this app keeps the encrypted token cookie — not
-                      the expiry date of the PAT in Azure DevOps.
-                    </FieldDescription>
-                  </Field>
-                );
-              }}
-            />
-
-            {patCookieLifetime === 'forever' ? (
-              <Alert>
-                <AlertTitle>Long-lived device session</AlertTitle>
-                <AlertDescription>
-                  Forever keeps the token cookie on this browser for as long as the
-                  browser allows (often about a year). Prefer a shorter window on shared
-                  machines, and use Reset when you are done.
-                </AlertDescription>
-              </Alert>
-            ) : null}
-
-            <Separator />
-
-            <Controller
-              name="project"
-              control={form.control}
-              render={({ field }) => (
-                <Field>
-                  <FieldLabel htmlFor="project-combobox">Project (optional)</FieldLabel>
-                  <ProjectCombobox
-                    id="project-combobox"
-                    value={field.value}
-                    onChange={(value) => {
-                      setProjectTouched(true);
-                      field.onChange(value);
-                    }}
-                    projects={projects}
-                    loading={projectsLoading || loadingProjects}
-                    error={projectsError}
-                    onRefresh={() => void onLoadProjects()}
-                    disabled={!canCallApi && projects.length === 0}
-                    allowManualEntry
-                  />
-                  <FieldDescription>
-                    Choose a project after connecting, or type a name manually. Leave
-                    empty to use organization-wide APIs.
-                  </FieldDescription>
-                </Field>
-              )}
-            />
-
-            {isSettings ? (
-              <details className="rounded-lg border px-4 py-3">
-                <summary className="touch-target flex cursor-pointer items-center text-sm font-medium">
-                  Advanced
-                </summary>
-                <div className="pt-4">
-                  <Controller
-                    name="apiVersion"
-                    control={form.control}
-                    render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid}>
-                        <FieldLabel htmlFor="apiVersion">API Version</FieldLabel>
-                        <Input
-                          {...field}
-                          id="apiVersion"
-                          placeholder={ADO_API.DEFAULT_VERSION}
-                          aria-invalid={fieldState.invalid}
-                          className="touch-target h-11 font-mono"
-                        />
-                        <FieldDescription>
-                          Keep {ADO_API.DEFAULT_VERSION} unless an API requires another
-                          version.
-                        </FieldDescription>
-                        {fieldState.invalid ? (
-                          <FieldError errors={[fieldState.error]} />
-                        ) : null}
-                      </Field>
-                    )}
-                  />
-                </div>
-              </details>
-            ) : (
+        {isSettings ? (
+          <details className="rounded-lg border px-4 py-3">
+            <summary className="touch-target flex cursor-pointer items-center text-sm font-medium">
+              Advanced
+            </summary>
+            <div className="pt-4">
               <Controller
                 name="apiVersion"
                 control={form.control}
@@ -598,8 +515,8 @@ function ConfigurationFormLoaded({
                       className="touch-target h-11 font-mono"
                     />
                     <FieldDescription>
-                      Defaults to {ADO_API.DEFAULT_VERSION}. Change this only if a
-                      specific API needs a different version.
+                      Keep {ADO_API.DEFAULT_VERSION} unless an API requires another
+                      version.
                     </FieldDescription>
                     {fieldState.invalid ? (
                       <FieldError errors={[fieldState.error]} />
@@ -607,88 +524,219 @@ function ConfigurationFormLoaded({
                   </Field>
                 )}
               />
+            </div>
+          </details>
+        ) : (
+          <Controller
+            name="apiVersion"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="apiVersion">API Version</FieldLabel>
+                <Input
+                  {...field}
+                  id="apiVersion"
+                  placeholder={ADO_API.DEFAULT_VERSION}
+                  aria-invalid={fieldState.invalid}
+                  className="touch-target h-11 font-mono"
+                />
+                <FieldDescription>
+                  Defaults to {ADO_API.DEFAULT_VERSION}. Change this only if a specific
+                  API needs a different version.
+                </FieldDescription>
+                {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+              </Field>
             )}
-          </FieldGroup>
-        </form>
-      </CardContent>
-
-      <CardFooter
-        className={cn(
-          'flex w-full flex-col items-stretch gap-2',
-          // Setup has no bottom nav, so its actions can stay in thumb reach.
-          !isSettings &&
-            'mobile-safe-bottom sticky bottom-0 z-10 border-t border-border bg-card py-4 sm:static sm:border-t-0 sm:py-0',
+          />
         )}
-      >
-        <div className="grid w-full grid-cols-2 gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            className="touch-target h-11"
-            onClick={() => void onTestConnection()}
-            disabled={testing || !canCallApi}
-          >
-            {testing ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <PlugZap className="size-4" />
-            )}
-            Test Connection
-          </Button>
-          <Button
-            type="submit"
-            form={formId}
-            className="touch-target h-11"
-            disabled={saving}
-          >
-            {saving ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Save className="size-4" />
-            )}
-            Save
-          </Button>
-          {!isSettings ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="touch-target col-span-2 h-11"
-              onClick={() => void onLoadProjects()}
-              disabled={loadingProjects || !canCallApi}
-            >
-              {loadingProjects ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <FolderSync className="size-4" />
-              )}
-              Load Projects
-            </Button>
-          ) : null}
-        </div>
+      </FieldGroup>
+    </form>
+  );
 
+  const actions = (
+    <CardFooter
+      className={cn(
+        'flex w-full flex-col items-stretch gap-2',
+        // In Settings the card section provides the padding.
+        isSettings && 'px-0',
+        // Setup has no bottom nav, so its actions can stay in thumb reach.
+        !isSettings &&
+          'mobile-safe-bottom sticky bottom-0 z-10 border-t border-border bg-card py-4 sm:static sm:border-t-0 sm:py-0',
+      )}
+    >
+      <div className="grid w-full grid-cols-2 gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          className="touch-target h-11"
+          onClick={() => void onTestConnection()}
+          disabled={testing || !canCallApi}
+        >
+          {testing ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <PlugZap className="size-4" />
+          )}
+          Test Connection
+        </Button>
+        <Button
+          type="submit"
+          form={formId}
+          className="touch-target h-11"
+          disabled={saving}
+        >
+          {saving ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Save className="size-4" />
+          )}
+          Save
+        </Button>
         {!isSettings ? (
           <Button
             type="button"
-            variant="default"
-            className="touch-target h-11 w-full"
-            onClick={onContinue}
-            disabled={!isConfigured && !canCallApi}
+            variant="outline"
+            className="touch-target col-span-2 h-11"
+            onClick={() => void onLoadProjects()}
+            disabled={loadingProjects || !canCallApi}
           >
-            Continue to Dashboard
+            {loadingProjects ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <FolderSync className="size-4" />
+            )}
+            Load Projects
           </Button>
         ) : null}
+      </div>
 
-        {/* Destructive and rare: kept visible but quiet, away from Save. */}
+      {!isSettings ? (
         <Button
           type="button"
-          variant="ghost"
-          className="touch-target h-11 w-full gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-          onClick={() => void onReset()}
+          variant="default"
+          className="touch-target h-11 w-full"
+          onClick={onContinue}
+          disabled={!isConfigured && !canCallApi}
         >
-          <RotateCcw className="size-4" />
-          Reset
+          Continue to Dashboard
         </Button>
-      </CardFooter>
+      ) : null}
+
+      {/* Destructive and rare: kept visible but quiet, away from Save. */}
+      <Button
+        type="button"
+        variant="ghost"
+        className="touch-target h-11 w-full gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+        onClick={() => void onReset()}
+      >
+        <RotateCcw className="size-4" />
+        Reset
+      </Button>
+    </CardFooter>
+  );
+
+  if (isSettings) {
+    // Same pattern as the other Settings groups: a quiet heading above one card,
+    // with connection health as the card's first row.
+    return (
+      <section aria-labelledby="settings-connection" className="space-y-2">
+        <div className="space-y-0.5 px-1">
+          <h2
+            id="settings-connection"
+            className="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+          >
+            Connection
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Organization, project, and access token for this device.{' '}
+            <Link
+              href="/help"
+              className="font-medium text-foreground underline-offset-4 hover:underline"
+            >
+              Help guide
+            </Link>
+          </p>
+        </div>
+        <Card className="gap-0 rounded-xl py-0 shadow-none">
+          <div className="flex flex-col gap-1 border-b border-border px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium">Status</span>
+              {statusBadge(health.status)}
+            </div>
+            {health.message ? (
+              <p
+                className={cn(
+                  'text-xs',
+                  health.status === 'failed'
+                    ? 'text-destructive'
+                    : 'text-muted-foreground',
+                )}
+              >
+                {health.message}
+              </p>
+            ) : null}
+          </div>
+          <CardContent className="px-4 py-4">{formFields}</CardContent>
+          <div className="border-t border-border px-4 py-4">{actions}</div>
+        </Card>
+      </section>
+    );
+  }
+
+  return (
+    <Card className="w-full max-w-2xl">
+      <CardHeader className="gap-3">
+        <div className="rounded-lg bg-white px-3 py-2 ring-1 ring-border/60 dark:bg-white">
+          <BrandLockup width={260} priority />
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <CardTitle className="text-2xl">
+              {isConfigured
+                ? 'Update your connection'
+                : 'Connect so you can work on your tasks'}
+            </CardTitle>
+          </div>
+          {statusBadge(health.status)}
+        </div>
+        <CardDescription>
+          Enter your Azure DevOps organization and access token to get started. Project is
+          optional. Your token stays on this device and is never placed in the address
+          bar.{' '}
+          <Link
+            href="/help"
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+          >
+            Help guide
+          </Link>
+        </CardDescription>
+        {hasServerPat ? (
+          <Alert>
+            <AlertTitle>Token already saved</AlertTitle>
+            <AlertDescription>
+              You can leave the token field empty to keep your current token, or enter a
+              new one to replace it.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+        <Alert>
+          <AlertTitle>Need a fresh start?</AlertTitle>
+          <AlertDescription>
+            Reset clears your saved connection settings and access token from this device.
+            You can set them up again anytime on this page.
+          </AlertDescription>
+        </Alert>
+        {health.message ? (
+          <Alert variant={health.status === 'failed' ? 'destructive' : 'default'}>
+            <AlertTitle>Connection status</AlertTitle>
+            <AlertDescription>{health.message}</AlertDescription>
+          </Alert>
+        ) : null}
+      </CardHeader>
+
+      <CardContent>{formFields}</CardContent>
+
+      {actions}
     </Card>
   );
 }
