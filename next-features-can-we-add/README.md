@@ -4,7 +4,14 @@ Ideas for features after the redesign roadmap in `DESIGN.md`. Use one file per i
 
 When an idea is picked up, start a `feat/<name>` branch and move the working notes to `.agents/features/<name>.md`.
 
-## Ideas
+## Top priority
+
+| Idea                                      | Size | Impact | Summary                                                                                  |
+| ----------------------------------------- | ---- | ------ | ---------------------------------------------------------------------------------------- |
+| [Native mobile app](native-mobile-app.md) | XL   | high   | Expo app reusing `src/core`, with SecureStore auth, widgets, share extension, biometrics |
+| [AI chat assistant](ai-chat-assistant.md) | L    | high   | Ask about your work in plain language; confirmed tool calls for updates                  |
+
+## More ideas
 
 | Idea                                                                | Size | Impact | Summary                                                                 |
 | ------------------------------------------------------------------- | ---- | ------ | ----------------------------------------------------------------------- |
@@ -17,4 +24,4 @@ When an idea is picked up, start a `feat/<name>` branch and move the working not
 | [Sprint task templates](sprint-task-templates.md)                   | M    | medium | Create my recurring sprint tasks from a saved template                  |
 | [Push notifications](push-notifications.md)                         | L    | medium | Notify on @mentions, assignments, and comments on followed items        |
 
-Suggested order: PWA shortcuts (quick win), then Today timesheet, then Standup summary (reuses the timesheet's revision logic).
+Suggested order: the two top-priority items first. The AI assistant can ship on the web app first, and the native app reuses its `/api/chat` endpoint. Native also covers parts of the PWA shortcuts and push notification ideas on iOS. After that: Today timesheet, then Standup summary (reuses the timesheet's revision logic).
