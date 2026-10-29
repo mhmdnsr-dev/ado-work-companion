@@ -20,14 +20,21 @@ Everyone, and especially people who don't know WIQL or the Boards UI well (PMs, 
 
 ## How it works
 
-- A new server route (`/api/chat`) calls an LLM (Claude API with tool use) and runs tools on the server with the PAT from the encrypted cookie, the same way the `/api/ado` proxy does.
-- The PAT is never sent to the model, never put in a prompt or tool result, and never logged.
+- A new server route (`/api/chat`) calls an LLM (Claude API with tool use) using the person's own API key, and runs tools on the server with the PAT, both read from encrypted cookies the same way the `/api/ado` proxy reads the PAT.
+- Neither the PAT nor the API key is ever sent to the model, put in a prompt or tool result, or logged.
 - Only the data a tool returns is sent to the model, and only for the current question.
 - The native app reuses the same `/api/chat` endpoint.
 
+## Decisions (2026-10-29)
+
+- **Opt-in per device.** The assistant is off by default. Settings shows a clear notice that work item titles, descriptions and comments are sent to the LLM provider, and the person turns it on for that device only. Nothing is sent before they opt in.
+- **Each person brings their own API key.** No shared server key, so no central billing or per-user rate limits.
+  - Web: the key is entered in Settings, POSTed once to the server, and stored in an encrypted HttpOnly cookie, exactly like the PAT. `/api/chat` reads it from the cookie on each request.
+  - Native: the key goes in Expo SecureStore through the storage port.
+  - The key is never readable by page JavaScript, never logged, never sent anywhere except the LLM provider, and can be removed from Settings. Opting out also deletes it.
+  - Settings shows a "Test key" button and a link explaining how to create a key and set a spending limit with the provider.
+
 ## Open questions
 
-- Data policy: work item titles, descriptions and comments go to the LLM provider. Many organisations need approval for this, so make the assistant opt-in per device with a clear notice in Settings.
-- Who pays for API usage, and with which key? Options: one server key (needs rate limits per user) or each person brings their own key.
-- Which model, chosen by testing speed and cost on realistic prompts during the slice.
+- Which model, chosen by testing speed and cost on realistic prompts during the slice. Since people pay for their own usage, consider letting them pick between a faster, cheaper model and a stronger one.
 - Do we keep chat history? Recommended for v1: no, history lives only in the open session.

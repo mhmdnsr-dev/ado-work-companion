@@ -23,9 +23,16 @@ Every phone user, iOS users most of all.
 
 No new ones for the first release; everything goes through `@core/api`.
 
+## Decisions (2026-10-29)
+
+- **Internal testing only, no public store listing.** iOS through TestFlight, Android through Google Play internal testing, with builds made by Expo EAS. This avoids public store review and store listing pages, but still needs an Apple Developer account and a Google Play Console account. Limits to plan for:
+  - TestFlight internal testers must be users on the App Store Connect team (up to 100) and skip review; testers outside the team need a Beta App Review.
+  - TestFlight builds expire after 90 days, so plan a regular rebuild.
+  - Play internal testing allows up to 100 testers, added by email.
+- **The AI assistant follows its own decisions** (see [ai-chat-assistant.md](ai-chat-assistant.md)): opt-in per device, and the person's own API key stored in SecureStore.
+
 ## Open questions
 
 - Styling on native: NativeWind (Tailwind classes, closest to the web code) or a small token-based StyleSheet layer?
-- Distribution: public store listing, or internal only (TestFlight / Play internal testing / company MDM)? This decides the store accounts and review work.
 - Do we keep the PWA as the desktop and "try it first" version once native ships? (Recommended: yes.)
 - Push notifications still need a server that receives ADO service hooks (see [push-notifications.md](push-notifications.md)); native only replaces the Web Push delivery part.
